@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 241, 245, 249;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Nastaliq Urdu typography with English/Math Digits priority */
+.font-nastaliq {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', serif;
+  line-height: 2.0 !important;
+  letter-spacing: 0px;
+}
+
+/* Force standard Latin math numbers */
+.math-digit {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif !important;
+  direction: ltr !important;
+  unicode-bidi: embed;
+  font-weight: 700;
+}
+
+/* Ensure RTL headings and text do not clip */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+/* ========================================================= */
+/* THERMAL POS & A4 INVOICE PRINT STYLES                     */
+/* ========================================================= */
+@media print {
+  @page {
+    margin: 2mm 0mm !important;
+    size: auto;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    font-size: 12px;
+  }
+
+  /* Hide everything on page except the receipt modal content */
+  .no-print, header, nav, button, footer, .modal-backdrop {
+    display: none !important;
+  }
+
+  /* Print Modal Container override */
+  .print-modal-wrapper {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .print-paper-area {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  /* 80mm Thermal Receipt (Exact 72mm-76mm printable roll width) */
+  .thermal-80-receipt {
+    width: 76mm !important;
+    max-width: 76mm !important;
+    min-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 3mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+  }
+
+  /* 58mm Thermal Receipt (Exact 48mm-52mm printable roll width) */
+  .thermal-58-receipt {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    min-width: 52mm !important;
+    margin: 0 auto !important;
+    padding: 1mm 2mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 9.5px !important;
+    line-height: 1.2 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+  }
+
+  /* A4 Professional Invoice */
+  .a4-receipt {
+    width: 190mm !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    padding: 8mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+  }
+
+  /* A5 Half-Page Invoice (Normal Printer) */
+  .a5-receipt {
+    width: 135mm !important;
+    max-width: 135mm !important;
+    margin: 0 auto !important;
+    padding: 5mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+  }
+
+  /* Barcode & QR Sticker Label */
+  #printable-label {
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Force crisp black text and sharp dashed lines on thermal heads */
+  * {
+    color: #000000 !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
