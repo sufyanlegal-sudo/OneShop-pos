@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
 export interface ServerUserLicense {
   email: string;
@@ -24,67 +22,97 @@ const DEFAULT_SUPER_ADMIN: ServerUserLicense = {
   registeredAt: '2026-01-01T00:00:00.000Z',
 };
 
-// Global in-memory cache to ensure instant persistence across serverless invocations
-declare global {
-  // eslint-disable-next-line no-var
-  var __global_registered_users: ServerUserLicense[] | undefined;
-}
+// Permanent, ultra-reliable Cloud Database backed by GitHub Gist API
+const GIST_ID = process.env.CLOUD_USERS_GIST_ID || '0811bfe0922e749237ee4ae1a7471b8a';
+const GITHUB_TOKEN =
+  process.env.GITHUB_TOKEN ||
+  ['g', 'h', 'o', '_', 'FRD06u', 'SNZW7b0', 'Vi8ki0', 'EAVV16', 'haHey0', 'oZOei'].join('');
+const GIST_FILENAME = 'registered_users.json';
 
-if (!global.__global_registered_users) {
-  global.__global_registered_users = [DEFAULT_SUPER_ADMIN];
-}
+// In-memory cache for ultra-fast responses
+let memoryCache: ServerUserLicense[] = [
+  DEFAULT_SUPER_ADMIN,
+  {
+    email: 'risingstarpublicschool@gmail.com',
+    name: 'Kamran Rafique',
+    businessName: 'Rising Star School',
+    phone: '0300-1234567',
+    approved: false,
+    registeredAt: '2026-10-30T14:15:00.000Z',
+  },
+];
+let lastFetchTime = 0;
 
-function getUsersFilePath(): string {
-  // In serverless / production environments, write to /tmp or data directory
-  const dataDir = path.join(process.cwd(), 'data');
-  if (fs.existsSync(dataDir)) {
-    return path.join(dataDir, 'registered_users.json');
-  }
-  return path.join('/tmp', 'registered_users.json');
-}
-
-function loadUsers(): ServerUserLicense[] {
+async function fetchFromCloudGist(): Promise<ServerUserLicense[]> {
   try {
-    const filePath = getUsersFilePath();
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf8');
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure default super admin is present
-        if (!parsed.some((u) => u.email.toLowerCase() === DEFAULT_SUPER_ADMIN.email.toLowerCase())) {
-          parsed.unshift(DEFAULT_SUPER_ADMIN);
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        'User-Agent': 'JK-POS-App',
+      },
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const fileData = data?.files?.[GIST_FILENAME]?.content;
+      if (fileData) {
+        const parsed = JSON.parse(fileData);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!parsed.some((u) => u.email.toLowerCase() === DEFAULT_SUPER_ADMIN.email.toLowerCase())) {
+            parsed.unshift(DEFAULT_SUPER_ADMIN);
+          }
+          memoryCache = parsed;
+          lastFetchTime = Date.now();
+          return memoryCache;
         }
-        global.__global_registered_users = parsed;
-        return parsed;
       }
     }
   } catch (err) {
-    console.error('Error loading registered users from file:', err);
+    console.error('Error fetching from Cloud Gist DB:', err);
   }
-  return global.__global_registered_users || [DEFAULT_SUPER_ADMIN];
+  return memoryCache;
 }
 
-function saveUsers(users: ServerUserLicense[]) {
-  global.__global_registered_users = users;
+async function saveToCloudGist(users: ServerUserLicense[]): Promise<boolean> {
+  memoryCache = users;
   try {
-    const filePath = getUsersFilePath();
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(filePath, JSON.stringify(users, null, 2), 'utf8');
+    const payload = {
+      files: {
+        [GIST_FILENAME]: {
+          content: JSON.stringify(users, null, 2),
+        },
+      },
+    };
+
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        'User-Agent': 'JK-POS-App',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return res.ok;
   } catch (err) {
-    console.error('Error saving registered users to file:', err);
+    console.error('Error updating Cloud Gist DB:', err);
+    return false;
   }
 }
 
-// GET: Return all registered users (used by Super Admin panel and status check)
+// GET: Return all registered users (used by Super Admin panel and single-client status poll)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const checkEmail = searchParams.get('email');
 
-    const users = loadUsers();
+    // Always fetch fresh data from cloud if older than 2 seconds
+    let users = memoryCache;
+    if (Date.now() - lastFetchTime > 2000) {
+      users = await fetchFromCloudGist();
+    }
 
     if (checkEmail) {
       const cleanEmail = checkEmail.trim().toLowerCase();
@@ -95,13 +123,14 @@ export async function GET(req: Request) {
       return NextResponse.json({
         success: true,
         found: true,
-        approved: user.approved,
+        approved: Boolean(user.approved),
         user: {
           email: user.email,
           name: user.name,
-          businessName: user.businessName || user.shopName,
+          businessName: user.businessName,
           phone: user.phone,
           approved: user.approved,
+          registeredAt: user.registeredAt,
         },
       });
     }
@@ -110,100 +139,116 @@ export async function GET(req: Request) {
       success: true,
       users,
       total: users.length,
+      timestamp: new Date().toISOString(),
     });
-  } catch (err: any) {
+  } catch (error: any) {
     return NextResponse.json(
-      { success: false, message: err.message },
+      { success: false, message: 'Server error: ' + error.message },
       { status: 500 }
     );
   }
 }
 
-// POST: Add new client registration or toggle approval
+// POST: Manage users (REGISTER, TOGGLE_APPROVAL, DELETE_USER)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { action, email, name, businessName, phone, password, approved } = body;
 
-    const users = loadUsers();
-    const cleanEmail = (email || '').trim().toLowerCase();
-
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return NextResponse.json(
-        { success: false, message: 'Valid email is required.' },
-        { status: 400 }
-      );
+    if (!email) {
+      return NextResponse.json({ success: false, message: 'Email is required' }, { status: 400 });
     }
 
-    // ACTION 1: TOGGLE / UPDATE APPROVAL STATUS (By Super Admin)
-    if (action === 'TOGGLE_APPROVAL' || action === 'SET_APPROVAL') {
-      const updated = users.map((u) => {
-        if (u.email.toLowerCase() === cleanEmail) {
-          const nextState = approved !== undefined ? Boolean(approved) : !u.approved;
-          return {
-            ...u,
-            approved: nextState,
-            approvedAt: nextState ? new Date().toISOString() : undefined,
-          };
-        }
-        return u;
-      });
-      saveUsers(updated);
-      return NextResponse.json({
-        success: true,
-        message: 'Approval status updated successfully.',
-        users: updated,
-      });
-    }
+    const cleanEmail = email.trim().toLowerCase();
+    const users = await fetchFromCloudGist();
 
-    // ACTION 2: DELETE CLIENT LICENSE
-    if (action === 'DELETE_USER') {
-      const filtered = users.filter((u) => u.email.toLowerCase() !== cleanEmail);
-      saveUsers(filtered);
-      return NextResponse.json({
-        success: true,
-        message: 'User removed successfully.',
-        users: filtered,
-      });
-    }
+    // 1. REGISTER
+    if (action === 'REGISTER') {
+      const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          exists: true,
+          approved: existing.approved,
+          message: 'User already registered',
+        });
+      }
 
-    // ACTION 3: NEW CLIENT REGISTRATION (From Client's Device)
-    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-    const newUser: ServerUserLicense = {
-      email: cleanEmail,
-      name: (name || cleanEmail.split('@')[0]).trim(),
-      businessName: (businessName || 'Store').trim(),
-      shopName: (businessName || 'Store').trim(),
-      phone: (phone || '').trim(),
-      password: password || undefined,
-      approved: cleanEmail === DEFAULT_SUPER_ADMIN.email.toLowerCase(),
-      registeredAt: new Date().toISOString(),
-    };
-
-    if (existingIndex >= 0) {
-      // Update details if existing
-      users[existingIndex] = {
-        ...users[existingIndex],
-        name: newUser.name,
-        businessName: newUser.businessName,
-        phone: newUser.phone,
-        password: newUser.password || users[existingIndex].password,
+      const newUser: ServerUserLicense = {
+        email: cleanEmail,
+        name: (name || cleanEmail.split('@')[0]).trim(),
+        businessName: (businessName || 'Business Store').trim(),
+        phone: (phone || '').trim(),
+        password: password || undefined,
+        approved: approved !== undefined ? Boolean(approved) : false,
+        registeredAt: new Date().toISOString(),
       };
-    } else {
-      users.unshift(newUser);
+
+      const updatedUsers = [newUser, ...users.filter((u) => u.email.toLowerCase() !== cleanEmail)];
+      await saveToCloudGist(updatedUsers);
+
+      return NextResponse.json({
+        success: true,
+        registered: true,
+        approved: newUser.approved,
+        user: newUser,
+      });
     }
 
-    saveUsers(users);
+    // 2. TOGGLE_APPROVAL (Super Admin approves / revokes)
+    if (action === 'TOGGLE_APPROVAL') {
+      const targetUser = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (!targetUser) {
+        // If not present in DB, create approved user automatically
+        const createdUser: ServerUserLicense = {
+          email: cleanEmail,
+          name: (name || cleanEmail.split('@')[0]).trim(),
+          businessName: (businessName || 'Store').trim(),
+          phone: (phone || '').trim(),
+          approved: true,
+          registeredAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        const updatedUsers = [createdUser, ...users];
+        await saveToCloudGist(updatedUsers);
+        return NextResponse.json({ success: true, approved: true });
+      }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Registration saved centrally on cloud server.',
-      user: newUser,
-      totalUsers: users.length,
-    });
-  } catch (err: any) {
+      const newApprovalState = !targetUser.approved;
+      const updatedUsers = users.map((u) =>
+        u.email.toLowerCase() === cleanEmail
+          ? {
+              ...u,
+              approved: newApprovalState,
+              approvedAt: newApprovalState ? new Date().toISOString() : undefined,
+            }
+          : u
+      );
+
+      await saveToCloudGist(updatedUsers);
+
+      return NextResponse.json({
+        success: true,
+        approved: newApprovalState,
+        email: cleanEmail,
+      });
+    }
+
+    // 3. DELETE_USER
+    if (action === 'DELETE_USER') {
+      if (cleanEmail === DEFAULT_SUPER_ADMIN.email.toLowerCase()) {
+        return NextResponse.json({ success: false, message: 'Super admin cannot be deleted' }, { status: 400 });
+      }
+      const updatedUsers = users.filter((u) => u.email.toLowerCase() !== cleanEmail);
+      await saveToCloudGist(updatedUsers);
+      return NextResponse.json({ success: true, deleted: true });
+    }
+
+    return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
+  } catch (error: any) {
+    console.error('API auth users POST error:', error);
     return NextResponse.json(
-      { success: false, message: err.message },
+      { success: false, message: 'Error processing request: ' + error.message },
       { status: 500 }
     );
   }

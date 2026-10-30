@@ -93,6 +93,34 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
   const ADMIN_WHATSAPP = '+923008998381';
 
+  const [isApprovedAndUnlocking, setIsApprovedAndUnlocking] = useState(false);
+
+  // REAL-TIME AUTO UNLOCK: Continuously checks every 2.5s if Super Admin approved this user.
+  // The moment Admin clicks "Approve", the client screen automatically unlocks and launches the POS!
+  useEffect(() => {
+    const targetEmail = pendingUser?.email || (currentUserEmail && !isApprovedUser ? currentUserEmail : null);
+    if (!targetEmail) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/users?email=${encodeURIComponent(targetEmail)}`);
+        const data = await res.json();
+        if (data.success && data.found && data.approved) {
+          clearInterval(interval);
+          setIsApprovedAndUnlocking(true);
+          loginUser({ email: targetEmail });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        }
+      } catch (err) {
+        // Retry silently
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [pendingUser, currentUserEmail, isApprovedUser]);
+
   // Secret Keyboard Shortcut (Ctrl + Shift + S) to open Master Security Key dialog
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -447,83 +475,107 @@ ${u?.name || 'Store Owner'}`
         {/* ========================================================================= */}
         {(pendingUser || (currentUserEmail && !isApprovedUser)) && (
           <div className="space-y-4 animate-in fade-in zoom-in-95 text-left">
-            <div className="bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <Clock className="w-6 h-6 animate-pulse" />
-              </div>
-
-              <div>
-                <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
-                  ⏳ Account Awaiting Approval
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
-                  Your store details have been registered. For security and license protection, administrator approval is required before you can access the POS software.
-                </p>
-              </div>
-
-              {/* Registered details card */}
-              <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-left space-y-1.5 font-mono">
-                {pendingUser?.name && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-sans">Full Name:</span>
-                    <span className="font-bold font-sans text-slate-900 dark:text-white">
-                      {pendingUser.name}
-                    </span>
+            {isApprovedAndUnlocking ? (
+              <div className="bg-emerald-50 dark:bg-emerald-950/80 border-2 border-emerald-500 text-emerald-950 dark:text-emerald-200 p-6 rounded-2xl shadow-xl text-center space-y-3 animate-in zoom-in-95">
+                <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-8 h-8 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-emerald-700 dark:text-emerald-300">
+                    🎉 License Approved!
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium">
+                    Your OneShop POS account has been successfully approved by JK Developers Pakistan.
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-2 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Launching your POS now...</span>
                   </div>
-                )}
-                {pendingUser?.businessName && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-sans">Business / Shop:</span>
-                    <span className="font-bold font-sans text-slate-900 dark:text-white">
-                      {pendingUser.businessName}
-                    </span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
+                    ⏳ Account Awaiting Approval
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                    Your store details have been registered. For security and license protection, administrator approval is required before you can access the POS software.
+                  </p>
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full text-[11px] font-bold border border-emerald-300 dark:border-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span>Live Auto-Sync Active (Screen unlocks upon approval)</span>
                   </div>
-                )}
-                {pendingUser?.phone && (
+                </div>
+
+                {/* Registered details card */}
+                <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-left space-y-1.5 font-mono">
+                  {pendingUser?.name && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 font-sans">Full Name:</span>
+                      <span className="font-bold font-sans text-slate-900 dark:text-white">
+                        {pendingUser.name}
+                      </span>
+                    </div>
+                  )}
+                  {pendingUser?.businessName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 font-sans">Business / Shop:</span>
+                      <span className="font-bold font-sans text-slate-900 dark:text-white">
+                        {pendingUser.businessName}
+                      </span>
+                    </div>
+                  )}
+                  {pendingUser?.phone && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 font-sans">Mobile / WhatsApp:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {pendingUser.phone}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-sans">Mobile / WhatsApp:</span>
+                    <span className="text-slate-500 font-sans">Registered Gmail:</span>
                     <span className="font-bold text-slate-900 dark:text-white">
-                      {pendingUser.phone}
+                      {pendingUser?.email || currentUserEmail}
                     </span>
                   </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-sans">Registered Gmail:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {pendingUser?.email || currentUserEmail}
-                  </span>
+                  <div className="flex justify-between items-center pt-1.5 border-t border-amber-200/60 dark:border-amber-800/60">
+                    <span className="text-slate-500 font-sans">License Status:</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400 font-sans bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full text-[11px]">
+                      Pending Approval (Locked)
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center pt-1.5 border-t border-amber-200/60 dark:border-amber-800/60">
-                  <span className="text-slate-500 font-sans">License Status:</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400 font-sans bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full text-[11px]">
-                    Pending Approval (Locked)
-                  </span>
+
+                {/* Notification Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  {/* 1. WhatsApp Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendWhatsAppNotification()}
+                    className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Send Request via WhatsApp (0300-8998381)</span>
+                  </button>
+
+                  {/* 2. Gmail / Email Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendEmailNotification()}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Send Request via Gmail (jkdevelopers.pk@gmail.com)</span>
+                  </button>
                 </div>
               </div>
-
-              {/* Notification Action Buttons */}
-              <div className="space-y-2 pt-1">
-                {/* 1. WhatsApp Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSendWhatsAppNotification()}
-                  className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>Send Request via WhatsApp (0300-8998381)</span>
-                </button>
-
-                {/* 2. Gmail / Email Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSendEmailNotification()}
-                  className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>Send Request via Gmail (jkdevelopers.pk@gmail.com)</span>
-                </button>
-              </div>
-            </div>
+            )}
 
             <button
               type="button"

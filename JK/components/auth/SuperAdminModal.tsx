@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/context/ShopContext';
 import {
   ShieldCheck,
@@ -29,6 +29,7 @@ export const SuperAdminModal: React.FC = () => {
     toggleUserApproval,
     addUserLicense,
     deleteUserLicense,
+    refreshUsersFromCloud,
     logoutUser,
   } = useShop();
 
@@ -39,6 +40,23 @@ export const SuperAdminModal: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newBusiness, setNewBusiness] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Auto-sync with cloud database when open & every 3 seconds
+  useEffect(() => {
+    if (!isSuperAdminModalOpen) return;
+    refreshUsersFromCloud();
+    const interval = setInterval(() => {
+      refreshUsersFromCloud();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isSuperAdminModalOpen]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshUsersFromCloud();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   if (!isSuperAdminModalOpen) return null;
 
@@ -231,7 +249,7 @@ export const SuperAdminModal: React.FC = () => {
           </button>
         </form>
 
-        {/* Search Bar */}
+        {/* Search Bar & Refresh */}
         <div className="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
           <div className="relative flex-1 max-w-sm">
             <input
@@ -244,9 +262,22 @@ export const SuperAdminModal: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
           </div>
 
-          <span className="text-[11px] text-slate-500">
-            نتائج: <span className="font-mono font-bold">{filteredUsers.length}</span>
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition active:scale-95 disabled:opacity-50"
+              title="تمام نئے کلائنٹس کا ڈیٹا لائیو کلاؤڈ سے تازہ کریں"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>تازہ کریں (Live Sync)</span>
+            </button>
+
+            <span className="text-[11px] text-slate-500">
+              نتائج: <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{filteredUsers.length}</span>
+            </span>
+          </div>
         </div>
 
         {/* Clients Table */}

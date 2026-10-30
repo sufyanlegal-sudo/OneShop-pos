@@ -209,6 +209,7 @@ interface ShopContextType {
   toggleUserApproval: (email: string) => void;
   addUserLicense: (email: string, name?: string, approved?: boolean, businessName?: string, phone?: string) => void;
   deleteUserLicense: (email: string) => void;
+  refreshUsersFromCloud: () => Promise<void>;
   // System Tools
   resetSystemData: () => void;
 }
@@ -653,6 +654,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
         }),
       });
+      await refreshUsersFromCloud();
     } catch (err) {
       console.error('Failed to sync toggle approval to cloud:', err);
     }
@@ -697,6 +699,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           approved,
         }),
       });
+      await refreshUsersFromCloud();
     } catch (err) {
       console.error('Failed to sync new user to cloud:', err);
     }
@@ -717,6 +720,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
         }),
       });
+      await refreshUsersFromCloud();
     } catch (err) {
       console.error('Failed to sync delete to cloud:', err);
     }
@@ -2466,6 +2470,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleUserApproval,
         addUserLicense,
         deleteUserLicense,
+        refreshUsersFromCloud,
       }}
     >
       {children}
