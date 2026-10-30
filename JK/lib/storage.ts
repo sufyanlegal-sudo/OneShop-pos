@@ -463,8 +463,8 @@ export const storage = {
     return [
       {
         email: 'jkdevelopers.pk@gmail.com',
-        name: 'سفیان حبیب (چیف ایڈمن)',
-        businessName: 'JK Developers پاکستان',
+        name: 'JK Developers Pakistan (Admin)',
+        businessName: 'JK Developers Pakistan',
         phone: '0300-8998381',
         password: 'JK@8998381',
         approved: true,

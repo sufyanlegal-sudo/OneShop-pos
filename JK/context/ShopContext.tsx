@@ -295,6 +295,52 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoaded(true);
   }, []);
 
+  // Fetch global registered users from Cloud Server so Super Admin sees all registrations from all devices
+  const refreshUsersFromCloud = async () => {
+    try {
+      const res = await fetch('/api/auth/users');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        setUsersDB(data.users);
+        storage.saveUsersDB(data.users);
+      }
+    } catch (err) {
+      console.error('Failed to sync users from cloud server:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    refreshUsersFromCloud();
+  }, [isLoaded]);
+
+  // If active user is awaiting approval, poll cloud server every 4 seconds to detect when Super Admin approves!
+  useEffect(() => {
+    if (!isLoaded || !currentUserEmail) return;
+    const userRec = usersDB.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase());
+    if (userRec && !userRec.approved) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}`);
+          const data = await res.json();
+          if (data.success && data.found && data.approved) {
+            setUsersDB((prev) =>
+              prev.map((u) =>
+                u.email.toLowerCase() === currentUserEmail.toLowerCase()
+                  ? { ...u, approved: true }
+                  : u
+              )
+            );
+            refreshUsersFromCloud();
+          }
+        } catch {
+          // Ignore polling errors
+        }
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoaded, currentUserEmail, usersDB]);
+
   // Real-time synchronization with Vercel WhatsApp Webhook server for incoming customer orders
   useEffect(() => {
     if (!isLoaded) return;
@@ -483,8 +529,21 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    // Auto-dispatch notification to Developer Gmail & WhatsApp API
+    // Auto-dispatch notification to Developer Gmail & WhatsApp API and save to server
     try {
+      await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'REGISTER',
+          email: cleanEmail,
+          name: params.name.trim(),
+          businessName: params.businessName.trim(),
+          phone: params.phone.trim(),
+          password: params.password,
+        }),
+      });
+
       await fetch('/api/auth/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -525,7 +584,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       storage.setCurrentUser(SUPER_ADMIN_EMAIL);
       return {
         status: 'SUPER_ADMIN' as const,
-        message: 'Welcome Sufyan Habib! Super Admin control granted.',
+        message: 'Welcome JK Developers Pakistan! Super Admin control granted.',
       };
     }
 
@@ -550,7 +609,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userRec.approved) {
       return {
         status: 'PENDING' as const,
-        message: 'Your account is pending approval by Developer Sufyan Habib (0300-8998381).',
+        message: 'Your account is pending approval by JK Developers Pakistan (0300-8998381).',
         user: userRec,
       };
     }
@@ -570,7 +629,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.setCurrentUser(null);
   };
 
-  const toggleUserApproval = (email: string) => {
+  const toggleUserApproval = async (email: string) => {
     const updated = usersDB.map((u) => {
       if (u.email.toLowerCase() === email.toLowerCase()) {
         const nextApproved = !u.approved;
@@ -584,9 +643,28 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     setUsersDB(updated);
     storage.saveUsersDB(updated);
+
+    try {
+      await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_APPROVAL',
+          email,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to sync toggle approval to cloud:', err);
+    }
   };
 
-  const addUserLicense = (email: string, name?: string, approved: boolean = true) => {
+  const addUserLicense = async (
+    email: string,
+    name?: string,
+    approved: boolean = true,
+    businessName?: string,
+    phone?: string
+  ) => {
     const clean = email.trim().toLowerCase();
     const existing = usersDB.find((u) => u.email.toLowerCase() === clean);
     if (existing) {
@@ -596,6 +674,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newUser: PosUserLicense = {
       email: clean,
       name: name || clean.split('@')[0],
+      businessName: businessName || 'Store',
+      phone: phone || '',
       approved,
       registeredAt: new Date().toISOString(),
       approvedAt: approved ? new Date().toISOString() : undefined,
@@ -603,13 +683,44 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = [newUser, ...usersDB];
     setUsersDB(updated);
     storage.saveUsersDB(updated);
+
+    try {
+      await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'REGISTER',
+          email: clean,
+          name: newUser.name,
+          businessName: newUser.businessName,
+          phone: newUser.phone,
+          approved,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to sync new user to cloud:', err);
+    }
   };
 
-  const deleteUserLicense = (email: string) => {
+  const deleteUserLicense = async (email: string) => {
     if (email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return;
     const updated = usersDB.filter((u) => u.email.toLowerCase() !== email.toLowerCase());
     setUsersDB(updated);
     storage.saveUsersDB(updated);
+
+    try {
+      await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'DELETE_USER',
+          email,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to sync delete to cloud:', err);
+    }
+
     if (currentUserEmail?.toLowerCase() === email.toLowerCase()) {
       logoutUser();
     }

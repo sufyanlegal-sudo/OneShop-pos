@@ -89,8 +89,8 @@ export const SuperAdminModal: React.FC = () => {
 اب آپ اپنی رجسٹرڈ جی میل (${user.email}) سے لاگ ان کر کے اپنا سافٹ ویئر چلا سکتے ہیں۔
 تشریف آوری اور اعتماد کا بہت شکریہ!
 ━━━━━━━━━━━━━━━━━━
-سفیان حبیب • چیف ڈویلپر
-JK Developers پاکستان - 03008998381`;
+ادارہ: JK Developers Pakistan (جے کے ڈویلپرز پاکستان)
+ہیلپ لائن و کسٹمر سپورٹ: 0300-8998381`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -124,14 +124,14 @@ JK Developers پاکستان - 03008998381`;
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base md:text-lg font-black tracking-tight font-sans">
-                  ⚙️ سپر ایڈمن کنٹرول پینل (JK Developers)
+                  ⚙️ سپر ایڈمن کنٹرول پینل (JK Developers Pakistan)
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono text-[11px] font-bold border border-emerald-700">
-                  سفیان حبیب (چیف ایڈمن)
+                  JK Developers پاکستان
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                یہاں سے آپ رجسٹرڈ صارفین کے کوائف دیکھ کر انہیں سافٹ ویئر چلانے کی منظوری دے سکتے ہیں
+                تمام کلائنٹس کے اکاؤنٹس یہاں لائیو سنکرونائز ہیں، آپ کسی بھی وقت منظوری یا بلاک کر سکتے ہیں
               </p>
             </div>
           </div>

@@ -237,15 +237,21 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     // Set client into Pending state
-    setPendingUser({
+    const newClient = {
       name: regName.trim(),
       businessName: regBusinessName.trim(),
       phone: regPhone.trim(),
       email: cleanEmail,
-    });
+    };
+    setPendingUser(newClient);
+
+    // Automatically trigger WhatsApp notification so the request is sent immediately
+    setTimeout(() => {
+      handleSendWhatsAppNotification(newClient);
+    }, 400);
   };
 
-  // 3. Handle Secret Master Key Submit (Only for developer Sufyan Habib)
+  // 3. Handle Secret Master Key Submit (Only for developer)
   const handleMasterKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!masterKeyInput.trim()) {
@@ -264,7 +270,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     setMasterKeyError('');
   };
 
-  // 4. Handle WhatsApp Notification to Developer
+  // 4. Handle WhatsApp Notification to Company
   const handleSendWhatsAppNotification = (userToNotify?: {
     name: string;
     businessName: string;
@@ -272,7 +278,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     email: string;
   }) => {
     const u = userToNotify || pendingUser;
-    const msg = `Salam Sufyan Habib (JK Developers)!
+    const msg = `Salam JK Developers Pakistan!
 I have registered a new store account on OneShop POS:
 ━━━━━━━━━━━━━━━━━━
 👤 Owner Name: ${u?.name || 'Client'}
@@ -287,7 +293,7 @@ Please review and grant approval to activate my software license. Thank you!`;
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // 4b. Handle Gmail / Email Notification to Developer
+  // 4b. Handle Gmail / Email Notification to Company
   const handleSendEmailNotification = (userToNotify?: {
     name: string;
     businessName: string;
@@ -299,7 +305,7 @@ Please review and grant approval to activate my software license. Thank you!`;
       `OneShop POS Approval Request: ${u?.businessName || 'New Store'} (${u?.name || 'Client'})`
     );
     const body = encodeURIComponent(
-`Respected Sufyan Habib (JK Developers Pakistan),
+`Respected JK Developers Pakistan Team,
 
 I have created a new store account on OneShop POS. Please review and approve my account:
 
