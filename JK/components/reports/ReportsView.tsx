@@ -5,7 +5,7 @@ import {
   BarChart3,
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  Coins,
   Download,
   Printer,
   Calendar,
@@ -443,7 +443,7 @@ export const ReportsView: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-medium">{lang === 'ur' ? 'خالص منافع (Net Profit)' : 'Net Profit'}</span>
-            <DollarSign className="w-4 h-4 text-purple-500" />
+            <Coins className="w-4 h-4 text-purple-500" />
           </div>
           <p className="text-xl md:text-2xl font-black font-mono text-purple-600">
             Rs. {analytics.netProfit.toLocaleString()}

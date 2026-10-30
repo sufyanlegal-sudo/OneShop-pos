@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Calendar,
-  DollarSign,
   Printer,
   FileText,
   CheckCircle2,

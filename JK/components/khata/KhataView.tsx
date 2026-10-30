@@ -14,7 +14,7 @@ import {
   CheckCircle,
   FileText,
   Mic,
-  DollarSign,
+  Banknote,
   TrendingDown,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -255,7 +255,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                     onClick={() => setPaymentModalOpen(true)}
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
                   >
-                    <DollarSign className="w-3.5 h-3.5" />
+                    <Banknote className="w-3.5 h-3.5" />
                     <span>{t('receivePayment')}</span>
                   </button>
 

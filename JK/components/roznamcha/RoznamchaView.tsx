@@ -14,6 +14,9 @@ import {
   UserCheck,
   Printer,
   Sparkles,
+  Mail,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -21,12 +24,14 @@ import { RoznamchaEntry, RoznamchaType } from '@/types';
 
 export const RoznamchaView: React.FC = () => {
   const { lang, t } = useLanguage();
-  const { roznamcha, addRoznamchaEntry, businessProfile, invoices } = useShop();
+  const { roznamcha, addRoznamchaEntry, businessProfile, invoices, sendDailyReportToEmail } = useShop();
 
   const [filterType, setFilterType] = useState<string>('all');
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [openingBalance, setOpeningBalance] = useState<number>(5000);
   const [actualDrawerCash, setActualDrawerCash] = useState<string>('');
+  const [isSendingReport, setIsSendingReport] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
   const [entryType, setEntryType] = useState<RoznamchaType>('EXPENSE');
@@ -87,6 +92,32 @@ export const RoznamchaView: React.FC = () => {
     window.print();
   };
 
+  const handleSendDailyReport = async () => {
+    setIsSendingReport(true);
+    setReportFeedback(null);
+    try {
+      const res = await sendDailyReportToEmail();
+      if (res.success) {
+        setReportFeedback({
+          type: 'success',
+          text: res.message,
+        });
+      } else {
+        setReportFeedback({
+          type: 'error',
+          text: res.message,
+        });
+      }
+    } catch (e: any) {
+      setReportFeedback({
+        type: 'error',
+        text: 'رپورٹ بھیجنے میں مسئلہ پیش آیا: ' + (e.message || ''),
+      });
+    } finally {
+      setIsSendingReport(false);
+    }
+  };
+
   const filteredEntries = useMemo(() => {
     if (filterType === 'all') return roznamcha;
     if (filterType === 'in') return roznamcha.filter((r) => r.isCashIn);
@@ -114,7 +145,29 @@ export const RoznamchaView: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleSendDailyReport}
+            disabled={isSendingReport}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            title="آج کی تمام سیل، اخراجات اور کھاتوں کی سمری اپنے جی میل پر بھیجیں"
+          >
+            {isSendingReport ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            <span>
+              {isSendingReport
+                ? lang === 'ur'
+                  ? 'رپورٹ جا رہی ہے...'
+                  : 'Sending...'
+                : lang === 'ur'
+                ? '📧 ڈیلی رپورٹ جی میل پر بھیجیں'
+                : 'Send Daily Report to Gmail'}
+            </span>
+          </button>
+
           <button
             onClick={() => setExpenseModalOpen(true)}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
@@ -132,6 +185,28 @@ export const RoznamchaView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Report Feedback Alert */}
+      {reportFeedback && (
+        <div
+          className={`p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between gap-2.5 animate-fadeIn ${
+            reportFeedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+              : 'bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>{reportFeedback.text}</span>
+          </div>
+          <button
+            onClick={() => setReportFeedback(null)}
+            className="text-xs opacity-60 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Financial Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

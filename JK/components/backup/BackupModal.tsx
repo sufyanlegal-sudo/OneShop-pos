@@ -29,6 +29,8 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
     updateBusinessProfile,
     exportDataBackup,
     sendBackupToEmail,
+    syncBackupToGoogleCloud,
+    restoreFromGoogleCloud,
     products,
     invoices,
     customers,
@@ -109,6 +111,58 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           ? 'بیک اپ فائل آپ کے کمپیوٹر میں ڈاؤنلوڈ ہو گئی ہے!'
           : 'Backup JSON downloaded to your computer!',
     });
+  };
+
+  const handleCloudSync = async () => {
+    setIsLoading(true);
+    setStatusMessage(null);
+    const result = await syncBackupToGoogleCloud(emailInput);
+    setIsLoading(false);
+    if (result.success) {
+      setStatusMessage({
+        type: 'success',
+        text: result.message,
+      });
+    } else {
+      setStatusMessage({
+        type: 'error',
+        text: result.message,
+      });
+    }
+  };
+
+  const handleCloudRestore = async () => {
+    if (!emailInput.trim()) {
+      alert('براہ کرم جی میل ایڈریس درج فرمائیں۔');
+      return;
+    }
+    if (
+      !confirm(
+        'کیا آپ واقعی گوگل کلاؤڈ سے آخری بیک اپ بحال کرنا چاہتے ہیں؟ موجودہ ڈیٹا کلاؤڈ ڈیٹا سے تبدیل ہو جائے گا۔'
+      )
+    ) {
+      return;
+    }
+
+    setIsLoading(true);
+    setStatusMessage(null);
+    const result = await restoreFromGoogleCloud(emailInput);
+    setIsLoading(false);
+
+    if (result.success) {
+      setStatusMessage({
+        type: 'success',
+        text: result.message,
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      setStatusMessage({
+        type: 'error',
+        text: result.message,
+      });
+    }
   };
 
   return (
@@ -245,7 +299,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             onClick={handleSendEmail}
             disabled={isLoading}
@@ -266,6 +320,34 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
             <Download className="w-4 h-4 text-emerald-400" />
             <span>{lang === 'ur' ? 'ڈاؤنلوڈ فائل' : 'Download JSON'}</span>
           </button>
+        </div>
+
+        {/* Google Cloud One-Click Backup & Restore Buttons */}
+        <div className="p-3 bg-slate-950/90 rounded-2xl border border-emerald-500/30 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-emerald-300">
+            <span>گوگل کلاؤڈ سنک و ری اسٹور (Google Drive & Cloud)</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleCloudSync}
+              disabled={isLoading}
+              className="py-2.5 px-3 bg-teal-700 hover:bg-teal-600 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>کلاؤڈ میں محفوظ کریں</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCloudRestore}
+              disabled={isLoading}
+              className="py-2.5 px-3 bg-indigo-700 hover:bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>کلاؤڈ سے ری اسٹور کریں</span>
+            </button>
+          </div>
         </div>
 
         {/* Developer Branding */}

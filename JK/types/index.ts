@@ -119,6 +119,15 @@ export interface CartItem {
   discount: number;
   variationDetails?: string;
   returnedQuantity?: number;
+  isGram?: boolean;
+  weightInGrams?: number;
+  ratePerKg?: number;
+  costPerKg?: number;
+  isLiter?: boolean;
+  volumeInMl?: number;
+  ratePerLiter?: number;
+  costPerLiter?: number;
+  packagedVariant?: string;
 }
 
 export interface InvoiceItem {
@@ -135,6 +144,15 @@ export interface InvoiceItem {
   discount: number;
   variationDetails?: string;
   returnedQuantity?: number;
+  isGram?: boolean;
+  weightInGrams?: number;
+  ratePerKg?: number;
+  costPerKg?: number;
+  isLiter?: boolean;
+  volumeInMl?: number;
+  ratePerLiter?: number;
+  costPerLiter?: number;
+  packagedVariant?: string;
 }
 
 export interface Invoice {
@@ -189,6 +207,36 @@ export interface SaleReturn {
   items: SaleReturnItem[];
   totalRefund: number;
   refundMethod: 'CASH' | 'KHATA_CREDIT';
+  reason: string;
+  cashier: string;
+  counterNumber?: number;
+  developerBranding: 'JK Developers Pakistan' | 'JK Software Developer';
+}
+
+export interface SaleExchangeItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+}
+
+export interface SaleExchange {
+  id: string;
+  exchangeNo: string;
+  invoiceId?: string;
+  invoiceNo?: string;
+  date: string;
+  customerName: string;
+  customerPhone?: string;
+  customerId?: string;
+  returnedItems: SaleReturnItem[];
+  totalReturnValue: number;
+  newItems: SaleExchangeItem[];
+  totalNewValue: number;
+  differenceAmount: number; // >0: customer pays extra, <0: refund to customer, 0: even exchange
+  paymentMethod: 'CASH' | 'KHATA_CREDIT' | 'CARD';
   reason: string;
   cashier: string;
   counterNumber?: number;
@@ -283,6 +331,7 @@ export interface AuditLog {
   action: 
     | 'SALE_CREATED' 
     | 'SALE_RETURN' 
+    | 'SALE_EXCHANGE'
     | 'KHATA_PAYMENT' 
     | 'EXPENSE_RECORDED' 
     | 'STOCK_UPDATED' 

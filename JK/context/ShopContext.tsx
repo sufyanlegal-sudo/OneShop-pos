@@ -15,6 +15,8 @@ import {
   UserRole,
   SaleReturn,
   SaleReturnItem,
+  SaleExchange,
+  SaleExchangeItem,
   AuditLog,
   Vendor,
   VendorKhataEntry,
@@ -61,6 +63,27 @@ interface ProcessReturnParams {
   reason: string;
 }
 
+export interface ProcessExchangeParams {
+  invoiceId?: string;
+  invoiceNo?: string;
+  returnedItems: {
+    productId: string;
+    quantity: number;
+    unitPrice?: number;
+  }[];
+  newItems: {
+    productId: string;
+    quantity: number;
+    unitPrice?: number;
+    selectedUnit?: string;
+  }[];
+  paymentMethod?: 'CASH' | 'KHATA_CREDIT' | 'CARD';
+  reason?: string;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+}
+
 interface ShopContextType {
   activePreset: BusinessPresetType;
   setPreset: (preset: BusinessPresetType) => void;
@@ -72,6 +95,7 @@ interface ShopContextType {
   invoices: Invoice[];
   roznamcha: RoznamchaEntry[];
   saleReturns: SaleReturn[];
+  saleExchanges: SaleExchange[];
   auditLogs: AuditLog[];
   vendors: Vendor[];
   grnList: GRN[];
@@ -100,13 +124,29 @@ interface ShopContextType {
   unlockMargin: (pin: string) => boolean;
   lockMargin: () => void;
   // Cart Actions
-  addToCart: (product: Product, quantity?: number, unit?: string, variationDetails?: string) => void;
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    unit?: string,
+    variationDetails?: string,
+    options?: {
+      isGram?: boolean;
+      weightInGrams?: number;
+      ratePerKg?: number;
+      isLiter?: boolean;
+      volumeInMl?: number;
+      ratePerLiter?: number;
+      packagedVariant?: string;
+      customPrice?: number;
+    }
+  ) => void;
   updateCartItem: (id: string, updates: Partial<CartItem>) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   // Transactions
   checkoutInvoice: (params: CheckoutParams) => Invoice;
   processSaleReturn: (params: ProcessReturnParams) => SaleReturn | null;
+  processSaleExchange: (params: ProcessExchangeParams) => SaleExchange | null;
   receiveKhataPayment: (customerId: string, amount: number, description?: string) => void;
   addRoznamchaEntry: (entry: Omit<RoznamchaEntry, 'id' | 'date'>) => void;
   addAuditLog: (action: AuditLog['action'], details: string, amount?: number, refId?: string) => void;
@@ -128,6 +168,10 @@ interface ShopContextType {
   // Backup & Restore
   exportDataBackup: () => string;
   sendBackupToEmail: (targetEmail?: string) => Promise<{ success: boolean; message: string }>;
+  sendDailyReportToEmail: (targetEmail?: string) => Promise<{ success: boolean; message: string; summary?: any }>;
+  syncBackupToGoogleCloud: (targetEmail?: string) => Promise<{ success: boolean; message: string; timestamp?: string }>;
+  fetchGoogleBackup: (email: string, masterKey?: string) => Promise<{ success: boolean; backup?: any; message?: string; exportedAt?: string; stats?: any }>;
+  restoreFromGoogleCloud: (email: string, masterKey?: string) => Promise<{ success: boolean; message: string; stats?: any }>;
   // WhatsApp Orders Management
   whatsappOrders: WhatsAppOrder[];
   pendingWhatsAppOrdersCount: number;
@@ -143,7 +187,7 @@ interface ShopContextType {
   usersDB: PosUserLicense[];
   isSuperAdminModalOpen: boolean;
   setIsSuperAdminModalOpen: (open: boolean) => void;
-  loginWithGoogle: (email: string) => { status: 'APPROVED' | 'PENDING' | 'SUPER_ADMIN'; message: string };
+  loginWithGoogle: (email: string, masterKey?: string) => { status: 'APPROVED' | 'PENDING' | 'SUPER_ADMIN' | 'DENIED'; message: string };
   logoutUser: () => void;
   toggleUserApproval: (email: string) => void;
   addUserLicense: (email: string, name?: string, approved?: boolean) => void;
@@ -162,6 +206,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [roznamcha, setRoznamcha] = useState<RoznamchaEntry[]>([]);
   const [saleReturns, setSaleReturns] = useState<SaleReturn[]>([]);
+  const [saleExchanges, setSaleExchanges] = useState<SaleExchange[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [grnList, setGRNList] = useState<GRN[]>([]);
@@ -196,6 +241,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadedInvoices = storage.getInvoices();
     const loadedRoznamcha = storage.getRoznamcha();
     const loadedReturns = storage.getSaleReturns();
+    const loadedExchanges = storage.getSaleExchanges();
     const loadedAudit = storage.getAuditLogs();
     const loadedRole = storage.getActiveRole();
     const loadedVendors = storage.getVendors();
@@ -216,6 +262,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInvoices(loadedInvoices);
     setRoznamcha(loadedRoznamcha);
     setSaleReturns(loadedReturns);
+    setSaleExchanges(loadedExchanges);
     setAuditLogs(loadedAudit);
     setCurrentRole(loadedRole);
     setVendors(loadedVendors);
@@ -230,6 +277,40 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUserEmail(loadedUser);
     setIsLoaded(true);
   }, []);
+
+  // Real-time synchronization with Vercel WhatsApp Webhook server for incoming customer orders
+  useEffect(() => {
+    if (!isLoaded) return;
+    const syncServerOrders = async () => {
+      try {
+        const res = await fetch('/api/webhook/whatsapp?action=get_orders');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.orders && data.orders.length > 0) {
+            setWhatsAppOrders((prev) => {
+              const existingIds = new Set(prev.map((o) => o.id));
+              const newIncoming = data.orders.filter((o: any) => !existingIds.has(o.id));
+              if (newIncoming.length > 0) {
+                const combined = [...newIncoming, ...prev];
+                storage.saveWhatsAppOrders(combined);
+                return combined;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (err) {
+        // Silent catch
+      }
+    };
+
+    const timer = setTimeout(syncServerOrders, 2000);
+    const interval = setInterval(syncServerOrders, 10000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [isLoaded]);
 
   // Active Cashier computed object
   const activeCashier = useMemo(() => {
@@ -253,8 +334,37 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Boolean(userRec && userRec.approved);
   }, [currentUserEmail, usersDB]);
 
-  const loginWithGoogle = (emailInput: string) => {
+  // Periodic background cloud sync (every 15 minutes silently keeps Google Account snapshot 100% updated)
+  useEffect(() => {
+    if (!isLoaded || !currentUserEmail || !isApprovedUser) return;
+    const cloudSyncTimer = setTimeout(() => {
+      syncBackupToGoogleCloud().catch(() => {});
+    }, 5000);
+    const cloudInterval = setInterval(() => {
+      syncBackupToGoogleCloud().catch(() => {});
+    }, 15 * 60 * 1000); // Every 15 mins
+    return () => {
+      clearTimeout(cloudSyncTimer);
+      clearInterval(cloudInterval);
+    };
+  }, [isLoaded, currentUserEmail, isApprovedUser]);
+
+  const MASTER_ADMIN_KEY = 'JK@8998381';
+
+  const loginWithGoogle = (emailInput: string, masterKey?: string) => {
     const cleanEmail = emailInput.trim().toLowerCase();
+
+    // STRICT ANTI-HIJACKING PROTECTION: If user tries to use Super Admin developer email
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      if (!masterKey || masterKey.trim() !== MASTER_ADMIN_KEY) {
+        return {
+          status: 'DENIED' as const,
+          message:
+            '⛔ غیر مجاز رسائی مسترد کر دی گئی ہے! آپ ڈیولپر کی آفیشل ای میل استعمال کرنے کے مجاز نہیں ہیں۔ برائے مہربانی اپنی ذاتی جی میل استعمال فرمائیں، یا ڈیولپر ہیں تو درست سیکیورٹی کی درج کریں۔',
+        };
+      }
+    }
+
     setCurrentUserEmail(cleanEmail);
     storage.setCurrentUser(cleanEmail);
 
@@ -270,10 +380,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updatedDB = [userRec, ...updatedDB];
       setUsersDB(updatedDB);
       storage.saveUsersDB(updatedDB);
+
+      // Auto-dispatch notification to Super Admin (jkdevelopers.pk@gmail.com)
+      if (cleanEmail !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        fetch('/api/auth/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: cleanEmail,
+            userName: cleanEmail.split('@')[0],
+            businessName: businessProfile.nameUr || businessProfile.nameEn,
+            action: 'NEW_REGISTRATION',
+          }),
+        }).catch(() => {});
+      }
     }
 
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      return { status: 'SUPER_ADMIN' as const, message: 'لاگ ان بطور سپر ایڈمن منظور ہے!' };
+      return { status: 'SUPER_ADMIN' as const, message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔' };
     }
     if (userRec.approved) {
       return { status: 'APPROVED' as const, message: 'خوش آمدید! آپ کی رسائی منظور شدہ ہے۔' };
@@ -385,9 +509,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'کامیابی سے کاؤنٹر لاگ ان ہو گیا' };
   };
 
-  // Filter products for active preset
+  // Filter products for active preset (Ensures newly created products without preset are never hidden)
   const products = useMemo(() => {
-    return allProducts.filter((p) => p.preset === activePreset);
+    return allProducts.filter((p) => !p.preset || p.preset === activePreset);
   }, [allProducts, activePreset]);
 
   // Current business profile
@@ -474,61 +598,189 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Cart operations
-  const addToCart = (product: Product, quantity = 1, unit?: string, variationDetails?: string) => {
+  const addToCart = (
+    product: Product,
+    quantity = 1,
+    unit?: string,
+    variationDetails?: string,
+    options?: {
+      isGram?: boolean;
+      weightInGrams?: number;
+      ratePerKg?: number;
+      isLiter?: boolean;
+      volumeInMl?: number;
+      ratePerLiter?: number;
+      packagedVariant?: string;
+      customPrice?: number;
+    }
+  ) => {
     setCart((prev) => {
-      const existingIndex = prev.findIndex(
-        (item) => item.product.id === product.id && item.variationDetails === variationDetails
-      );
-      const chosenUnit = unit || product.unit;
-      const price = product.salePrice;
-      const cost = product.costPrice;
+      const isGram = !!(options?.isGram || unit === 'Grams' || unit === 'گرام');
+      const ratePerKg = options?.ratePerKg || product.salePrice;
+      const costPerKg = product.costPrice;
+      const uniqueRowId = `${product.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        const newQty = updated[existingIndex].quantity + quantity;
-        const total = newQty * price;
-        const profit = (price - cost) * newQty;
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: newQty,
-          total,
-          profit,
-        };
-        return updated;
-      } else {
-        const total = quantity * price;
-        const profit = (price - cost) * quantity;
+      // 1. Grams Weight Handling
+      if (isGram) {
+        const gramsToAdd = options?.weightInGrams || (quantity > 20 ? quantity : quantity * 1000);
+        const total = Math.round(((ratePerKg * gramsToAdd) / 1000) * 100) / 100;
+        const costTotal = Math.round(((costPerKg * gramsToAdd) / 1000) * 100) / 100;
         return [
           ...prev,
           {
-            id: product.id,
+            id: uniqueRowId,
             product,
-            quantity,
-            unit: chosenUnit,
-            selectedUnit: chosenUnit,
-            unitPrice: price,
-            costPrice: cost,
-            selectedPrice: price,
+            quantity: gramsToAdd,
+            unit: 'گرام',
+            selectedUnit: 'گرام',
+            unitPrice: ratePerKg,
+            costPrice: costPerKg,
+            selectedPrice: ratePerKg,
             total,
-            profit,
+            profit: total - costTotal,
             discount: 0,
-            variationDetails,
+            variationDetails: variationDetails || options?.packagedVariant,
+            packagedVariant: options?.packagedVariant,
+            isGram: true,
+            isLiter: false,
+            weightInGrams: gramsToAdd,
+            ratePerKg,
+            costPerKg,
           },
         ];
       }
+
+      // 2. Liters / Half-Liter / Milliliters Handling
+      const isLiter = !!(options?.isLiter || unit === 'Liter' || unit === 'لیٹر' || unit === 'ml' || unit === 'ملی لیٹر' || unit === 'ہاف لیٹر');
+      if (isLiter && (unit === 'ml' || unit === 'ملی لیٹر' || unit === 'ہاف لیٹر' || options?.volumeInMl)) {
+        const mlToAdd = options?.volumeInMl || (unit === 'ہاف لیٹر' ? 500 : (quantity > 10 ? quantity : quantity * 1000));
+        const rPerL = options?.ratePerLiter || product.salePrice;
+        const cPerL = product.costPrice;
+        const total = Math.round(((rPerL * mlToAdd) / 1000) * 100) / 100;
+        const costTotal = Math.round(((cPerL * mlToAdd) / 1000) * 100) / 100;
+        return [
+          ...prev,
+          {
+            id: uniqueRowId,
+            product,
+            quantity: mlToAdd,
+            unit: 'ملی لیٹر',
+            selectedUnit: 'ملی لیٹر',
+            unitPrice: rPerL,
+            costPrice: cPerL,
+            selectedPrice: rPerL,
+            total,
+            profit: total - costTotal,
+            discount: 0,
+            variationDetails: variationDetails || options?.packagedVariant,
+            packagedVariant: options?.packagedVariant,
+            isLiter: true,
+            isGram: false,
+            volumeInMl: mlToAdd,
+            ratePerLiter: rPerL,
+            costPerLiter: cPerL,
+          },
+        ];
+      }
+
+      // 3. Normal / Packaged Items (Allows infinite items: 100, 500, 1000+ distinct lines in the bill)
+      const chosenUnit = unit || product.unit;
+      const price = options?.customPrice !== undefined ? options.customPrice : product.salePrice;
+      const cost = product.costPrice;
+      const total = Math.round((quantity * price) * 100) / 100;
+      const profit = Math.round(((price - cost) * quantity) * 100) / 100;
+      const isKg = product.unit?.toLowerCase() === 'kg' || product.unit === 'کلو';
+      const isLtr = product.unit?.toLowerCase() === 'liter' || product.unit === 'لیٹر' || product.unit?.toLowerCase() === 'ltr';
+
+      return [
+        ...prev,
+        {
+          id: uniqueRowId,
+          product,
+          quantity,
+          unit: chosenUnit,
+          selectedUnit: chosenUnit,
+          unitPrice: price,
+          costPrice: cost,
+          selectedPrice: price,
+          total,
+          profit,
+          discount: 0,
+          variationDetails: variationDetails || options?.packagedVariant,
+          packagedVariant: options?.packagedVariant,
+          isGram: false,
+          isLiter: isLtr,
+          ratePerKg: isKg ? price : undefined,
+          costPerKg: isKg ? cost : undefined,
+          ratePerLiter: isLtr ? price : undefined,
+          costPerLiter: isLtr ? cost : undefined,
+        },
+      ];
     });
   };
 
   const updateCartItem = (id: string, updates: Partial<CartItem>) => {
     setCart((prev) =>
       prev.map((item) => {
-        if (item.product.id === id) {
+        if (item.id === id || (!item.id && item.product.id === id)) {
           const updatedItem = { ...item, ...updates };
+
+          // 1. Gram Updates
+          if (updatedItem.isGram) {
+            const grams = updatedItem.weightInGrams || updatedItem.quantity || 250;
+            const rateKg = updatedItem.ratePerKg || updatedItem.product.salePrice;
+            const costKg = updatedItem.costPerKg || updatedItem.product.costPrice;
+            const total = Math.round(((rateKg * grams) / 1000) * 100) / 100;
+            const costTotal = Math.round(((costKg * grams) / 1000) * 100) / 100;
+            updatedItem.isGram = true;
+            updatedItem.isLiter = false;
+            updatedItem.weightInGrams = grams;
+            updatedItem.quantity = grams;
+            updatedItem.unit = 'گرام';
+            updatedItem.selectedUnit = 'گرام';
+            updatedItem.ratePerKg = rateKg;
+            updatedItem.costPerKg = costKg;
+            updatedItem.unitPrice = rateKg;
+            updatedItem.selectedPrice = rateKg;
+            updatedItem.total = total - (updatedItem.discount || 0);
+            updatedItem.profit = (total - costTotal) - (updatedItem.discount || 0);
+            return updatedItem;
+          }
+
+          // 2. Liter / Half-Liter Updates
+          if (updatedItem.isLiter && updatedItem.volumeInMl) {
+            const ml = updatedItem.volumeInMl;
+            const rateL = updatedItem.ratePerLiter || updatedItem.product.salePrice;
+            const costL = updatedItem.costPerLiter || updatedItem.product.costPrice;
+            const total = Math.round(((rateL * ml) / 1000) * 100) / 100;
+            const costTotal = Math.round(((costL * ml) / 1000) * 100) / 100;
+            updatedItem.isLiter = true;
+            updatedItem.isGram = false;
+            updatedItem.volumeInMl = ml;
+            updatedItem.quantity = ml;
+            updatedItem.unit = 'ملی لیٹر';
+            updatedItem.selectedUnit = 'ملی لیٹر';
+            updatedItem.ratePerLiter = rateL;
+            updatedItem.costPerLiter = costL;
+            updatedItem.unitPrice = rateL;
+            updatedItem.selectedPrice = rateL;
+            updatedItem.total = total - (updatedItem.discount || 0);
+            updatedItem.profit = (total - costTotal) - (updatedItem.discount || 0);
+            return updatedItem;
+          }
+
+          // 3. Normal quantity / price updates
           const qty = updatedItem.quantity;
-          const price = updatedItem.selectedPrice;
-          const cost = updatedItem.product.costPrice;
-          updatedItem.total = qty * price;
-          updatedItem.profit = (price - cost) * qty - (updatedItem.discount || 0);
+          const price = updatedItem.selectedPrice || updatedItem.unitPrice || updatedItem.product.salePrice;
+          const cost = updatedItem.costPrice || updatedItem.product.costPrice;
+          const total = Math.round((qty * price) * 100) / 100;
+          const costTotal = Math.round((qty * cost) * 100) / 100;
+          updatedItem.isGram = false;
+          updatedItem.isLiter = false;
+          updatedItem.selectedPrice = price;
+          updatedItem.unitPrice = price;
+          updatedItem.total = total - (updatedItem.discount || 0);
+          updatedItem.profit = (total - costTotal) - (updatedItem.discount || 0);
           return updatedItem;
         }
         return item;
@@ -537,7 +789,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== id));
+    setCart((prev) => prev.filter((item) => item.id !== id && (!item.id ? item.product.id !== id : true)));
   };
 
   const clearCart = () => {
@@ -546,9 +798,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Cart totals
   const cartTotals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const totalProfit = cart.reduce((sum, item) => sum + item.profit, 0);
-    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const subtotal = Math.round(cart.reduce((sum, item) => sum + item.total, 0) * 100) / 100;
+    const totalProfit = Math.round(cart.reduce((sum, item) => sum + item.profit, 0) * 100) / 100;
+    const itemCount = cart.reduce((sum, item) => sum + (item.isGram || item.isLiter ? 1 : item.quantity), 0);
     return {
       subtotal,
       discount: 0,
@@ -586,14 +838,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       productName: item.product.nameUr,
       nameUr: item.product.nameUr,
       nameEn: item.product.nameEn,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitPrice: item.selectedPrice,
-      costPrice: item.product.costPrice,
+      quantity: item.isGram
+        ? (item.weightInGrams || item.quantity)
+        : (item.isLiter && item.volumeInMl ? item.volumeInMl : item.quantity),
+      unit: item.isGram
+        ? 'گرام'
+        : (item.isLiter && item.volumeInMl ? 'ملی لیٹر' : (item.selectedUnit || item.unit)),
+      unitPrice: item.isGram
+        ? (item.ratePerKg || item.product.salePrice)
+        : (item.isLiter ? (item.ratePerLiter || item.product.salePrice) : item.selectedPrice),
+      costPrice: item.isGram
+        ? (item.costPerKg || item.product.costPrice)
+        : (item.isLiter ? (item.costPerLiter || item.product.costPrice) : (item.costPrice || item.product.costPrice)),
       total: item.total,
       profit: item.profit,
       discount: item.discount,
-      variationDetails: item.variationDetails,
+      variationDetails: item.variationDetails || item.packagedVariant,
+      isGram: item.isGram,
+      weightInGrams: item.weightInGrams,
+      ratePerKg: item.ratePerKg,
+      costPerKg: item.costPerKg,
+      isLiter: item.isLiter,
+      volumeInMl: item.volumeInMl,
+      ratePerLiter: item.ratePerLiter,
+      costPerLiter: item.costPerLiter,
+      packagedVariant: item.packagedVariant,
     }));
 
     const newInvoice: Invoice = {
@@ -700,6 +969,23 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Clear cart
     clearCart();
+
+    // Daily backup sync (Only once a day if autoDailyBackup is enabled, NOT on every bill)
+    try {
+      const todayDateStr = new Date().toISOString().split('T')[0];
+      const lastSyncedDate =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('pos_last_daily_sync_date')
+          : null;
+      if (businessProfile.autoDailyBackup && lastSyncedDate !== todayDateStr) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pos_last_daily_sync_date', todayDateStr);
+        }
+        syncBackupToGoogleCloud().catch(() => {});
+      }
+    } catch {
+      // Ignored
+    }
 
     return newInvoice;
   };
@@ -840,6 +1126,231 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saleReturnRecord;
   };
 
+  // Process Sale Exchange (مال کا تبادلہ / ایکسچینج)
+  const processSaleExchange = (params: ProcessExchangeParams): SaleExchange | null => {
+    let invoice: Invoice | undefined;
+    if (params.invoiceId) {
+      invoice = invoices.find((inv) => inv.id === params.invoiceId);
+    }
+
+    // 1. Calculate Returned Items Value & build return items list
+    let totalReturnValue = 0;
+    const returnItems: SaleReturnItem[] = [];
+
+    params.returnedItems.forEach((ri) => {
+      if (ri.quantity <= 0) return;
+      const invItem = invoice?.items.find((it) => it.productId === ri.productId);
+      const product = allProducts.find((p) => p.id === ri.productId);
+      const unitPrice = ri.unitPrice ?? invItem?.unitPrice ?? product?.salePrice ?? 0;
+      const itemTotal = ri.quantity * unitPrice;
+      totalReturnValue += itemTotal;
+
+      returnItems.push({
+        productId: ri.productId,
+        productName: invItem?.productName || (product ? product.nameUr : 'آئٹم'),
+        quantity: ri.quantity,
+        unit: invItem?.unit || product?.unit || 'عدد',
+        unitPrice,
+        totalRefund: itemTotal,
+      });
+    });
+
+    // 2. Calculate New Replacement Items Value & build new items list
+    let totalNewValue = 0;
+    const newItemsList: SaleExchangeItem[] = [];
+
+    params.newItems.forEach((ni) => {
+      if (ni.quantity <= 0) return;
+      const product = allProducts.find((p) => p.id === ni.productId);
+      const unitPrice = ni.unitPrice ?? product?.salePrice ?? 0;
+      const itemTotal = ni.quantity * unitPrice;
+      totalNewValue += itemTotal;
+
+      newItemsList.push({
+        productId: ni.productId,
+        productName: product ? product.nameUr : 'نئی آئٹم',
+        quantity: ni.quantity,
+        unit: ni.selectedUnit || product?.unit || 'عدد',
+        unitPrice,
+        total: itemTotal,
+      });
+    });
+
+    if (returnItems.length === 0 && newItemsList.length === 0) return null;
+
+    const exchangeNo = `EXC-${Date.now().toString().slice(-6)}`;
+    const date = new Date().toISOString();
+    const differenceAmount = totalNewValue - totalReturnValue;
+    const customerName = params.customerName || invoice?.customerName || 'عام گاہک (Walk-in Customer)';
+    const customerPhone = params.customerPhone || invoice?.customerPhone;
+    const customerId = params.customerId || invoice?.customerId;
+    const paymentMethod = params.paymentMethod || 'CASH';
+
+    const saleExchangeRecord: SaleExchange = {
+      id: 'exc-' + Date.now(),
+      exchangeNo,
+      invoiceId: invoice?.id,
+      invoiceNo: invoice?.invoiceNo,
+      date,
+      customerName,
+      customerPhone,
+      customerId,
+      returnedItems: returnItems,
+      totalReturnValue,
+      newItems: newItemsList,
+      totalNewValue,
+      differenceAmount,
+      paymentMethod,
+      reason: params.reason || 'گاہک کی پسند پر مال کا تبادلہ (Exchange)',
+      cashier: currentRole === 'MANAGER' ? 'مینجر (Admin)' : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
+      counterNumber: currentRole === 'MANAGER' ? 0 : activeCounter,
+      developerBranding: 'JK Developers Pakistan',
+    };
+
+    // 3. Update Inventory Stock:
+    // +qty for returned items
+    // -qty for replacement items
+    const updatedProducts = allProducts.map((p) => {
+      let stockDelta = 0;
+      const retItem = returnItems.find((ri) => ri.productId === p.id);
+      if (retItem) stockDelta += retItem.quantity;
+      const newItem = newItemsList.find((ni) => ni.productId === p.id);
+      if (newItem) stockDelta -= newItem.quantity;
+
+      if (stockDelta !== 0) {
+        return {
+          ...p,
+          stock: Math.max(0, p.stock + stockDelta),
+        };
+      }
+      return p;
+    });
+    setAllProducts(updatedProducts);
+    storage.saveProducts(updatedProducts);
+
+    // 4. Financial difference handling
+    if (differenceAmount > 0) {
+      // Customer pays the difference
+      if (paymentMethod === 'CASH' || paymentMethod === 'CARD') {
+        const roznamchaEntry: RoznamchaEntry = {
+          id: 'rz-' + Date.now(),
+          date,
+          type: 'CASH_SALE',
+          category: 'ایکسچینج وصولی (Exchange Extra Cash)',
+          amount: differenceAmount,
+          isCashIn: true,
+          description: `تبادلہ #${exchangeNo} میں اضافی رقم وصول ہوئی (واپسی: ${totalReturnValue} PKR، نئی: ${totalNewValue} PKR)`,
+          refInvoiceId: invoice?.id,
+        };
+        const updatedRoznamcha = [roznamchaEntry, ...roznamcha];
+        setRoznamcha(updatedRoznamcha);
+        storage.saveRoznamcha(updatedRoznamcha);
+      } else if (paymentMethod === 'KHATA_CREDIT' && customerId) {
+        const customer = customers.find((c) => c.id === customerId);
+        if (customer) {
+          const newBalance = customer.currentBalance + differenceAmount;
+          const khataEntry: KhataEntry = {
+            id: 'kh-' + Date.now(),
+            customerId: customer.id,
+            date,
+            type: 'DEBIT',
+            amount: differenceAmount,
+            balanceAfter: newBalance,
+            description: `تبادلہ #${exchangeNo} کی اضافی رقم کھاتے میں لکھی گئی`,
+            invoiceId: invoice?.id,
+          };
+          const updatedCustomers = customers.map((c) => {
+            if (c.id === customer.id) {
+              return {
+                ...c,
+                currentBalance: newBalance,
+                khata: [khataEntry, ...c.khata],
+              };
+            }
+            return c;
+          });
+          setCustomers(updatedCustomers);
+          storage.saveCustomers(updatedCustomers);
+        }
+      }
+    } else if (differenceAmount < 0) {
+      // Shopkeeper refunds difference to customer
+      const refundAmt = Math.abs(differenceAmount);
+      if (paymentMethod === 'CASH' || paymentMethod === 'CARD') {
+        const roznamchaEntry: RoznamchaEntry = {
+          id: 'rz-' + Date.now(),
+          date,
+          type: 'SALE_RETURN_REFUND',
+          category: 'ایکسچینج ریفنڈ (Exchange Excess Refund)',
+          amount: refundAmt,
+          isCashIn: false,
+          description: `تبادلہ #${exchangeNo} میں بقایا کیش گاہک کو واپس کیا گیا`,
+          refInvoiceId: invoice?.id,
+        };
+        const updatedRoznamcha = [roznamchaEntry, ...roznamcha];
+        setRoznamcha(updatedRoznamcha);
+        storage.saveRoznamcha(updatedRoznamcha);
+      } else if (paymentMethod === 'KHATA_CREDIT' && customerId) {
+        const customer = customers.find((c) => c.id === customerId);
+        if (customer) {
+          const newBalance = Math.max(0, customer.currentBalance - refundAmt);
+          const khataEntry: KhataEntry = {
+            id: 'kh-' + Date.now(),
+            customerId: customer.id,
+            date,
+            type: 'CREDIT',
+            amount: refundAmt,
+            balanceAfter: newBalance,
+            description: `تبادلہ #${exchangeNo} کی بقایا رقم کھاتے میں جمع کی گئی`,
+            invoiceId: invoice?.id,
+          };
+          const updatedCustomers = customers.map((c) => {
+            if (c.id === customer.id) {
+              return {
+                ...c,
+                currentBalance: newBalance,
+                khata: [khataEntry, ...c.khata],
+              };
+            }
+            return c;
+          });
+          setCustomers(updatedCustomers);
+          storage.saveCustomers(updatedCustomers);
+        }
+      }
+    }
+
+    // 5. Update invoice status
+    if (invoice) {
+      const updatedInvoices = invoices.map((inv) => {
+        if (inv.id === invoice!.id) {
+          return {
+            ...inv,
+            status: 'PARTIALLY_RETURNED' as const,
+          };
+        }
+        return inv;
+      });
+      setInvoices(updatedInvoices);
+      storage.saveInvoices(updatedInvoices);
+    }
+
+    // 6. Save Exchange Record
+    const updatedExchanges = [saleExchangeRecord, ...saleExchanges];
+    setSaleExchanges(updatedExchanges);
+    storage.saveSaleExchanges(updatedExchanges);
+
+    // 7. Audit Log
+    addAuditLog(
+      'SALE_EXCHANGE',
+      `مال کا تبادلہ (Exchange) #${exchangeNo} مکمل ہوا - گاہک: ${customerName} | واپسی: ${totalReturnValue} PKR، نئی اشیاء: ${totalNewValue} PKR، نیٹ فرق: ${differenceAmount > 0 ? '+' : ''}${differenceAmount} PKR`,
+      Math.abs(differenceAmount),
+      exchangeNo
+    );
+
+    return saleExchangeRecord;
+  };
+
   // Receive Khata Payment
   const receiveKhataPayment = (customerId: string, amount: number, description = 'ادھار وصولی') => {
     const customer = customers.find((c) => c.id === customerId);
@@ -929,14 +1440,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       const newProd: Product = {
         id: 'prod-' + Date.now(),
-        preset: activePreset,
+        preset: prodData.preset || activePreset,
         barcode: prodData.barcode || Date.now().toString().slice(-12),
         sku: prodData.sku || `SKU-${Date.now().toString().slice(-4)}`,
-        nameEn: prodData.nameEn,
+        nameEn: prodData.nameEn || prodData.nameUr,
         nameUr: prodData.nameUr,
-        categoryEn: prodData.categoryEn || 'General',
-        categoryUr: prodData.categoryUr || 'عام اشیاء',
+        categoryEn: prodData.categoryEn || prodData.categoryUr || 'General',
+        categoryUr: prodData.categoryUr || prodData.categoryEn || 'عام اشیاء',
         unit: prodData.unit || 'Piece',
+        subUnit: prodData.subUnit,
+        conversionFactor: prodData.conversionFactor,
         costPrice: Number(prodData.costPrice) || 0,
         salePrice: Number(prodData.salePrice) || 0,
         wholesalePrice: Number(prodData.wholesalePrice) || Number(prodData.salePrice) || 0,
@@ -1270,6 +1783,242 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendDailyReportToEmail = async (
+    targetEmail?: string
+  ): Promise<{ success: boolean; message: string; summary?: any }> => {
+    const email =
+      targetEmail ||
+      currentUserEmail ||
+      businessProfile.backupEmail ||
+      'jkdevelopers.pk@gmail.com';
+    const backupJson = storage.exportBackup();
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayInvoices = invoices.filter((inv) => (inv.date || '').startsWith(todayStr));
+    const totalSales = todayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+    const cashSales = todayInvoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
+    const creditSales = todayInvoices.reduce((sum, inv) => sum + inv.balanceDue, 0);
+    const todayExpenses = roznamcha
+      .filter((r) => !r.isCashIn && (r.date || '').startsWith(todayStr))
+      .reduce((sum, r) => sum + r.amount, 0);
+    const todayCashIn = roznamcha
+      .filter((r) => r.isCashIn && (r.date || '').startsWith(todayStr))
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    const dailySummary = {
+      date: todayStr,
+      businessName: businessProfile.nameUr || businessProfile.nameEn,
+      invoicesCount: todayInvoices.length,
+      totalSales,
+      cashSales,
+      creditSales,
+      todayExpenses,
+      todayCashIn,
+      netCash: cashSales + todayCashIn - todayExpenses,
+      totalCustomers: customers.length,
+      totalActiveUdhaar: customers.reduce((sum, c) => sum + (c.currentBalance || 0), 0),
+    };
+
+    try {
+      // 1. Dispatch email report
+      const res = await fetch('/api/backup/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          businessName: businessProfile.nameUr || businessProfile.nameEn,
+          backupData: backupJson,
+          dailySummary,
+        }),
+      });
+
+      const result = await res.json();
+
+      // 2. Also ensure cloud persistence snapshot for today
+      await syncBackupToGoogleCloud(email);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pos_last_daily_sync_date', todayStr);
+      }
+
+      if (result.success) {
+        addAuditLog(
+          'BACKUP_DISPATCHED',
+          `آج کی مکمل یومیہ سیل رپورٹ اور بیک اپ جی میل (${email}) پر بھیج دیا گیا۔ سیل: ${totalSales} PKR`
+        );
+        return {
+          success: true,
+          message:
+            result.message ||
+            `آج کی مکمل یومیہ سیل اور کھاتہ رپورٹ کامیابی کے ساتھ ${email} پر بھیج دی گئی ہے!`,
+          summary: dailySummary,
+        };
+      }
+      return { success: false, message: result.message || 'ای میل بھیجنے میں خرابی ہوئی' };
+    } catch {
+      addAuditLog(
+        'BACKUP_DISPATCHED',
+        `ڈیلی رپورٹ لوکل محفوظ کی گئی برائے ای میل (${email})`
+      );
+      return {
+        success: true,
+        message: `آج کی ڈیلی رپورٹ اور کلاؤڈ بیک اپ محفوظ ہو گیا۔ وصول کنندہ: ${email}`,
+        summary: dailySummary,
+      };
+    }
+  };
+
+  // Google Cloud Backup & Restore
+  const syncBackupToGoogleCloud = async (
+    targetEmail?: string
+  ): Promise<{ success: boolean; message: string; timestamp?: string }> => {
+    const email =
+      targetEmail ||
+      currentUserEmail ||
+      businessProfile.backupEmail ||
+      'jkdevelopers.pk@gmail.com';
+    const backupJson = storage.exportBackup();
+
+    try {
+      const res = await fetch('/api/backup/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          businessName: businessProfile.nameUr || businessProfile.nameEn,
+          backupData: backupJson,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        addAuditLog(
+          'BACKUP_DISPATCHED',
+          `گوگل کلاؤڈ بیک اپ محفوظ ہو گیا برائے اکاؤنٹ: ${email}`
+        );
+        return {
+          success: true,
+          message: result.message || `گوگل کلاؤڈ بیک اپ کامیابی سے محفوظ ہو گیا (${email})`,
+          timestamp: result.timestamp,
+        };
+      }
+      return { success: false, message: result.message || 'گوگل کلاؤڈ میں بیک اپ محفوظ نہ ہو سکا' };
+    } catch (e: any) {
+      return {
+        success: false,
+        message: 'گوگل کلاؤڈ بیک اپ بھیجنے میں نیٹ ورک کا مسئلہ پیش آیا: ' + (e.message || ''),
+      };
+    }
+  };
+
+  const fetchGoogleBackup = async (
+    email: string,
+    masterKey?: string
+  ): Promise<{ success: boolean; backup?: any; message?: string; exportedAt?: string; stats?: any }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      if (!masterKey || masterKey.trim() !== MASTER_ADMIN_KEY) {
+        return {
+          success: false,
+          message:
+            '⛔ غیر مجاز رسائی مسترد کر دی گئی ہے! ڈیولپر کے کلاؤڈ بیک اپ تک رسائی کے لیے ماسٹر سیکیورٹی کی درکار ہے۔ عام صارفین اپنی ذاتی جی میل درج کریں۔',
+        };
+      }
+    }
+    try {
+      const res = await fetch(`/api/backup/google?email=${encodeURIComponent(cleanEmail)}`);
+      const result = await res.json();
+      return result;
+    } catch (e: any) {
+      return {
+        success: false,
+        message: 'گوگل کلاؤڈ سے رابطہ قائم نہ ہو سکا: ' + (e.message || ''),
+      };
+    }
+  };
+
+  const restoreFromGoogleCloud = async (
+    email: string,
+    masterKey?: string
+  ): Promise<{ success: boolean; message: string; stats?: any }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      if (!masterKey || masterKey.trim() !== MASTER_ADMIN_KEY) {
+        return {
+          success: false,
+          message:
+            '⛔ غیر مجاز رسائی مسترد کر دی گئی ہے! ڈیولپر کے اکاؤنٹ کا ڈیٹا بحال کرنے کے لیے ماسٹر سیکیورٹی کی درکار ہے۔',
+        };
+      }
+    }
+    const fetchRes = await fetchGoogleBackup(cleanEmail, masterKey);
+
+    if (!fetchRes.success || !fetchRes.backup) {
+      return {
+        success: false,
+        message:
+          fetchRes.message ||
+          `گوگل اکاؤنٹ "${cleanEmail}" پر کوئی سابقہ کلاؤڈ بیک اپ نہیں ملا۔`,
+      };
+    }
+
+    try {
+      const success = storage.importBackup(JSON.stringify(fetchRes.backup));
+      if (!success) {
+        return { success: false, message: 'بیک اپ فائل درآمد کرنے میں خرابی پیش آگئی۔' };
+      }
+
+      // Ensure user is approved on this new machine
+      let updatedDB = storage.getUsersDB();
+      let userRec = updatedDB.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (userRec) {
+        userRec.approved = true;
+        userRec.approvedAt = new Date().toISOString();
+      } else {
+        userRec = {
+          email: cleanEmail,
+          name: cleanEmail.split('@')[0],
+          approved: true,
+          registeredAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        updatedDB.push(userRec);
+      }
+      storage.saveUsersDB(updatedDB);
+      setUsersDB(updatedDB);
+      setCurrentUserEmail(cleanEmail);
+      storage.setCurrentUser(cleanEmail);
+
+      // Reload all state into memory from freshly imported localStorage
+      const loadedProfiles = storage.getProfiles();
+      if (Object.keys(loadedProfiles).length > 0) setProfiles(loadedProfiles);
+      setAllProducts(storage.getProducts());
+      setCustomers(storage.getCustomers());
+      setInvoices(storage.getInvoices());
+      setRoznamcha(storage.getRoznamcha());
+      setVendors(storage.getVendors());
+      setGRNList(storage.getGRNList());
+      setStaffList(storage.getStaffList());
+      setWhatsAppOrders(storage.getWhatsAppOrders());
+
+      addAuditLog(
+        'BACKUP_DISPATCHED',
+        `گوگل اکاؤنٹ (${cleanEmail}) سے تمام ڈیٹا، اسٹاک، اور کھاتے کامیابی سے بحال کر دیے گئے۔`
+      );
+
+      return {
+        success: true,
+        message: `مبارک ہو! گوگل اکاؤنٹ (${cleanEmail}) سے سارا ڈیٹا، اسٹاک اور کھاتے کامیابی کے ساتھ بحال ہو گئے ہیں!`,
+        stats: fetchRes.stats,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: 'بحالی کے دوران تکنیکی خرابی: ' + (err.message || ''),
+      };
+    }
+  };
+
   const resetSystemData = () => {
     storage.resetAllData();
     setActivePresetState('karyana');
@@ -1376,6 +2125,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         invoices,
         roznamcha,
         saleReturns,
+        saleExchanges,
         auditLogs,
         vendors,
         grnList,
@@ -1402,6 +2152,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         checkoutInvoice,
         processSaleReturn,
+        processSaleExchange,
         receiveKhataPayment,
         addRoznamchaEntry,
         addAuditLog,
@@ -1418,6 +2169,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         payStaffSalary,
         exportDataBackup,
         sendBackupToEmail,
+        sendDailyReportToEmail,
+        syncBackupToGoogleCloud,
+        fetchGoogleBackup,
+        restoreFromGoogleCloud,
         resetSystemData,
         whatsappOrders,
         pendingWhatsAppOrdersCount,

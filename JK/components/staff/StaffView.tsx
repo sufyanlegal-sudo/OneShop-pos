@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Users,
   UserPlus,
-  DollarSign,
+  Banknote,
   Phone,
   Briefcase,
   Calendar,
@@ -199,7 +199,7 @@ export const StaffView: React.FC = () => {
               }}
               className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
             >
-              <DollarSign className="w-3.5 h-3.5" />
+              <Banknote className="w-3.5 h-3.5" />
               <span>{lang === 'ur' ? 'تنخواہ / ایڈوانس ادا کریں' : 'Pay Salary / Advance'}</span>
             </button>
           </div>
@@ -330,7 +330,7 @@ export const StaffView: React.FC = () => {
 
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-emerald-600/20 text-emerald-400 rounded-xl">
-                <DollarSign className="w-6 h-6" />
+                <Banknote className="w-6 h-6" />
               </div>
               <div>
                 <h2 className="text-base font-black">

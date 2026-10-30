@@ -88,12 +88,28 @@ ${inventorySummary}
       { role: 'user', content: userMessage },
     ];
 
-    const response = await groqClient.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
-      messages: formattedMessages,
-      temperature: 0.3,
-      max_tokens: 800,
-    });
+    let response: any = null;
+    const modelsToTry = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
+
+    for (const model of modelsToTry) {
+      try {
+        response = await groqClient.chat.completions.create({
+          model,
+          messages: formattedMessages,
+          temperature: 0.3,
+          max_tokens: 800,
+        });
+        if (response && response.choices && response.choices.length > 0) {
+          break;
+        }
+      } catch (err: any) {
+        console.warn(`[Groq Model ${model} failed, trying fallback]:`, err?.message || err);
+      }
+    }
+
+    if (!response) {
+      throw new Error('All Groq AI models failed to respond');
+    }
 
     const rawReply = response.choices[0]?.message?.content || 'معذرت، میں آپ کی بات سمجھ نہیں سکا۔ دوبارہ ارشاد فرمائیں۔';
 

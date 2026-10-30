@@ -7,7 +7,7 @@ import {
   Search,
   Phone,
   MessageCircle,
-  DollarSign,
+  Banknote,
   FileText,
   UserCheck,
   MapPin,
@@ -227,7 +227,7 @@ export const VendorsView: React.FC = () => {
                   }}
                   className="py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1 shadow-sm"
                 >
-                  <DollarSign className="w-3.5 h-3.5" />
+                  <Banknote className="w-3.5 h-3.5" />
                   <span>{lang === 'ur' ? 'ادائیگی' : 'Pay'}</span>
                 </button>
 
@@ -379,7 +379,7 @@ export const VendorsView: React.FC = () => {
 
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-emerald-600/20 text-emerald-400 rounded-xl">
-                <DollarSign className="w-6 h-6" />
+                <Banknote className="w-6 h-6" />
               </div>
               <div>
                 <h2 className="text-base font-black">

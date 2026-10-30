@@ -9,6 +9,7 @@ import {
   GRN,
   Staff,
   SaleReturn,
+  SaleExchange,
   AuditLog,
   CashierAccount,
   CashierModulePermissions,
@@ -38,6 +39,7 @@ const KEYS = {
   OPENING_CASH: 'jk_opening_cash',
   ACTIVE_ROLE: 'jk_active_role',
   SALE_RETURNS: 'jk_sale_returns',
+  SALE_EXCHANGES: 'jk_sale_exchanges',
   AUDIT_LOGS: 'jk_audit_logs',
   VENDORS: 'jk_vendors',
   GRN_LIST: 'jk_grn_list',
@@ -334,6 +336,22 @@ export const storage = {
     localStorage.setItem(KEYS.SALE_RETURNS, JSON.stringify(returns));
   },
 
+  getSaleExchanges(): SaleExchange[] {
+    if (typeof window === 'undefined') return [];
+    const raw = localStorage.getItem(KEYS.SALE_EXCHANGES);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  },
+
+  saveSaleExchanges(exchanges: SaleExchange[]): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(KEYS.SALE_EXCHANGES, JSON.stringify(exchanges));
+  },
+
   getAuditLogs(): AuditLog[] {
     if (typeof window === 'undefined') return [];
     const raw = localStorage.getItem(KEYS.AUDIT_LOGS);
@@ -399,6 +417,7 @@ export const storage = {
       grnList: this.getGRNList(),
       staffList: this.getStaffList(),
       saleReturns: this.getSaleReturns(),
+      saleExchanges: this.getSaleExchanges(),
       auditLogs: this.getAuditLogs(),
       cashiers: this.getCashiers(),
       cashierPermissions: this.getCashierPermissions(),
@@ -420,6 +439,7 @@ export const storage = {
       if (data.grnList) localStorage.setItem(KEYS.GRN_LIST, JSON.stringify(data.grnList));
       if (data.staffList) localStorage.setItem(KEYS.STAFF_LIST, JSON.stringify(data.staffList));
       if (data.saleReturns) localStorage.setItem(KEYS.SALE_RETURNS, JSON.stringify(data.saleReturns));
+      if (data.saleExchanges) localStorage.setItem(KEYS.SALE_EXCHANGES, JSON.stringify(data.saleExchanges));
       if (data.auditLogs) localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(data.auditLogs));
       if (data.cashiers) localStorage.setItem(KEYS.CASHIERS, JSON.stringify(data.cashiers));
       if (data.cashierPermissions) localStorage.setItem(KEYS.CASHIER_PERMISSIONS, JSON.stringify(data.cashierPermissions));

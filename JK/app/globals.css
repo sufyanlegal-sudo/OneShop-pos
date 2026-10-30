@@ -57,12 +57,18 @@ body {
 }
 
 /* ========================================================= */
-/* THERMAL POS & A4 INVOICE PRINT STYLES                     */
+/* THERMAL POS & NORMAL DESKTOP PRINTER (A4 / A5) PRINT CSS  */
 /* ========================================================= */
 @media print {
+  /* Default page settings (auto-adapted per format) */
   @page {
-    margin: 2mm 0mm !important;
+    margin: 5mm;
     size: auto;
+  }
+
+  /* 1. Hide everything on page outside the print modal portal */
+  body > *:not(.print-modal-wrapper) {
+    display: none !important;
   }
 
   html, body {
@@ -72,56 +78,131 @@ body {
     padding: 0 !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     font-size: 12px;
+    overflow: visible !important;
+    position: static !important;
   }
 
-  /* Hide everything on page except the receipt modal content */
+  /* Hide UI elements */
   .no-print, header, nav, button, footer, .modal-backdrop {
     display: none !important;
   }
 
-  /* Print Modal Container override */
-  .print-modal-wrapper {
+  /* Unclip all modal wrapper & scroll layers so 100 to 1000 items never chop off */
+  .print-modal-wrapper,
+  .print-modal-inner,
+  .print-paper-area,
+  .print-scale-container {
     position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    display: block !important;
     width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    overflow: visible !important;
+    transform: none !important;
   }
 
-  .print-paper-area {
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
+  /* ------------------------------------------------------------- */
+  /* 1. NORMAL PRINTER A4 (عام لیزر جیٹ / انک جیٹ پرنٹر - فل پیج) */
+  /* ------------------------------------------------------------- */
+  .print-format-a4 @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  .a4-receipt {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: 4mm 6mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
     display: block !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    page-break-after: auto;
   }
 
-  /* 80mm Thermal Receipt (Exact 72mm-76mm printable roll width) */
+  /* ------------------------------------------------------------- */
+  /* 2. NORMAL PRINTER A5 (عام پرنٹر - ہاف پیج انوائس)              */
+  /* ------------------------------------------------------------- */
+  .print-format-a5 @page {
+    size: A5 portrait;
+    margin: 6mm 8mm;
+  }
+
+  .a5-receipt {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: 3mm 4mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    page-break-after: auto;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* 3. THERMAL 80MM RECEIPT (سٹینڈرڈ پی او ایس تھرمل پرنٹر)      */
+  /* ------------------------------------------------------------- */
+  .print-format-thermal80 @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
   .thermal-80-receipt {
     width: 76mm !important;
     max-width: 76mm !important;
-    min-width: 76mm !important;
+    min-width: 0 !important;
     margin: 0 auto !important;
-    padding: 2mm 3mm !important;
+    padding: 1.5mm 1mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 11px !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     border: none !important;
     box-shadow: none !important;
     display: block !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
-  /* 58mm Thermal Receipt (Exact 48mm-52mm printable roll width) */
+  /* ------------------------------------------------------------- */
+  /* 4. THERMAL 58MM RECEIPT (چھوٹا پورٹیبل تھرمل پرنٹر)          */
+  /* ------------------------------------------------------------- */
+  .print-format-thermal58 @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+
   .thermal-58-receipt {
-    width: 52mm !important;
-    max-width: 52mm !important;
-    min-width: 52mm !important;
+    width: 50mm !important;
+    max-width: 50mm !important;
+    min-width: 0 !important;
     margin: 0 auto !important;
-    padding: 1mm 2mm !important;
+    padding: 1mm 0.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 9.5px !important;
@@ -129,32 +210,26 @@ body {
     border: none !important;
     box-shadow: none !important;
     display: block !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
-  /* A4 Professional Invoice */
-  .a4-receipt {
-    width: 190mm !important;
-    max-width: 190mm !important;
-    margin: 0 auto !important;
-    padding: 8mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: none !important;
-    box-shadow: none !important;
-    display: block !important;
+  /* Table pagination rules: Avoid break inside row, break across multiple pages cleanly */
+  table {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    width: 100% !important;
   }
-
-  /* A5 Half-Page Invoice (Normal Printer) */
-  .a5-receipt {
-    width: 135mm !important;
-    max-width: 135mm !important;
-    margin: 0 auto !important;
-    padding: 5mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: none !important;
-    box-shadow: none !important;
-    display: block !important;
+  thead {
+    display: table-header-group !important;
+  }
+  tbody {
+    display: table-row-group !important;
+  }
+  tr, .avoid-break, .no-split {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
   }
 
   /* Barcode & QR Sticker Label */
@@ -165,7 +240,7 @@ body {
     page-break-inside: avoid !important;
   }
 
-  /* Force crisp black text and sharp dashed lines on thermal heads */
+  /* Force crisp black text on paper */
   * {
     color: #000000 !important;
     border-color: #000000 !important;

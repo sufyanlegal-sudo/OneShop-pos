@@ -9,7 +9,7 @@ import {
   Printer,
   FileText,
   RotateCcw,
-  DollarSign,
+  Banknote,
   Package,
   Lock,
   ArrowUpRight,
@@ -78,7 +78,7 @@ export const AuditView: React.FC = () => {
       case 'KHATA_PAYMENT':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-            <DollarSign className="w-3.5 h-3.5" />
+            <Banknote className="w-3.5 h-3.5" />
             {lang === 'ur' ? 'کھاتہ وصولی' : 'Khata Payment'}
           </span>
         );

@@ -16,6 +16,9 @@ import {
   RefreshCw,
   PlusCircle,
   HelpCircle,
+  Globe,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -52,6 +55,14 @@ ${businessProfile.nameUr} میں خوش آمدید۔
 
   const [lastParsedOrder, setLastParsedOrder] = useState<any | null>(null);
   const [copiedPushed, setCopiedPushed] = useState(false);
+  const [showVercelGuide, setShowVercelGuide] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, keyName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(keyName);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -257,6 +268,93 @@ ${businessProfile.nameUr} میں خوش آمدید۔
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      {/* Vercel Live WhatsApp Deployment Guide Banner */}
+      <div className="bg-gradient-to-r from-emerald-700 via-teal-800 to-emerald-900 text-white rounded-2xl p-4 shadow-md border border-emerald-600/40">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">
+              <Globe className="w-5 h-5 text-emerald-100" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-nastaliq">ورسل (Vercel) پر لائیو واٹس ایپ آٹو ریپلائی اور آرڈر وصولی سیٹ اپ</h3>
+              <p className="text-xs text-emerald-200">اگر ورسل پر گاہکوں کے پیغامات کا خودکار جواب نہیں جا رہا تو نیچے دی گئی سیٹنگز چیک کریں</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowVercelGuide(!showVercelGuide)}
+            className="px-4 py-1.5 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl text-xs font-black transition shadow flex items-center gap-1.5"
+          >
+            <span>{showVercelGuide ? 'سیٹ اپ گائیڈ چھپائیں ▲' : 'سیٹ اپ کی اہم معلومات دیکھیں ▼'}</span>
+          </button>
+        </div>
+
+        {showVercelGuide && (
+          <div className="mt-4 pt-4 border-t border-emerald-500/40 space-y-3 text-xs animate-fadeIn">
+            <div className="bg-black/40 p-3 rounded-xl space-y-2 border border-white/10">
+              <p className="font-bold text-amber-300">1. ورسل پر ضروری انوائرنمنٹ ویری ایبلز (Environment Variables) درج کریں:</p>
+              <p className="text-slate-200 text-[11px]">
+                ورسل ڈیش بورڈ میں پروجیکٹ کے <strong>Settings ➔ Environment Variables</strong> میں جا کر یہ ویری ایبلز درج کریں تاکہ واٹس ایپ میٹا کلاؤڈ API اور Groq AI لائیو کال ہو سکیں:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono text-[11px]">
+                <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">
+                  <div>
+                    <span className="text-emerald-300 block font-bold">GROQ_API_KEY</span>
+                    <span className="text-slate-400 text-[10px]">فوری اردو AI جوابات کیلئے</span>
+                  </div>
+                  <button onClick={() => copyToClipboard('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', 'groq')} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] text-white">
+                    {copiedKey === 'groq' ? 'کاپی ہوا ✓' : 'کاپی کی'}
+                  </button>
+                </div>
+
+                <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">
+                  <div>
+                    <span className="text-emerald-300 block font-bold">WHATSAPP_VERIFY_TOKEN</span>
+                    <span className="text-slate-400 text-[10px]">jk_erp_secret_token_2026</span>
+                  </div>
+                  <button onClick={() => copyToClipboard('jk_erp_secret_token_2026', 'token')} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] text-white">
+                    {copiedKey === 'token' ? 'کاپی ہوا ✓' : 'کاپی ٹوکن'}
+                  </button>
+                </div>
+
+                <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">
+                  <div>
+                    <span className="text-emerald-300 block font-bold">WHATSAPP_ACCESS_TOKEN</span>
+                    <span className="text-slate-400 text-[10px]">Meta WhatsApp Cloud API ٹوکن</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">
+                  <div>
+                    <span className="text-emerald-300 block font-bold">WHATSAPP_PHONE_NUMBER_ID</span>
+                    <span className="text-slate-400 text-[10px]">Meta Phone Number ID</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/40 p-3 rounded-xl space-y-2 border border-white/10">
+              <p className="font-bold text-amber-300">2. فیس بک ڈیولپر پورٹل (Meta WhatsApp Webhook Configuration):</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-2.5 rounded border border-white/10 font-mono text-[11px]">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Webhook Callback URL:</span>
+                  <span className="text-white">https://[آپ_کا_ورسل_ڈومین].vercel.app/api/webhook/whatsapp</span>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(typeof window !== 'undefined' ? `${window.location.origin}/api/webhook/whatsapp` : '/api/webhook/whatsapp', 'webhook')}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] text-white flex items-center gap-1"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedKey === 'webhook' ? 'کاپی ہوا ✓' : 'ویب ہک URL کاپی'}</span>
+                </button>
+              </div>
+              <p className="text-emerald-200 text-[11px] font-nastaliq leading-relaxed">
+                میٹا فیس بک پورٹل میں Webhook فیلڈز میں <strong>messages</strong> کو سبسکرائب (Subscribe) کریں تاکہ ہر آنے والا گاہک کا میسج ورسل پر وصول ہو اور فوراً اردو میں باادب جواب اور بل واپس چلا جائے!
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main WhatsApp Phone Simulator Frame */}

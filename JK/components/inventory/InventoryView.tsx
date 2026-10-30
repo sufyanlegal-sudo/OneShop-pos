@@ -34,16 +34,22 @@ export const InventoryView: React.FC = () => {
   // Extract categories
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => set.add(lang === 'ur' ? p.categoryUr : p.categoryEn));
+    products.forEach((p) => {
+      const cat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
+      if (cat && cat.trim()) set.add(cat.trim());
+    });
     return ['all', ...Array.from(set)];
   }, [products, lang]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const pCat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
       const catMatch =
         filterCategory === 'all' ||
-        (lang === 'ur' ? p.categoryUr === filterCategory : p.categoryEn === filterCategory);
+        pCat === filterCategory ||
+        p.categoryUr === filterCategory ||
+        p.categoryEn === filterCategory;
 
       const q = searchQuery.toLowerCase().trim();
       const textMatch =
@@ -150,11 +156,13 @@ export const InventoryView: React.FC = () => {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none font-medium"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none font-medium text-xs font-bold"
           >
             {categories.map((c) => (
               <option key={c} value={c}>
-                {c === 'all' ? t('allCategories') : c}
+                {c === 'all'
+                  ? (lang === 'ur' ? '✨ تمام اشیاء (All Products)' : '✨ All Products')
+                  : c}
               </option>
             ))}
           </select>
@@ -315,6 +323,70 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
+              {/* پورشن / کیٹیگری کا انتخاب (Category / Section) */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-750 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    پورشن / کیٹیگری (Category / Portion)*:
+                  </label>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    اسی پورشن اور تمام اشیاء دونوں میں نظر آئے گا ✓
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    list="category-suggestions"
+                    value={editingProduct.categoryUr || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingProduct({
+                        ...editingProduct,
+                        categoryUr: val,
+                        categoryEn: val,
+                      });
+                    }}
+                    placeholder="پورشن کا نام درج کریں یا نیچے سے منتخب کریں..."
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <datalist id="category-suggestions">
+                    {categories
+                      .filter((c) => c !== 'all')
+                      .map((cat) => (
+                        <option key={cat} value={cat} />
+                      ))}
+                  </datalist>
+                </div>
+
+                {/* Quick 1-Click Category Selection Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-slate-500 font-medium">فوری پورشن منتخب کریں:</span>
+                  {categories
+                    .filter((c) => c !== 'all')
+                    .map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() =>
+                          setEditingProduct({
+                            ...editingProduct,
+                            categoryUr: cat,
+                            categoryEn: cat,
+                          })
+                        }
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                          editingProduct.categoryUr === cat
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
@@ -349,10 +421,49 @@ export const InventoryView: React.FC = () => {
                   <input
                     type="text"
                     value={editingProduct.unit || 'Kg'}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const isWeight = val.toLowerCase() === 'kg' || val === 'کلو';
+                      setEditingProduct({
+                        ...editingProduct,
+                        unit: val,
+                        subUnit: isWeight && !editingProduct.subUnit ? 'Grams' : editingProduct.subUnit,
+                        conversionFactor: isWeight && !editingProduct.conversionFactor ? 1000 : editingProduct.conversionFactor,
+                      });
+                    }}
                     placeholder="Kg / Piece / Carton"
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 outline-none font-medium"
                   />
+                  <div className="flex gap-1 mt-1 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          unit: 'Kg',
+                          subUnit: 'Grams',
+                          conversionFactor: 1000,
+                        })
+                      }
+                      className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold"
+                    >
+                      وزن: Kg + Grams
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          unit: 'عدد',
+                          subUnit: undefined,
+                          conversionFactor: undefined,
+                        })
+                      }
+                      className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                    >
+                      عدد
+                    </button>
+                  </div>
                 </div>
 
                 <div>

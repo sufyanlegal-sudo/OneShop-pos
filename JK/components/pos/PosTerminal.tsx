@@ -10,6 +10,7 @@ import {
   Trash2,
   Lock,
   Unlock,
+  Check,
   CheckCircle2,
   CreditCard,
   Banknote,
@@ -19,6 +20,7 @@ import {
   ShoppingBag,
   Sparkles,
   Receipt,
+  Printer,
   AlertCircle,
   TrendingUp,
   Coins,
@@ -29,12 +31,21 @@ import {
   Clock,
   ExternalLink,
   ArrowRight,
+  QrCode,
+  Camera,
+  LayoutGrid,
+  Maximize2,
+  Minimize2,
+  Eye,
+  EyeOff,
+  Repeat,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
 import { Product, PaymentMethod, Invoice, CurrencyDenominations } from '@/types';
 import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
+import { ExchangeModal } from '@/components/pos/ExchangeModal';
 
 export const PosTerminal: React.FC = () => {
   const { lang, t } = useLanguage();
@@ -62,6 +73,8 @@ export const PosTerminal: React.FC = () => {
     setIsWhatsAppOrdersModalOpen,
     updateWhatsAppOrderStatus,
     loadWhatsAppOrderIntoCart,
+    saveProduct,
+    activePreset,
   } = useShop();
 
   // WhatsApp Orders Management Modal State
@@ -72,6 +85,59 @@ export const PosTerminal: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [barcodeInput, setBarcodeInput] = useState('');
+
+  // Screen Layout Mode: Full Dedicated Billing Mode (false) vs Side-by-Side Catalog Grid Mode (true)
+  const [showCatalog, setShowCatalog] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('pos_show_catalog');
+      return saved === 'true'; // Default is false: Full-screen bill-centric mode as requested by user
+    }
+    return false;
+  });
+
+  const toggleCatalog = () => {
+    setShowCatalog((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pos_show_catalog', String(next));
+      }
+      return next;
+    });
+  };
+
+  // Search auto-suggest dropdown state
+  const [searchSuggestionsOpen, setSearchSuggestionsOpen] = useState(false);
+
+  // QR Code & Camera Scanner Modal
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrManualInput, setQrManualInput] = useState('');
+  const [qrSuccessMsg, setQrSuccessMsg] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Camera video stream life-cycle
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    if (qrModalOpen && isCameraActive && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: 'environment' } })
+        .then((s) => {
+          stream = s;
+          if (videoRef.current) {
+            videoRef.current.srcObject = s;
+            videoRef.current.play().catch(() => {});
+          }
+        })
+        .catch(() => {
+          setIsCameraActive(false);
+        });
+    }
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [qrModalOpen, isCameraActive]);
 
   // Voice Assistant Modal
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
@@ -94,10 +160,26 @@ export const PosTerminal: React.FC = () => {
 
   // Manual / Custom Unlisted Item State
   const [customItemModalOpen, setCustomItemModalOpen] = useState(false);
+
+  // Return & Exchange Modal
+  const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState<number>(100);
   const [customItemQty, setCustomItemQty] = useState<number>(1);
   const [customItemUnit, setCustomItemUnit] = useState<string>('عدد');
+  const [customItemCategory, setCustomItemCategory] = useState<string>('عام اشیاء');
+  const [saveCustomToCatalog, setSaveCustomToCatalog] = useState<boolean>(true);
+  const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
+
+  // Auto-scroll ref for active bill list
+  const cartEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the bill list down to the latest item smoothly whenever an item is added
+  useEffect(() => {
+    if (cart.length > 0) {
+      cartEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [cart.length]);
 
   // Currency Denominations State (Notes Counter)
   const [cashInputMode, setCashInputMode] = useState<'direct' | 'notes'>('direct');
@@ -165,6 +247,18 @@ export const PosTerminal: React.FC = () => {
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
+  // Quick confirmation feedback when cashier enters grams or volume and presses Enter
+  const handleConfirmGram = (itemId: string) => {
+    setJustConfirmedId(itemId);
+    setTimeout(() => {
+      setJustConfirmedId((prev) => (prev === itemId ? null : prev));
+    }, 1500);
+    // Refocus barcode input immediately for high-speed continuous scanning
+    setTimeout(() => {
+      barcodeInputRef.current?.focus();
+    }, 50);
+  };
+
   // Auto-sync amountPaid with grandTotal when cart changes or payment method is CASH
   useEffect(() => {
     if (paymentMethod === 'CASH' || paymentMethod === 'ONLINE') {
@@ -174,19 +268,25 @@ export const PosTerminal: React.FC = () => {
     }
   }, [cartTotals.grandTotal, paymentMethod]);
 
-  // Extract categories
+  // Extract categories (all available portions)
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => set.add(lang === 'ur' ? p.categoryUr : p.categoryEn));
+    products.forEach((p) => {
+      const cat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
+      if (cat && cat.trim()) set.add(cat.trim());
+    });
     return ['all', ...Array.from(set)];
   }, [products, lang]);
 
-  // Filtered products
+  // Filtered products (Matches specific portion when selected, and ALL products when 'all' is selected)
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const pCat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
       const matchCat =
         selectedCategory === 'all' ||
-        (lang === 'ur' ? p.categoryUr === selectedCategory : p.categoryEn === selectedCategory);
+        pCat === selectedCategory ||
+        p.categoryUr === selectedCategory ||
+        p.categoryEn === selectedCategory;
 
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
@@ -199,6 +299,57 @@ export const PosTerminal: React.FC = () => {
       return matchCat && matchSearch;
     });
   }, [products, selectedCategory, searchQuery, lang]);
+
+  // Global search suggestions (across all categories for fast billing input)
+  const searchResults = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return [];
+    return products.filter(
+      (p) =>
+        p.nameEn.toLowerCase().includes(q) ||
+        p.nameUr.toLowerCase().includes(q) ||
+        p.barcode.includes(q) ||
+        p.sku.toLowerCase().includes(q)
+    );
+  }, [products, searchQuery]);
+
+  // Handle Search Input Enter Key (Adds top match directly to bill)
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchResults.length > 0) {
+      addToCart(searchResults[0], 1);
+      setSearchQuery('');
+      setSearchSuggestionsOpen(false);
+      barcodeInputRef.current?.focus();
+    }
+  };
+
+  // Handle QR / Barcode Scan submission
+  const handleQrScanSubmit = (scannedCode: string) => {
+    const clean = scannedCode.trim();
+    if (!clean) return;
+
+    const matched = products.find(
+      (p) =>
+        p.barcode === clean ||
+        p.sku.toLowerCase() === clean.toLowerCase() ||
+        p.id === clean ||
+        clean.includes(p.barcode)
+    );
+
+    if (matched) {
+      addToCart(matched, 1);
+      setQrSuccessMsg(
+        lang === 'ur'
+          ? `✓ "${matched.nameUr}" بل میں شامل ہو گیا!`
+          : `✓ Added "${matched.nameEn}" to bill!`
+      );
+      setQrManualInput('');
+      setTimeout(() => setQrSuccessMsg(null), 2500);
+    } else {
+      alert(lang === 'ur' ? 'یہ کیو آر کوڈ یا بارکوڈ سسٹم میں موجود نہیں!' : 'QR / Barcode not found!');
+    }
+  };
 
   // Handle Barcode Scanner Enter Key
   const handleBarcodeSubmit = (e: React.FormEvent) => {
@@ -245,9 +396,81 @@ export const PosTerminal: React.FC = () => {
     }
   };
 
-  // Add manual unlisted custom item directly to cart
+  // Weight & Volume helper functions (Kg, Grams, Liters, Milliliters)
+  const isWeightEligible = (item: { product: Product; selectedUnit?: string; isGram?: boolean }) => {
+    const u = (item.product.unit || '').toLowerCase();
+    const su = (item.product.subUnit || '').toLowerCase();
+    return (
+      u === 'kg' ||
+      u === 'کلو' ||
+      u === 'kilogram' ||
+      su === 'grams' ||
+      su === 'gram' ||
+      su === 'گرام' ||
+      su === 'g' ||
+      item.isGram ||
+      item.selectedUnit === 'گرام' ||
+      item.selectedUnit === 'Grams' ||
+      item.product.conversionFactor === 1000
+    );
+  };
+
+  const isWeightEligibleProduct = (p: Product) => {
+    const u = (p.unit || '').toLowerCase();
+    const su = (p.subUnit || '').toLowerCase();
+    return (
+      u === 'kg' ||
+      u === 'کلو' ||
+      u === 'kilogram' ||
+      su === 'grams' ||
+      su === 'gram' ||
+      su === 'گرام' ||
+      su === 'g' ||
+      p.conversionFactor === 1000
+    );
+  };
+
+  const isLiterEligible = (item: { product: Product; selectedUnit?: string; isLiter?: boolean }) => {
+    const u = (item.product.unit || '').toLowerCase();
+    const su = (item.product.subUnit || '').toLowerCase();
+    return (
+      u === 'liter' ||
+      u === 'litre' ||
+      u === 'لیٹر' ||
+      u === 'ltr' ||
+      u === 'l' ||
+      su === 'ml' ||
+      su === 'ملی لیٹر' ||
+      su === 'ہاف لیٹر' ||
+      item.isLiter ||
+      item.selectedUnit === 'ملی لیٹر' ||
+      item.selectedUnit === 'لیٹر'
+    );
+  };
+
+  const isLiterEligibleProduct = (p: Product) => {
+    const u = (p.unit || '').toLowerCase();
+    const su = (p.subUnit || '').toLowerCase();
+    return (
+      u === 'liter' ||
+      u === 'litre' ||
+      u === 'لیٹر' ||
+      u === 'ltr' ||
+      u === 'l' ||
+      su === 'ml' ||
+      su === 'ملی لیٹر' ||
+      su === 'ہاف لیٹر'
+    );
+  };
+
+  // Add manual unlisted custom item directly to cart (MANAGER ONLY)
   const handleAddCustomItem = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentRole !== 'MANAGER') {
+      alert(lang === 'ur' ? '⛔ غیر مجاز عمل! کیشیئر کو دستی سودا درج کرنے کی اجازت نہیں ہے۔' : 'Unauthorized! Cashiers cannot add custom items.');
+      setCustomItemModalOpen(false);
+      return;
+    }
     if (!customItemName.trim()) {
       alert(lang === 'ur' ? 'آئٹم کا نام درج کریں' : 'Please enter item name');
       return;
@@ -257,23 +480,50 @@ export const PosTerminal: React.FC = () => {
       return;
     }
 
+    const isGram = customItemUnit === 'گرام';
+    const isKg = customItemUnit === 'کلو';
+    const isLiter = customItemUnit === 'لیٹر' || customItemUnit === 'ہاف لیٹر / ملی لیٹر';
+
+    const chosenCat = customItemCategory.trim() || (lang === 'ur' ? 'عام اشیاء' : 'General');
+
     const customProd: Product = {
       id: `manual_${Date.now()}`,
-      preset: 'karyana',
+      preset: activePreset,
       sku: `MAN-${Date.now().toString().slice(-4)}`,
       barcode: `999${Date.now().toString().slice(-8)}`,
       nameEn: customItemName.trim(),
       nameUr: customItemName.trim(),
-      categoryEn: 'General',
-      categoryUr: 'عام آئٹمز',
+      categoryEn: chosenCat,
+      categoryUr: chosenCat,
       costPrice: Math.round(customItemPrice * 0.8),
       salePrice: customItemPrice,
       stock: 9999,
       minStockAlert: 0,
-      unit: customItemUnit,
+      unit: isGram ? 'Kg' : (isLiter ? 'لیٹر' : customItemUnit),
+      subUnit: (isGram || isKg) ? 'Grams' : (isLiter ? 'ملی لیٹر' : undefined),
+      conversionFactor: (isGram || isKg || isLiter) ? 1000 : undefined,
     };
 
-    addToCart(customProd, customItemQty || 1);
+    if (saveCustomToCatalog) {
+      saveProduct(customProd);
+    }
+
+    if (isGram) {
+      addToCart(customProd, 1, 'گرام', undefined, {
+        isGram: true,
+        weightInGrams: customItemQty > 20 ? customItemQty : 250,
+        ratePerKg: customItemPrice,
+      });
+    } else if (customItemUnit === 'ہاف لیٹر / ملی لیٹر') {
+      addToCart(customProd, 1, 'ملی لیٹر', undefined, {
+        isLiter: true,
+        volumeInMl: customItemQty > 20 ? customItemQty : 500,
+        ratePerLiter: customItemPrice,
+      });
+    } else {
+      addToCart(customProd, customItemQty || 1);
+    }
+
     setCustomItemName('');
     setCustomItemPrice(100);
     setCustomItemQty(1);
@@ -317,366 +567,216 @@ export const PosTerminal: React.FC = () => {
     setCashInputMode('direct');
   };
 
-  return (
-    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-130px)] p-2 md:p-4 overflow-hidden">
-      {/* LEFT: Product Catalog & Search (60%) */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        {/* Active Counter & Cashier Info Strip */}
-        <div className="px-3 py-1.5 bg-slate-900 text-white flex items-center justify-between text-xs border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded font-mono font-bold bg-emerald-600 text-white text-[11px]">
-              {currentRole === 'MANAGER' ? '👑 Admin Terminal' : `Counter #${activeCounter}`}
-            </span>
-            <span className="font-bold text-slate-300">
-              {currentRole === 'MANAGER'
-                ? (lang === 'ur' ? 'مینجر لاگ ان' : 'Manager')
-                : (activeCashier?.name || 'کیشیئر')}
-            </span>
-            <span className="text-[10px] text-emerald-400 font-mono hidden sm:inline">
-              • JK Developers Pakistan
-            </span>
+  // Sub-renderer for Cart Items List
+  const renderCartItems = () => {
+    if (cart.length === 0) {
+      return (
+        <div className="h-full min-h-[280px] flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-4">
+          <div className="p-4 rounded-3xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 shadow-inner">
+            <ShoppingBag className="w-14 h-14 stroke-[1.2] text-emerald-500/80 dark:text-emerald-400" />
+          </div>
+          <div className="max-w-md space-y-1.5">
+            <h4 className="font-black text-base text-slate-800 dark:text-slate-100">
+              {lang === 'ur' ? 'بلنگ سکرین بالکل تیار ہے!' : 'Billing Screen is Ready!'}
+            </h4>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {lang === 'ur'
+                ? 'بارکوڈ اسکینر، سرچ بار (نام لکھ کر)، کیو آر کوڈ اسکینر، یا اشیاء ڈیش بورڈ کھول کر سودا بل میں شامل کریں۔'
+                : 'Scan barcode, type product name, use QR scanner, or open products dashboard to build the bill.'}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px]">
-            {/* WhatsApp Orders Notification Button */}
+          {/* Quick Action Welcome Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsWhatsAppOrdersModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-800/90 hover:bg-emerald-700 text-white font-bold transition-all shadow-sm"
-              title="واٹس ایپ پر موصول شدہ آرڈرز دیکھیں"
+              onClick={() => barcodeInputRef.current?.focus()}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-all"
             >
-              <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{lang === 'ur' ? 'واٹس ایپ آرڈرز' : 'WhatsApp Orders'}</span>
-              {pendingWhatsAppOrdersCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse">
-                  {pendingWhatsAppOrdersCount} پینڈنگ
-                </span>
-              )}
+              <Barcode className="w-4 h-4 text-emerald-600" />
+              <span>{lang === 'ur' ? 'بارکوڈ اسکین کریں' : 'Scan Barcode'}</span>
             </button>
-
-            <span className="text-slate-400">
-              {lang === 'ur' ? 'سافٹ ویئر:' : 'Software:'}
-            </span>
-            <span className="font-bold text-emerald-400">
-              {businessProfile.softwareName || 'OneShop POS'}
-            </span>
-          </div>
-        </div>
-
-        {/* Live Pending WhatsApp Order Alert Strip */}
-        {pendingWhatsAppOrdersCount > 0 && (
-          <div className="bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-amber-500/20 border-b border-amber-500/40 px-3 py-1.5 flex items-center justify-between text-xs text-slate-900 dark:text-white">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-              </span>
-              <span className="font-bold text-[11px]">
-                {lang === 'ur'
-                  ? `واٹس ایپ پر ${pendingWhatsAppOrdersCount} نیا آرڈر موصول ہوا ہے (پینڈنگ)! فوری بل بنائیں۔`
-                  : `${pendingWhatsAppOrdersCount} Pending WhatsApp Order(s) Received!`}
-              </span>
-            </div>
             <button
               type="button"
-              onClick={() => setIsWhatsAppOrdersModalOpen(true)}
-              className="px-2.5 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-[11px] shadow-sm flex items-center gap-1 active:scale-95 transition-all"
+              onClick={() => setQrModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1.5 transition-all"
             >
-              <span>{lang === 'ur' ? 'آرڈرز دیکھیں اور بل کاٹیں' : 'View Orders'}</span>
-              <ArrowRight className="w-3 h-3" />
+              <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>{lang === 'ur' ? 'کیو آر اسکینر' : 'QR Scanner'}</span>
             </button>
-          </div>
-        )}
-
-        {/* Top Control Bar: Search, Barcode & Voice */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
-          {/* Barcode scanner input */}
-          <form onSubmit={handleBarcodeSubmit} className="flex-1 min-w-[200px] relative">
-            <Barcode className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              ref={barcodeInputRef}
-              type="text"
-              value={barcodeInput}
-              onChange={(e) => setBarcodeInput(e.target.value)}
-              placeholder={lang === 'ur' ? 'بارکوڈ اسکین کریں یا لکھیں...' : 'Scan barcode or SKU...'}
-              className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 font-mono outline-none"
-            />
-          </form>
-
-          {/* Search by name / keyword */}
-          <div className="flex-1 min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('searchProductPlaceholder')}
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-            />
-          </div>
-
-          {/* Voice Order Button */}
-          <button
-            onClick={() => {
-              setVoiceMode('order');
-              setVoiceModalOpen(true);
-            }}
-            className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-            title="Speak Order (Urdu / English)"
-          >
-            <Mic className="w-4 h-4" />
-            <span>{t('voiceOrder')}</span>
-          </button>
-
-          {/* Quick Manual / Custom Item Add Button */}
-          <button
-            type="button"
-            onClick={() => setCustomItemModalOpen(true)}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
-            title={lang === 'ur' ? 'دستی پروڈکٹ خود لکھ کر شامل کریں' : 'Add custom item manually'}
-          >
-            <PenTool className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{lang === 'ur' ? '✍️ دستی آئٹم خود لکھیں' : 'Custom Item'}</span>
-          </button>
-        </div>
-
-        {/* Categories Pills */}
-        <div className="px-3 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs">
-          {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all ${
-                selectedCategory === cat
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
+              type="button"
+              onClick={toggleCatalog}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 transition-all"
             >
-              {cat === 'all' ? t('allCategories') : cat}
+              <LayoutGrid className="w-4 h-4 text-amber-600" />
+              <span>{lang === 'ur' ? 'اشیاء ڈیش بورڈ لائیں' : 'Show Items Grid'}</span>
             </button>
-          ))}
-        </div>
-
-        {/* Products Grid */}
-        <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filteredProducts.map((p) => {
-            const isLowStock = p.stock <= p.minStockAlert;
-            const profitPerUnit = p.salePrice - p.costPrice;
-
-            return (
-              <div
-                key={p.id}
-                onClick={() => addToCart(p, 1)}
-                className="group relative bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-600 rounded-xl p-3 flex flex-col justify-between cursor-pointer transition-all shadow-sm hover:shadow-md"
-              >
-                {/* Low Stock Badge */}
-                {isLowStock && (
-                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">
-                    {lang === 'ur' ? 'کم اسٹاک' : 'Low Stock'}
-                  </span>
-                )}
-
-                <div>
-                  <div className="text-[10px] text-slate-400 font-mono">{p.sku}</div>
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-0.5">
-                    {lang === 'ur' ? p.nameUr : p.nameEn}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    {lang === 'ur' ? p.nameEn : p.nameUr}
-                  </p>
-                </div>
-
-                <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
-                  <div>
-                    <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                      {p.salePrice.toLocaleString()} <span className="text-[10px]">PKR</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      {lang === 'ur' ? `فی ${p.unit}` : `per ${p.unit}`}
-                    </div>
-                  </div>
-
-                  {/* Real-time Profit Badge (PIN Protected) */}
-                  {isMarginUnlocked ? (
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-mono text-[10px] font-bold">
-                      +{profitPerUnit} PKR
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {p.stock} {p.unit}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* RIGHT: Active Cart, Margin Transparency & Checkout (40%) */}
-      <div className="w-full lg:w-[440px] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-        {/* Cart Header */}
-        <div className="p-3 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-sm">
-              {t('cart')} ({cartTotals.itemCount})
-            </h3>
-          </div>
-
-          {/* Admin Live Margin Lock/Unlock Button */}
-          <div className="flex items-center gap-2">
-            {isMarginUnlocked ? (
+            {currentRole === 'MANAGER' && (
               <button
-                onClick={lockMargin}
-                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all"
-                title="Lock Live Margin Transparency"
+                type="button"
+                onClick={() => setCustomItemModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
               >
-                <Unlock className="w-3.5 h-3.5 text-amber-300" />
-                <span className="text-[11px] font-mono">
-                  {cartTotals.totalProfit.toLocaleString()} PKR
-                </span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setPinModalOpen(true)}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all"
-                title="Unlock Real-time Profit Margins (Admin PIN)"
-              >
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px]">{t('unlockMargin')}</span>
-              </button>
-            )}
-
-            {cart.length > 0 && (
-              <button
-                onClick={clearCart}
-                className="p-1 text-slate-400 hover:text-rose-400 rounded transition-all"
-                title={t('clearCart')}
-              >
-                <Trash2 className="w-4 h-4" />
+                <PenTool className="w-4 h-4" />
+                <span>{lang === 'ur' ? '✍️ دستی سودا لکھیں (ایڈمن)' : 'Add Custom Item'}</span>
               </button>
             )}
           </div>
         </div>
+      );
+    }
 
-        {/* Cart Items List */}
-        <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-              <ShoppingBag className="w-12 h-12 stroke-[1.2] mb-2 text-slate-300 dark:text-slate-700" />
-              <p className="text-xs font-medium max-w-[240px] leading-relaxed">
-                {t('emptyCart')}
-              </p>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-col gap-1.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <h5 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
+    return (
+      <div className="space-y-2">
+        {cart.map((item, idx) => {
+          const isWeight = isWeightEligible(item);
+          const isLiter = isLiterEligible(item);
+          const unitRate = item.ratePerKg || item.ratePerLiter || item.unitPrice || item.product.salePrice;
+          const displayUnit = item.selectedUnit || item.unit || item.product.unit || 'عدد';
+
+          return (
+            <div
+              key={item.id}
+              className="p-2.5 sm:p-3 bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all shadow-xs flex flex-wrap items-center justify-between gap-2.5"
+            >
+              {/* 1. Item Name, Number, Unit Rate & Sub-badge */}
+              <div className="flex items-center gap-2.5 min-w-[190px] flex-1">
+                <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-750 flex items-center justify-center font-mono font-black text-xs text-slate-600 dark:text-slate-300 shrink-0">
+                  {idx + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h5 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
                       {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
                     </h5>
-                    <div className="text-[10px] text-slate-500 font-mono">
-                      Rate: {item.unitPrice} PKR / {item.selectedUnit}
-                    </div>
+                    {item.packagedVariant && (
+                      <span className="px-1.5 py-0.2 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                        {item.packagedVariant}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="text-right">
-                    <div className="font-black text-xs text-slate-900 dark:text-white font-mono">
-                      {item.total.toLocaleString()} PKR
-                    </div>
-                    {/* Item-level profit badge if unlocked */}
-                    {isMarginUnlocked && (
-                      <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                        +{item.profit.toLocaleString()}
-                      </div>
+                  <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span>
+                      ریٹ: {unitRate.toLocaleString()} PKR / {displayUnit}
+                    </span>
+                    {isWeight && item.quantity < 1 && (
+                      <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.2 rounded">
+                        ({Math.round(item.quantity * 1000)} گرام)
+                      </span>
+                    )}
+                    {isLiter && item.quantity < 1 && (
+                      <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.2 rounded">
+                        ({Math.round(item.quantity * 1000)} ml)
+                      </span>
                     )}
                   </div>
                 </div>
-
-                {/* Quantity and Unit Adjustment */}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-750 text-xs">
-                  {/* Multi-unit dropdown if conversionFactor exists */}
-                  {item.product.subUnit ? (
-                    <select
-                      value={item.selectedUnit}
-                      onChange={(e) => {
-                        const newUnit = e.target.value;
-                        const isSub = newUnit === item.product.subUnit;
-                        const factor = item.product.conversionFactor || 1;
-                        const price = isSub
-                          ? Math.round(item.product.salePrice / factor)
-                          : item.product.salePrice;
-                        const cost = isSub
-                          ? Math.round(item.product.costPrice / factor)
-                          : item.product.costPrice;
-                        updateCartItem(item.id, {
-                          selectedUnit: newUnit,
-                          unitPrice: price,
-                          costPrice: cost,
-                        });
-                      }}
-                      className="text-[11px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none font-medium"
-                    >
-                      <option value={item.product.unit}>{item.product.unit}</option>
-                      <option value={item.product.subUnit}>{item.product.subUnit}</option>
-                    </select>
-                  ) : (
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      {item.selectedUnit}
-                    </span>
-                  )}
-
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => {
-                        if (item.quantity > 1) {
-                          updateCartItem(item.id, { quantity: item.quantity - 1 });
-                        } else {
-                          removeFromCart(item.id);
-                        }
-                      }}
-                      className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 flex items-center justify-center font-bold"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const val = Math.max(1, parseInt(e.target.value) || 1);
-                        updateCartItem(item.id, { quantity: val });
-                      }}
-                      className="w-10 text-center text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded py-0.5"
-                    />
-                    <button
-                      onClick={() => updateCartItem(item.id, { quantity: item.quantity + 1 })}
-                      className="w-6 h-6 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-bold"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-1 text-slate-400 hover:text-rose-500 ml-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
               </div>
-            ))
-          )}
-        </div>
 
-        {/* Customer & Checkout Controls */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-          {/* Customer Selection / Quick Khata Search */}
+              {/* 2. Compact Stepper & Quantity / Weight Input (Standard POS - No Sliders) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const step = (isWeight || isLiter) ? 0.25 : 1;
+                    if (item.quantity > step) {
+                      const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
+                      updateCartItem(item.id, {
+                        quantity: next,
+                        isGram: false,
+                        isLiter: false,
+                        unitPrice: unitRate,
+                        total: Math.round(next * unitRate),
+                      });
+                    } else {
+                      removeFromCart(item.id);
+                    }
+                  }}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 active:scale-95 transition-all shadow-xs"
+                  title="مقدار کم کریں"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0.01"
+                    step={isWeight || isLiter ? "0.05" : "1"}
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const val = Math.max(0.01, parseFloat(e.target.value) || 0);
+                      updateCartItem(item.id, {
+                        quantity: val,
+                        isGram: false,
+                        isLiter: false,
+                        unitPrice: unitRate,
+                        total: Math.round(val * unitRate),
+                      });
+                    }}
+                    className="w-16 text-center text-xs font-mono font-black bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-1 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <span className="absolute -bottom-3.5 left-0 right-0 text-center text-[9px] font-bold text-slate-400 font-mono pointer-events-none">
+                    {displayUnit}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const step = (isWeight || isLiter) ? 0.25 : 1;
+                    const next = Math.round((item.quantity + step) * 100) / 100;
+                    updateCartItem(item.id, {
+                      quantity: next,
+                      isGram: false,
+                      isLiter: false,
+                      unitPrice: unitRate,
+                      total: Math.round(next * unitRate),
+                    });
+                  }}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-bold text-xs active:scale-95 transition-all shadow-sm"
+                  title="مقدار بڑھائیں"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 3. Line Total & Delete Button */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="text-right min-w-[75px]">
+                  <span className="font-mono font-black text-xs sm:text-base text-emerald-600 dark:text-emerald-400">
+                    {item.total.toLocaleString()} PKR
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeFromCart(item.id)}
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
+                  title="آئٹم حذف کریں"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {/* Invisible anchor for smooth auto-scroll to bottom */}
+        <div ref={cartEndRef} />
+      </div>
+    );
+  };
+
+  // Sub-renderer for Customer, Payment, Notes Calculator & Checkout Controls
+  const renderCheckoutControls = () => {
+    return (
+      <div className="space-y-3">
+        {/* Customer Selection / Quick Khata Search */}
+        <div>
+          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+            {lang === 'ur' ? 'گاہک منتخب کریں (کھاتہ / ادھار):' : 'Select Customer:'}
+          </label>
           <div className="flex items-center gap-2">
             <select
               value={selectedCustomerId}
@@ -695,40 +795,47 @@ export const PosTerminal: React.FC = () => {
             </select>
 
             <button
+              type="button"
               onClick={() => {
                 setVoiceMode('customer');
                 setVoiceModalOpen(true);
               }}
-              className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl"
+              className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
               title="Dictate Customer Name & Phone"
             >
               <Mic className="w-3.5 h-3.5 text-emerald-600" />
             </button>
           </div>
+        </div>
 
-          {/* If new walk-in / custom name or phone */}
-          {!selectedCustomerId && (
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder={t('customerName')}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs outline-none"
-              />
-              <input
-                type="text"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder={t('customerPhone')}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono outline-none"
-              />
-            </div>
-          )}
+        {/* If new walk-in / custom name or phone */}
+        {!selectedCustomerId && (
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder={t('customerName')}
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs outline-none"
+            />
+            <input
+              type="text"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder={t('customerPhone')}
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono outline-none"
+            />
+          </div>
+        )}
 
-          {/* Payment Method Pills */}
+        {/* Payment Method Pills */}
+        <div>
+          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+            {lang === 'ur' ? 'طریقہ ادائیگی:' : 'Payment Method:'}
+          </label>
           <div className="grid grid-cols-4 gap-1 text-[11px] font-bold">
             <button
+              type="button"
               onClick={() => setPaymentMethod('CASH')}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CASH'
@@ -740,6 +847,7 @@ export const PosTerminal: React.FC = () => {
               <span>{t('cash')}</span>
             </button>
             <button
+              type="button"
               onClick={() => setPaymentMethod('ONLINE')}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'ONLINE'
@@ -751,6 +859,7 @@ export const PosTerminal: React.FC = () => {
               <span>{lang === 'ur' ? 'آن لائن' : 'Online'}</span>
             </button>
             <button
+              type="button"
               onClick={() => setPaymentMethod('CREDIT')}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CREDIT'
@@ -762,6 +871,7 @@ export const PosTerminal: React.FC = () => {
               <span>{lang === 'ur' ? 'ادھار' : 'Khata'}</span>
             </button>
             <button
+              type="button"
               onClick={() => setPaymentMethod('SPLIT')}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'SPLIT'
@@ -770,350 +880,821 @@ export const PosTerminal: React.FC = () => {
               }`}
             >
               <Split className="w-3 h-3" />
-              <span>{lang === 'ur' ? 'جزوی' : 'Split'}</span>
+              <span>{lang === 'ur' ? 'مکس' : 'Split'}</span>
             </button>
           </div>
+        </div>
 
-          {/* Discount in Flat Rupees */}
-          <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-            <span className="font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap flex items-center gap-1">
-              {lang === 'ur' ? 'رعایت (روپے میں):' : 'Discount (PKR):'}
-              {currentRole === 'CASHIER' && !cashierPermissions.canDiscount && (
-                <Lock className="w-3 h-3 text-amber-500" />
-              )}
-            </span>
-            {currentRole === 'CASHIER' && !cashierPermissions.canDiscount ? (
-              <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                {lang === 'ur' ? 'ڈسکاؤنٹ لاک ہے (مینجر کی اجازت درکار ہے)' : 'Discount Locked (Manager Only)'}
+        {/* CASH TENDER & CURRENCY DENOMINATIONS */}
+        {paymentMethod === 'CASH' && (
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 space-y-2">
+            {/* Switch: Direct Numeric vs Pakistani Currency Notes */}
+            <div className="flex items-center justify-between text-xs border-b border-emerald-200 dark:border-emerald-900/50 pb-1.5">
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                {lang === 'ur' ? 'وصول رقم موڈ:' : 'Cash Mode:'}
               </span>
-            ) : (
-              <div className="flex items-center gap-1">
-                {[0, 50, 100, 200].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => {
-                      if (currentRole === 'CASHIER' && cashierPermissions.canDiscount && d > (cashierPermissions.maxDiscountAmount || 500)) {
-                        alert(lang === 'ur' ? `زیادہ سے زیادہ اجازت شدہ ڈسکاؤنٹ ${cashierPermissions.maxDiscountAmount} روپے ہے` : `Max discount is ${cashierPermissions.maxDiscountAmount}`);
-                        return;
-                      }
-                      setOrderDiscount(d);
-                    }}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
-                      orderDiscount === d
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    {d === 0 ? '0' : `-${d}`}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setCashInputMode('direct')}
+                  className={`px-2 py-0.5 rounded transition-all ${
+                    cashInputMode === 'direct'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {lang === 'ur' ? 'سیدھی رقم' : 'Direct'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCashInputMode('notes')}
+                  className={`px-2 py-0.5 rounded transition-all ${
+                    cashInputMode === 'notes'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {lang === 'ur' ? 'نوٹ گنیں' : 'Notes Counter'}
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Cash Input */}
+            {cashInputMode === 'direct' && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    {lang === 'ur' ? 'گاہک سے موصول شدہ کیش:' : 'Cash Received:'}
+                  </label>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                    بل: {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
+                  </span>
+                </div>
                 <input
                   type="number"
                   min="0"
-                  max={currentRole === 'CASHIER' && cashierPermissions.canDiscount ? cashierPermissions.maxDiscountAmount : cartTotals.subtotal}
-                  value={orderDiscount || ''}
-                  onChange={(e) => {
-                    const val = Math.max(0, parseFloat(e.target.value) || 0);
-                    if (currentRole === 'CASHIER' && cashierPermissions.canDiscount && val > (cashierPermissions.maxDiscountAmount || 500)) {
-                      alert(lang === 'ur' ? `کیشیئر کے لیے حد ${cashierPermissions.maxDiscountAmount} روپے ہے` : `Limit is ${cashierPermissions.maxDiscountAmount}`);
-                      setOrderDiscount(cashierPermissions.maxDiscountAmount);
-                      return;
-                    }
-                    setOrderDiscount(val);
-                  }}
-                  placeholder="0"
-                  className="w-16 text-center font-mono font-bold bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded py-0.5 text-xs outline-none text-rose-600"
+                  value={tenderedAmount || ''}
+                  onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
+                  placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
+                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-base font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none"
                 />
+                <div className="flex gap-1 flex-wrap text-[10px] font-mono font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount))}
+                    className="px-2 py-0.5 rounded bg-emerald-600 text-white shadow-xs"
+                  >
+                    برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
+                  </button>
+                  {[500, 1000, 2000, 5000].map((note) => (
+                    <button
+                      key={note}
+                      type="button"
+                      onClick={() => setTenderedAmount(note)}
+                      className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400"
+                    >
+                      {note}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Notes Counter Mode */}
+            {cashInputMode === 'notes' && (
+              <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2 rounded-xl border border-emerald-300 dark:border-emerald-800">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                    {lang === 'ur' ? 'پاکستانی نوٹوں کی تعداد درج کریں:' : 'Pakistani Notes Counter:'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={resetDenominations}
+                    className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
+                  >
+                    {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1 text-[11px]">
+                  {[
+                    { key: 'note5000' as const, label: '5000 کا نوٹ' },
+                    { key: 'note1000' as const, label: '1000 کا نوٹ' },
+                    { key: 'note500' as const, label: '500 کا نوٹ' },
+                    { key: 'note100' as const, label: '100 کا نوٹ' },
+                    { key: 'note50' as const, label: '50 کا نوٹ' },
+                    { key: 'note20' as const, label: '20 کا نوٹ' },
+                    { key: 'note10' as const, label: '10 کا نوٹ' },
+                    { key: 'coins' as const, label: 'سکے (Coins)' },
+                  ].map((d) => {
+                    const count = denominations[d.key] || 0;
+                    return (
+                      <div
+                        key={d.key}
+                        className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700"
+                      >
+                        <span className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">
+                          {d.label}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => updateDenomination(d.key, -1)}
+                            className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-bold text-xs"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            value={count}
+                            onChange={(e) => setDenominationCount(d.key, parseInt(e.target.value) || 0)}
+                            className="w-8 text-center font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-[11px]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateDenomination(d.key, 1)}
+                            className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-emerald-200 dark:border-emerald-800">
+                  <span className="text-slate-600 dark:text-slate-300">
+                    {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
+                  </span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 text-sm">
+                    {notesCalculatedTotal.toLocaleString()} PKR
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Return Change Banner */}
+            {tenderedAmount > 0 && (
+              <div
+                className={`p-2 rounded-xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
+                  tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-rose-600 text-white'
+                }`}
+              >
+                <span className="text-xs">
+                  {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
+                    ? lang === 'ur'
+                      ? '💵 واپسی بقایا رقم (گاہک کو دیں):'
+                      : 'Change to Return:'
+                    : lang === 'ur'
+                    ? '⚠️ رقم کم ہے (بقایا واجب الادا):'
+                    : 'Short Amount:'}
+                </span>
+                <span className="font-mono text-sm font-black">
+                  {Math.abs(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR
+                </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* Cash Tendered & Currency Notes Calculator (for CASH payment) */}
-          {paymentMethod === 'CASH' && (
-            <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-2.5 rounded-xl space-y-2.5 text-xs">
-              {/* Cash Input Mode Toggle: Direct Amount vs Currency Notes */}
-              <div className="flex items-center justify-between gap-2 border-b border-emerald-200/80 dark:border-emerald-800/60 pb-2">
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
-                  <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  {lang === 'ur' ? 'گاہک سے کیش وصولی کا طریقہ:' : 'Cash Collection Mode:'}
-                </span>
-
-                <div className="flex items-center bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-[10.5px]">
-                  <button
-                    type="button"
-                    onClick={() => setCashInputMode('direct')}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all ${
-                      cashInputMode === 'direct'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
-                    }`}
-                  >
-                    {lang === 'ur' ? 'ڈائریکٹ رقم' : 'Direct Amount'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCashInputMode('notes');
-                      if (notesCalculatedTotal > 0) {
-                        setTenderedAmount(notesCalculatedTotal);
-                      }
-                    }}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 ${
-                      cashInputMode === 'notes'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
-                    }`}
-                  >
-                    <Coins className="w-3 h-3" />
-                    <span>{lang === 'ur' ? 'کرنسی نوٹ گنیں' : 'Count Notes'}</span>
-                    {notesCalculatedTotal > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* MODE 1: Direct Amount Entry */}
-              {cashInputMode === 'direct' && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="font-bold text-slate-800 dark:text-slate-200">
-                      {lang === 'ur' ? 'وصول شدہ رقم (روپے):' : 'Tendered Cash (PKR):'}
-                    </label>
-                    <input
-                      type="number"
-                      value={tenderedAmount || ''}
-                      onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
-                      placeholder={Math.max(0, cartTotals.subtotal - orderDiscount).toString()}
-                      className="w-28 text-center text-sm font-mono font-black bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-lg py-1 outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-400"
-                    />
-                  </div>
-
-                  {/* Quick note buttons */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-mono font-bold pt-0.5">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans whitespace-nowrap">
-                      فوری رقم:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount))}
-                      className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-slate-800 dark:text-slate-200 whitespace-nowrap"
-                    >
-                      برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
-                    </button>
-                    {[500, 1000, 2000, 5000].map((note) => (
-                      <button
-                        key={note}
-                        type="button"
-                        onClick={() => setTenderedAmount(note)}
-                        className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400"
-                      >
-                        {note}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* MODE 2: Pakistani Currency Notes Counter */}
-              {cashInputMode === 'notes' && (
-                <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2 rounded-xl border border-emerald-300 dark:border-emerald-800">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                      <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                      {lang === 'ur' ? 'پاکستانی نوٹوں کی تعداد درج کریں:' : 'Pakistani Notes Counter:'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={resetDenominations}
-                      className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
-                    >
-                      {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
-                    </button>
-                  </div>
-
-                  {/* Denominations Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-                    {(
-                      [
-                        { key: 'note5000' as const, val: 5000, label: '5000' },
-                        { key: 'note1000' as const, val: 1000, label: '1000' },
-                        { key: 'note500' as const, val: 500, label: '500' },
-                        { key: 'note100' as const, val: 100, label: '100' },
-                        { key: 'note50' as const, val: 50, label: '50' },
-                        { key: 'note20' as const, val: 20, label: '20' },
-                        { key: 'note10' as const, val: 10, label: '10' },
-                        { key: 'coins' as const, val: 1, label: 'سکے' },
-                      ] as const
-                    ).map((denom) => {
-                      const count = denominations[denom.key] || 0;
-                      const sub = count * denom.val;
-                      return (
-                        <div
-                          key={denom.key}
-                          className={`p-1.5 rounded-lg border transition-all ${
-                            count > 0
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 shadow-sm'
-                              : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between text-[11px] font-mono font-bold mb-1">
-                            <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                              Rs.{denom.label}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              {sub > 0 ? `${sub.toLocaleString()}` : ''}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-1">
-                            <button
-                              type="button"
-                              onClick={() => updateDenomination(denom.key, -1)}
-                              disabled={count === 0}
-                              className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 disabled:opacity-40 font-bold text-xs hover:bg-slate-300"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min="0"
-                              value={count || ''}
-                              onChange={(e) =>
-                                setDenominationCount(denom.key, parseInt(e.target.value) || 0)
-                              }
-                              placeholder="0"
-                              className="w-8 text-center text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded py-0.5 outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => updateDenomination(denom.key, 1)}
-                              className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Notes Summary */}
-                  <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-emerald-200 dark:border-emerald-800">
-                    <span className="text-slate-600 dark:text-slate-300">
-                      {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
-                    </span>
-                    <span className="font-mono text-emerald-700 dark:text-emerald-400 text-sm">
-                      {notesCalculatedTotal.toLocaleString()} PKR
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Big Bold Return Change Banner */}
-              {tenderedAmount > 0 && (
-                <div
-                  className={`p-2.5 rounded-xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
-                    tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-rose-600 text-white'
-                  }`}
-                >
-                  <span className="text-xs">
-                    {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                      ? lang === 'ur'
-                        ? '💵 واپسی بقایا رقم (گاہک کو واپس کریں):'
-                        : 'Change to Return:'
-                      : lang === 'ur'
-                      ? '⚠️ کم رقم موصول (کھاتہ میں بقایا جائے گی):'
-                      : 'Balance Remaining:'}
-                  </span>
-                  <span className="text-base font-black font-mono">
-                    {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                      ? `${(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR`
-                      : `${(Math.max(0, cartTotals.subtotal - orderDiscount) - tenderedAmount).toLocaleString()} PKR`}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Amount Paid & Due Calculation (for Split or partial) */}
-          {(paymentMethod === 'SPLIT' || paymentMethod === 'CREDIT') && (
-            <div className="bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
+        {/* Split Payment inputs */}
+        {paymentMethod === 'SPLIT' && (
+          <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 rounded-xl space-y-1.5 text-xs">
+            <span className="font-bold text-amber-900 dark:text-amber-200 block">
+              {lang === 'ur' ? 'کیش و آن لائن تقسیم:' : 'Split Cash & Online:'}
+            </span>
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-slate-500 font-semibold block">
-                  {t('amountPaid')}
-                </label>
+                <span className="text-[10px] text-slate-500">نقد ادا (Cash):</span>
                 <input
                   type="number"
+                  min="0"
                   value={amountPaid}
-                  onChange={(e) => setAmountPaid(Math.max(0, parseFloat(e.target.value) || 0))}
-                  disabled={paymentMethod === 'CREDIT'}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 font-mono font-bold outline-none"
+                  onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-white dark:bg-slate-800 border rounded-lg px-2 py-1 text-xs font-mono font-bold"
                 />
               </div>
-
               <div>
-                <label className="text-[10px] text-rose-500 font-semibold block">
-                  {t('balanceDue')}
-                </label>
+                <span className="text-[10px] text-slate-500">باقی ادھار/آن لائن:</span>
                 <div className="font-mono font-bold text-rose-600 dark:text-rose-400 py-1">
                   {Math.max(
                     0,
-                    cartTotals.grandTotal - (paymentMethod === 'CREDIT' ? 0 : amountPaid)
+                    cartTotals.grandTotal - amountPaid
                   ).toLocaleString()}{' '}
                   PKR
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Totals Summary */}
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between text-slate-500">
-              <span>{t('subtotal')}:</span>
-              <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
-            </div>
-
-            {/* Live Net Profit display when Admin Margin is unlocked */}
-            {isMarginUnlocked && (
-              <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg">
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  {t('netProfit')}:
-                </span>
-                <span className="font-mono">+{cartTotals.totalProfit.toLocaleString()} PKR</span>
-              </div>
-            )}
-
-            {orderDiscount > 0 && (
-              <div className="flex justify-between text-rose-500 font-bold">
-                <span>رعایت (ڈسکاؤنٹ):</span>
-                <span className="font-mono">- {orderDiscount.toLocaleString()} PKR</span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center text-base font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-750">
-              <span>{t('grandTotal')}:</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl">
-                {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
-              </span>
-            </div>
+        {/* Totals Summary */}
+        <div className="space-y-1 text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex justify-between text-slate-500">
+            <span>{t('subtotal')}:</span>
+            <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
           </div>
 
-          {/* Checkout Button */}
+          {isMarginUnlocked && (
+            <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg">
+              <span className="flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5" />
+                {t('netProfit')}:
+              </span>
+              <span className="font-mono">+{cartTotals.totalProfit.toLocaleString()} PKR</span>
+            </div>
+          )}
+
+          {orderDiscount > 0 && (
+            <div className="flex justify-between text-rose-500 font-bold">
+              <span>رعایت (ڈسکاؤنٹ):</span>
+              <span className="font-mono">- {orderDiscount.toLocaleString()} PKR</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-base font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-750">
+            <span>{t('grandTotal')}:</span>
+            <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl font-black">
+              {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
+            </span>
+          </div>
+        </div>
+
+        {/* Checkout Button */}
+        <button
+          type="button"
+          onClick={handleCheckout}
+          disabled={cart.length === 0}
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-95 transition-all"
+        >
+          <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2 py-0.5 rounded-md font-mono border border-white/20">
+            Rs.
+          </span>
+          <Printer className="w-4 h-4 text-emerald-100" />
+          <span>{t('completeSale')}</span>
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-2.5 h-[calc(100vh-130px)] p-2 md:p-3 overflow-hidden">
+      {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
+      <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Active Role & Counter Badge */}
+          <div className="flex items-center gap-2">
+            {currentRole === 'MANAGER' ? (
+              <span className="px-3 py-1 rounded-xl font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1.5 shadow-sm">
+                <span>👑</span>
+                <span>{lang === 'ur' ? 'ایڈمن ٹرمینل' : 'Admin Terminal'}</span>
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-xl font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 shadow-sm">
+                <span>🏢</span>
+                <span>{lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}</span>
+                <span className="text-slate-400 font-sans">• {activeCashier?.name || 'کیشیئر'}</span>
+              </span>
+            )}
+          </div>
+
+          {/* Cloud Sync Pulse Indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/50">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-mono text-emerald-400">{lang === 'ur' ? 'کلاؤڈ سنک فعال' : 'Cloud Sync Active'}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          {/* WhatsApp Orders Notification Button */}
+          {pendingWhatsAppOrdersCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsWhatsAppOrdersModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95 animate-pulse"
+              title="واٹس ایپ پر موصول شدہ آرڈرز دیکھیں"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-slate-950" />
+              <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'واٹس ایپ آرڈرز' : 'WhatsApp Orders'}</span>
+            </button>
+          )}
+
+          {/* Quick Return & Exchange Button */}
           <button
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-95 transition-all"
+            type="button"
+            onClick={() => setIsExchangeModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-750 text-blue-300 border border-blue-500/30 font-bold text-xs transition-all shadow-sm active:scale-95"
+            title="مال کی واپسی و ایکسچینج (Return & Exchange)"
           >
-            <Receipt className="w-5 h-5" />
-            <span>{t('completeSale')}</span>
+            <Repeat className="w-3.5 h-3.5 text-blue-400" />
+            <span>{lang === 'ur' ? '🔁 مال کا تبادلہ' : 'Exchange'}</span>
+          </button>
+
+          {/* LAYOUT TOGGLE BUTTON: Show Items Dashboard vs Bill Only View */}
+          <button
+            type="button"
+            onClick={toggleCatalog}
+            className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap ${
+              showCatalog
+                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+            }`}
+            title={
+              showCatalog
+                ? (lang === 'ur' ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'Hide catalog, show bill only')
+                : (lang === 'ur' ? 'اشیاء ڈیش بورڈ ساتھ کھولیں' : 'Show items dashboard alongside bill')
+            }
+          >
+            {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+            <span>
+              {showCatalog
+                ? (lang === 'ur' ? '🧾 صرف بلنگ موڈ' : 'Bill Only View')
+                : (lang === 'ur' ? '📦 اشیاء ڈیش بورڈ' : 'Show Items')}
+            </span>
           </button>
         </div>
       </div>
+
+      {/* Live Pending WhatsApp Order Alert Strip */}
+      {pendingWhatsAppOrdersCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-500/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs text-slate-900 dark:text-white shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+            </span>
+            <span className="font-bold text-xs">
+              {lang === 'ur'
+                ? `واٹس ایپ پر ${pendingWhatsAppOrdersCount} نیا آرڈر موصول ہوا ہے (پینڈنگ)! فوری بل بنائیں۔`
+                : `${pendingWhatsAppOrdersCount} Pending WhatsApp Order(s) Received!`}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsWhatsAppOrdersModalOpen(true)}
+            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-sm flex items-center gap-1 active:scale-95 transition-all"
+          >
+            <span>{lang === 'ur' ? 'آرڈرز دیکھیں اور بل کاٹیں' : 'View Orders'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 2. UNIVERSAL SCANNER, SEARCH & QUICK ACTIONS BAR */}
+      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center gap-2">
+        {/* Barcode scanner input */}
+        <form onSubmit={handleBarcodeSubmit} className="flex-1 min-w-[200px] relative">
+          <Barcode className="w-5 h-5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+          <input
+            ref={barcodeInputRef}
+            type="text"
+            value={barcodeInput}
+            onChange={(e) => setBarcodeInput(e.target.value)}
+            placeholder={lang === 'ur' ? 'بارکوڈ اسکین کریں یا لکھیں...' : 'Scan barcode or SKU...'}
+            className="w-full pl-10 pr-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/20 font-mono outline-none transition-all"
+          />
+        </form>
+
+        {/* Search by name / keyword with Auto-Suggestions Dropdown */}
+        <div className="flex-1 min-w-[220px] relative">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+          <form onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSearchSuggestionsOpen(true);
+              }}
+              onFocus={() => {
+                if (searchQuery.trim()) setSearchSuggestionsOpen(true);
+              }}
+              placeholder={lang === 'ur' ? 'آئٹم کا نام لکھیں یا تلاش کریں (چینی، چاول، دال)...' : 'Search product name or press Enter...'}
+              className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+            />
+          </form>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSearchSuggestionsOpen(false);
+              }}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Live Auto-Suggestions Dropdown */}
+          {searchSuggestionsOpen && searchQuery.trim().length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-72 overflow-y-auto p-1.5 space-y-1">
+              <div className="p-1 px-2 text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800 flex justify-between">
+                <span>{lang === 'ur' ? 'تلاش کے نتائج (انٹر یا کلک کریں):' : 'Search matches (Press Enter or click):'}</span>
+                <span>{searchResults.length} آئٹمز</span>
+              </div>
+              {searchResults.length === 0 ? (
+                <div className="p-3 text-center text-xs text-slate-400">
+                  {lang === 'ur' ? 'اس نام سے کوئی آئٹم نہیں ملی' : 'No matching product found'}
+                </div>
+              ) : (
+                searchResults.slice(0, 8).map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      addToCart(p, 1);
+                      setSearchQuery('');
+                      setSearchSuggestionsOpen(false);
+                      barcodeInputRef.current?.focus();
+                    }}
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-all border border-transparent hover:border-emerald-300 dark:hover:border-emerald-800"
+                  >
+                    <div>
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">
+                        {lang === 'ur' ? p.nameUr : p.nameEn}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {p.barcode} • {p.unit}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                        {p.salePrice.toLocaleString()} PKR
+                      </span>
+                      <span className="block text-[9.5px] text-slate-400">
+                        {p.stock} {p.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* QR Code / Camera Scanner Button */}
+        <button
+          type="button"
+          onClick={() => setQrModalOpen(true)}
+          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
+          title={lang === 'ur' ? 'کیو آر کوڈ یا کیمرہ سے اسکین کریں' : 'Scan QR code / camera'}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>{lang === 'ur' ? '📷 کیو آر اسکینر' : 'QR Scan'}</span>
+        </button>
+
+        {/* Quick Manual / Custom Item Add Button - STRICTLY FOR MANAGER ONLY! */}
+        {currentRole === 'MANAGER' && (
+          <button
+            type="button"
+            onClick={() => setCustomItemModalOpen(true)}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
+            title={lang === 'ur' ? 'دستی سودا درج کریں (صرف ایڈمن)' : 'Add custom item (Manager Only)'}
+          >
+            <PenTool className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{lang === 'ur' ? '✍️ دستی سودا' : 'Custom Item'}</span>
+          </button>
+        )}
+
+        {/* Voice Order Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setVoiceMode('order');
+            setVoiceModalOpen(true);
+          }}
+          className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
+          title="Speak Order (Urdu / English)"
+        >
+          <Mic className="w-4 h-4" />
+          <span>{t('voiceOrder')}</span>
+        </button>
+      </div>
+
+      {/* 3. MAIN WORKSPACE */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden">
+        {/* LEFT: Product Catalog Grid (Only visible if showCatalog is true) */}
+        {showCatalog && (
+          <div className="w-full lg:w-[46%] xl:w-[48%] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fadeIn">
+            {/* Catalog Header with Category Filter */}
+            <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between text-xs border-b border-slate-800">
+              <span className="font-bold flex items-center gap-1.5">
+                <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                <span>{lang === 'ur' ? 'اشیاء ڈیش بورڈ (کیٹلاگ)' : 'Products Dashboard'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={toggleCatalog}
+                className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 hover:underline"
+              >
+                <span>{lang === 'ur' ? 'گرڈ بند کریں' : 'Hide'}</span>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Categories Pills */}
+            <div className="px-3 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {cat === 'all'
+                    ? (lang === 'ur' ? '✨ تمام اشیاء (All)' : '✨ All Products')
+                    : cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Products Grid */}
+            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {filteredProducts.map((p) => {
+                const isLowStock = p.stock <= p.minStockAlert;
+                const profitPerUnit = p.salePrice - p.costPrice;
+                const isWeight = isWeightEligibleProduct(p);
+                const isLiter = isLiterEligibleProduct(p);
+                const hasSizes = Boolean(p.sizes && p.sizes.length > 0);
+
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => addToCart(p, 1)}
+                    className="group relative bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-600 rounded-xl p-2.5 flex flex-col justify-between cursor-pointer transition-all shadow-2xs hover:shadow-sm"
+                  >
+                    {isLowStock && (
+                      <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">
+                        {lang === 'ur' ? 'کم اسٹاک' : 'Low Stock'}
+                      </span>
+                    )}
+
+                    <div>
+                      <div className="text-[10px] text-slate-400 font-mono">{p.sku}</div>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-0.5 line-clamp-1">
+                        {lang === 'ur' ? p.nameUr : p.nameEn}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                        {lang === 'ur' ? p.nameEn : p.nameUr}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
+                        <div>
+                          <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                            {p.salePrice.toLocaleString()} <span className="text-[9px]">PKR</span>
+                          </div>
+                          <div className="text-[9.5px] text-slate-500">
+                            {lang === 'ur' ? `فی ${p.unit}` : `per ${p.unit}`}
+                          </div>
+                        </div>
+
+                        {isMarginUnlocked ? (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-mono text-[9.5px] font-bold">
+                            +{profitPerUnit} PKR
+                          </span>
+                        ) : (
+                          <span className="text-[9.5px] text-slate-400 font-mono">
+                            {p.stock} {p.unit}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Weight Quick-Add Pills */}
+                      {isWeight && (
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1);
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 text-emerald-800 dark:text-emerald-300 font-bold text-[9.5px] transition-all"
+                            title="1 کلو شامل کریں"
+                          >
+                            +1 کلو
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 500, ratePerKg: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-300 font-bold text-[9.5px] transition-all"
+                            title="500g شامل کریں"
+                          >
+                            +500g
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 250, ratePerKg: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 text-blue-800 dark:text-blue-300 font-bold text-[9.5px] transition-all"
+                            title="250g شامل کریں"
+                          >
+                            +250g
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 100, ratePerKg: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 text-purple-800 dark:text-purple-300 font-bold text-[9.5px] transition-all"
+                            title="100g شامل کریں"
+                          >
+                            +100g
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 50, ratePerKg: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/50 hover:bg-rose-200 text-rose-800 dark:text-rose-300 font-bold text-[9.5px] transition-all"
+                            title="50g شامل کریں"
+                          >
+                            +50g
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Liter Quick-Add Pills */}
+                      {isLiter && !isWeight && (
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'لیٹر', undefined, { isLiter: false, ratePerLiter: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/50 hover:bg-cyan-200 text-cyan-800 dark:text-cyan-300 font-bold text-[9.5px] transition-all"
+                            title="1 لیٹر شامل کریں"
+                          >
+                            +1 لیٹر
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 500, ratePerLiter: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 text-blue-800 dark:text-blue-300 font-bold text-[9.5px] transition-all"
+                            title="ہاف لیٹر 500ml شامل کریں"
+                          >
+                            +500ml
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 250, ratePerLiter: p.salePrice });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/50 hover:bg-teal-200 text-teal-800 dark:text-teal-300 font-bold text-[9.5px] transition-all"
+                            title="250ml شامل کریں"
+                          >
+                            +250ml
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Packaged Size Variations Pills */}
+                      {hasSizes && (
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                          {p.sizes!.map((s) => {
+                            const priceMatch = s.match(/(\d+)\s*(?:PKR|روپے)/i);
+                            const variantPrice = priceMatch ? parseInt(priceMatch[1], 10) : p.salePrice;
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart(p, 1, p.unit, s, { packagedVariant: s, customPrice: variantPrice });
+                                }}
+                                className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50 hover:bg-indigo-200 text-indigo-800 dark:text-indigo-300 font-bold text-[9.5px] transition-all"
+                                title={`${s} شامل کریں`}
+                              >
+                                +{s}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE BILLING TERMINAL SCREEN */}
+        <div
+          className={`flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all ${
+            !showCatalog ? 'w-full' : 'w-full lg:w-[54%] xl:w-[52%]'
+          }`}
+        >
+          {/* Cart Header */}
+          <div className="p-3 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-black text-sm">
+                {lang === 'ur' ? 'فعال بلنگ کاؤنٹر (بل بنتا ہوا)' : 'Active Billing Counter'} ({cartTotals.itemCount})
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Quick toggle catalog button if catalog is hidden */}
+              {!showCatalog && (
+                <button
+                  type="button"
+                  onClick={toggleCatalog}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg flex items-center gap-1 transition-all border border-slate-700"
+                  title="اشیاء ڈیش بورڈ کھولیں"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[11px]">{lang === 'ur' ? 'اشیاء ڈیش بورڈ کھولیں' : 'Show Items'}</span>
+                </button>
+              )}
+
+              {/* Admin Live Margin Lock/Unlock Button */}
+              {isMarginUnlocked ? (
+                <button
+                  type="button"
+                  onClick={lockMargin}
+                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all"
+                  title="Lock Live Margin Transparency"
+                >
+                  <Unlock className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="text-[11px] font-mono">
+                    {cartTotals.totalProfit.toLocaleString()} PKR
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPinModalOpen(true)}
+                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all"
+                  title="Unlock Real-time Profit Margins (Admin PIN)"
+                >
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[10px]">{t('unlockMargin')}</span>
+                </button>
+              )}
+
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearCart}
+                  className="p-1 text-slate-400 hover:text-rose-400 rounded transition-all"
+                  title={t('clearCart')}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Body Content based on Layout Mode */}
+          {!showCatalog ? (
+            /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar */
+            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+              {/* Left Pane: Items in Active Bill */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                {renderCartItems()}
+              </div>
+
+              {/* Right Pane: Customer, Notes Counter & Checkout Controls */}
+              <div className="w-full lg:w-[380px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 overflow-y-auto shadow-inner">
+                {renderCheckoutControls()}
+              </div>
+            </div>
+          ) : (
+            /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+                {renderCartItems()}
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 max-h-[48%] overflow-y-auto">
+                {renderCheckoutControls()}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
 
       {/* Admin PIN Modal */}
       {pinModalOpen && (
@@ -1529,6 +2110,42 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               </button>
             </div>
 
+            {/* Quick 1-Click Fast Presets */}
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 block mb-1">
+                {lang === 'ur' ? '⚡ فوری انتخاب (Fast 1-Click Presets):' : '⚡ Fast 1-Click Presets:'}
+              </span>
+              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                {[
+                  { name: 'لیز چپس کلاسک (50 گرام)', unit: 'عدد', price: 50, qty: 1 },
+                  { name: 'لیز چپس مصالحہ (100 گرام)', unit: 'عدد', price: 100, qty: 1 },
+                  { name: 'کھلا تازہ دودھ (1 لیٹر)', unit: 'لیٹر', price: 220, qty: 1 },
+                  { name: 'ہاف لیٹر دودھ (500ml)', unit: 'ہاف لیٹر / ملی لیٹر', price: 220, qty: 500 },
+                  { name: 'کھلا کوکنگ آئل (1 لیٹر)', unit: 'لیٹر', price: 520, qty: 1 },
+                  { name: 'ہاف لیٹر کوکنگ آئل (500ml)', unit: 'ہاف لیٹر / ملی لیٹر', price: 520, qty: 500 },
+                  { name: 'چینی خالص (1 کلو)', unit: 'کلو', price: 160, qty: 1 },
+                  { name: 'چینی آدھا کلو (500g)', unit: 'گرام', price: 160, qty: 500 },
+                  { name: 'چینی پاؤ (250g)', unit: 'گرام', price: 160, qty: 250 },
+                  { name: 'چینی 100 گرام', unit: 'گرام', price: 160, qty: 100 },
+                  { name: 'چینی 50 گرام', unit: 'گرام', price: 160, qty: 50 },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setCustomItemName(preset.name);
+                      setCustomItemUnit(preset.unit);
+                      setCustomItemPrice(preset.price);
+                      setCustomItemQty(preset.qty);
+                    }}
+                    className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all shadow-2xs"
+                  >
+                    {preset.name} ({preset.price} PKR)
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
                 {lang === 'ur' ? 'آئٹم کا نام (اردو یا انگریزی):' : 'Item Name (Urdu or English):'}
@@ -1547,7 +2164,11 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  {lang === 'ur' ? 'قیمت (PKR):' : 'Price (PKR):'}
+                  {customItemUnit === 'گرام'
+                    ? (lang === 'ur' ? 'فی کلو ریٹ (PKR):' : 'Rate per Kg (PKR):')
+                    : (customItemUnit === 'لیٹر' || customItemUnit === 'ہاف لیٹر / ملی لیٹر')
+                    ? (lang === 'ur' ? 'فی لیٹر ریٹ (PKR):' : 'Rate per Liter (PKR):')
+                    : (lang === 'ur' ? 'قیمت (PKR):' : 'Price (PKR):')}
                 </label>
                 <input
                   type="number"
@@ -1561,12 +2182,16 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  {lang === 'ur' ? 'تعداد:' : 'Quantity:'}
+                  {customItemUnit === 'گرام'
+                    ? (lang === 'ur' ? 'کتنے گرام (g):' : 'Grams (g):')
+                    : customItemUnit === 'ہاف لیٹر / ملی لیٹر'
+                    ? (lang === 'ur' ? 'کتنے ml:' : 'Volume (ml):')
+                    : (lang === 'ur' ? 'تعداد:' : 'Quantity:')}
                 </label>
                 <input
                   type="number"
-                  min="0.1"
-                  step="any"
+                  min={(customItemUnit === 'گرام' || customItemUnit === 'ہاف لیٹر / ملی لیٹر') ? '1' : '0.1'}
+                  step={(customItemUnit === 'گرام' || customItemUnit === 'ہاف لیٹر / ملی لیٹر') ? '1' : 'any'}
                   required
                   value={customItemQty || ''}
                   onChange={(e) => setCustomItemQty(parseFloat(e.target.value) || 1)}
@@ -1580,13 +2205,22 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 </label>
                 <select
                   value={customItemUnit}
-                  onChange={(e) => setCustomItemUnit(e.target.value)}
+                  onChange={(e) => {
+                    const u = e.target.value;
+                    setCustomItemUnit(u);
+                    if (u === 'گرام' && customItemQty <= 10) {
+                      setCustomItemQty(250);
+                    } else if (u === 'ہاف لیٹر / ملی لیٹر' && customItemQty <= 10) {
+                      setCustomItemQty(500);
+                    }
+                  }}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2 py-2 text-xs font-bold outline-none"
                 >
                   <option value="عدد">عدد (Piece)</option>
                   <option value="کلو">کلو (Kg)</option>
                   <option value="گرام">گرام (Gram)</option>
                   <option value="لیٹر">لیٹر (Liter)</option>
+                  <option value="ہاف لیٹر / ملی لیٹر">ہاف لیٹر / ملی لیٹر (ml)</option>
                   <option value="پیکٹ">پیکٹ (Pack)</option>
                   <option value="درجن">درجن (Dozen)</option>
                   <option value="میٹر">میٹر (Meter)</option>
@@ -1594,12 +2228,129 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               </div>
             </div>
 
+            {/* Quick Gram Preset Chips in Custom Item Modal */}
+            {customItemUnit === 'گرام' && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-500 font-bold">جلدی منتخب کریں:</span>
+                {[
+                  { label: '50g', g: 50 },
+                  { label: '100g', g: 100 },
+                  { label: 'پاؤ (250g)', g: 250 },
+                  { label: 'آدھا کلو (500g)', g: 500 },
+                  { label: '3 پاؤ (750g)', g: 750 },
+                ].map((chip) => (
+                  <button
+                    key={chip.g}
+                    type="button"
+                    onClick={() => setCustomItemQty(chip.g)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      customItemQty === chip.g
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Quick Volume Preset Chips in Custom Item Modal */}
+            {customItemUnit === 'ہاف لیٹر / ملی لیٹر' && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-500 font-bold">جلدی منتخب کریں:</span>
+                {[
+                  { label: 'پاؤ (250ml)', ml: 250 },
+                  { label: 'ہاف لیٹر (500ml)', ml: 500 },
+                  { label: '3 پاؤ (750ml)', ml: 750 },
+                  { label: '1 لیٹر (1000ml)', ml: 1000 },
+                ].map((chip) => (
+                  <button
+                    key={chip.ml}
+                    type="button"
+                    onClick={() => setCustomItemQty(chip.ml)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      customItemQty === chip.ml
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-cyan-100'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* پورشن / کیٹیگری منتخب کریں */}
+            <div className="space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-bold text-slate-700 dark:text-slate-200">
+                  {lang === 'ur' ? 'پورشن / کیٹیگری (Portion):' : 'Category / Portion:'}
+                </label>
+                <span className="text-[10px] text-emerald-600 font-bold">
+                  اس پورشن اور تمام اشیاء دونوں میں آئے گا ✓
+                </span>
+              </div>
+              <input
+                type="text"
+                list="pos-cat-suggestions"
+                value={customItemCategory}
+                onChange={(e) => setCustomItemCategory(e.target.value)}
+                placeholder="پورشن لکھیں یا نیچے سے منتخب کریں..."
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
+              />
+              <datalist id="pos-cat-suggestions">
+                {categories
+                  .filter((c) => c !== 'all')
+                  .map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+              </datalist>
+
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {categories
+                  .filter((c) => c !== 'all')
+                  .slice(0, 6)
+                  .map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCustomItemCategory(cat)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                        customItemCategory === cat
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+              </div>
+
+              <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveCustomToCatalog}
+                  onChange={(e) => setSaveCustomToCatalog(e.target.checked)}
+                  className="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                />
+                <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-300">
+                  {lang === 'ur'
+                    ? 'اس پورشن اور تمام اشیاء میں ہمیشہ کے لیے محفوظ کریں'
+                    : 'Save permanently to this portion & All Items'}
+                </span>
+              </label>
+            </div>
+
             <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl flex items-center justify-between font-bold">
               <span className="text-slate-600 dark:text-slate-300">
                 {lang === 'ur' ? 'کل رقم:' : 'Total Amount:'}
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">
-                {(customItemPrice * customItemQty).toLocaleString()} PKR
+                {(customItemUnit === 'گرام' || customItemUnit === 'ہاف لیٹر / ملی لیٹر'
+                  ? Math.round(((customItemPrice * customItemQty) / 1000) * 100) / 100
+                  : customItemPrice * customItemQty
+                ).toLocaleString()} PKR
               </span>
             </div>
 
@@ -1622,7 +2373,134 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
         </div>
       )}
 
-      {/* Voice Assistant Modal */}
+            {/* QR Code & Camera Scanner Modal */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 dark:text-white text-base">
+                    {lang === 'ur' ? 'کیوآر کوڈ اور کیمرہ اسکینر' : 'QR & Camera Scanner'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {lang === 'ur'
+                      ? 'موبائل کیمرے یا کیوآر اسکینر سے فورا آئٹم بل میں شامل کریں'
+                      : 'Scan QR code or barcode to quickly add to bill'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCameraActive(false);
+                  setQrModalOpen(false);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {qrSuccessMsg && (
+              <div className="mt-3 p-3 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{qrSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Camera View Section */}
+            <div className="mt-4">
+              {isCameraActive ? (
+                <div className="relative rounded-xl overflow-hidden border-2 border-emerald-500 bg-black aspect-video flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 border-2 border-dashed border-emerald-400/70 m-6 rounded-lg pointer-events-none flex items-center justify-center">
+                    <span className="text-[11px] bg-black/60 text-emerald-300 px-2.5 py-1 rounded font-mono">
+                      {lang === 'ur' ? 'کیو آر کوڈ فریم کے اندر لائیں' : 'Point camera at QR code'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
+                  <Camera className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 mb-3">
+                    {lang === 'ur'
+                      ? 'ڈیوائس کا کیمرہ آن کر کے براہ راست کیوآر یا بارکوڈ اسکین کریں'
+                      : 'Activate device camera to scan live barcodes / QR'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsCameraActive(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>{lang === 'ur' ? 'کیمرہ آن کریں (Start Camera)' : 'Start Camera'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Manual QR / Barcode Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleQrScanSubmit(qrManualInput);
+              }}
+              className="mt-4"
+            >
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {lang === 'ur' ? 'یا کیوآر / بارکوڈ نمبر درج کریں:' : 'Or enter QR / Barcode manually:'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={qrManualInput}
+                  onChange={(e) => setQrManualInput(e.target.value)}
+                  placeholder={lang === 'ur' ? 'مثال: 8964000123456 یا PROD-01' : 'e.g. 8964000123456'}
+                  className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shrink-0 shadow-sm"
+                >
+                  {lang === 'ur' ? 'بل میں ڈالیں' : 'Add'}
+                </button>
+              </div>
+            </form>
+
+            {/* Quick 1-Click Test Chips */}
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold text-slate-400 block mb-2">
+                {lang === 'ur' ? 'تجرباتی کیوآر کوڈز (فوری کلک کر کے چیک کریں):' : 'Test QR / Barcodes:'}
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {products.slice(0, 6).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleQrScanSubmit(p.barcode || p.sku)}
+                    className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 text-[11px] rounded-lg font-mono text-slate-600 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700"
+                  >
+                    {p.nameUr || p.nameEn}: {p.barcode || p.sku}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+{/* Voice Assistant Modal */}
       <VoiceAssistantModal
         isOpen={voiceModalOpen}
         onClose={() => setVoiceModalOpen(false)}
@@ -1644,6 +2522,12 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
         onClose={() => setReceiptModalOpen(false)}
         invoice={completedInvoice}
         businessProfile={businessProfile}
+      />
+
+      {/* Return & Exchange Modal */}
+      <ExchangeModal
+        isOpen={isExchangeModalOpen}
+        onClose={() => setIsExchangeModalOpen(false)}
       />
     </div>
   );
