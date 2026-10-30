@@ -264,14 +264,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
             {/* Super Admin Control Panel Trigger (Only for jkdevelopers.pk@gmail.com) */}
             {isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => setIsSuperAdminModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs shadow-md transition-all active:scale-95"
-                title="سپر ایڈمن کنٹرول پینل کھولیں"
-              >
-                <span>⚙️ سپر ایڈمن پینل</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsSuperAdminModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition-all active:scale-95"
+                  title="سپر ایڈمن کنٹرول پینل کھولیں"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                  <span>ایڈمن پینل</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logoutUser();
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition-all"
+                  title="سپر ایڈمن موڈ فوری بند اور لاگ آؤٹ کریں"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>لاگ آؤٹ</span>
+                </button>
+              </div>
             )}
 
             {/* Logged in User Pill & Logout */}

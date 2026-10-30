@@ -188,9 +188,26 @@ interface ShopContextType {
   isSuperAdminModalOpen: boolean;
   setIsSuperAdminModalOpen: (open: boolean) => void;
   loginWithGoogle: (email: string, masterKey?: string) => { status: 'APPROVED' | 'PENDING' | 'SUPER_ADMIN' | 'DENIED'; message: string };
+  registerUser: (params: {
+    name: string;
+    businessName: string;
+    phone: string;
+    email: string;
+    password?: string;
+  }) => Promise<{ status: 'SUCCESS' | 'EXISTS' | 'ERROR'; message: string }>;
+  loginUser: (params: {
+    email: string;
+    password?: string;
+    masterKey?: string;
+  }) => {
+    status: 'APPROVED' | 'PENDING' | 'SUPER_ADMIN' | 'DENIED' | 'NOT_FOUND' | 'WRONG_PASSWORD';
+    message: string;
+    user?: PosUserLicense;
+  };
+  superAdminLoginWithMasterKey: (key: string) => { success: boolean; message: string };
   logoutUser: () => void;
   toggleUserApproval: (email: string) => void;
-  addUserLicense: (email: string, name?: string, approved?: boolean) => void;
+  addUserLicense: (email: string, name?: string, approved?: boolean, businessName?: string, phone?: string) => void;
   deleteUserLicense: (email: string) => void;
   // System Tools
   resetSystemData: () => void;
@@ -403,6 +420,148 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { status: 'APPROVED' as const, message: 'خوش آمدید! آپ کی رسائی منظور شدہ ہے۔' };
     }
     return { status: 'PENDING' as const, message: 'آپ کا اکاؤنٹ منظوری کے لیے پینڈنگ ہے۔ ایڈمن سے رابطہ کریں۔' };
+  };
+
+  const superAdminLoginWithMasterKey = (key: string) => {
+    if (key.trim() === MASTER_ADMIN_KEY) {
+      setCurrentUserEmail(SUPER_ADMIN_EMAIL);
+      storage.setCurrentUser(SUPER_ADMIN_EMAIL);
+      setIsSuperAdminModalOpen(true);
+      return {
+        success: true,
+        message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
+      };
+    }
+    return {
+      success: false,
+      message: 'غلط ماسٹر سیکیورٹی کی! رسائی مسترد کر دی گئی ہے۔',
+    };
+  };
+
+  const registerUser = async (params: {
+    name: string;
+    businessName: string;
+    phone: string;
+    email: string;
+    password?: string;
+  }) => {
+    const cleanEmail = params.email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { status: 'ERROR' as const, message: 'براہِ کرم درست جی میل ایڈریس درج فرمائیں۔' };
+    }
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      return { status: 'ERROR' as const, message: 'یہ ای میل محفوظ ہے اور رجسٹریشن کے لیے دستیاب نہیں ہے۔' };
+    }
+
+    const existing = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return { status: 'EXISTS' as const, message: 'یہ جی میل پہلے سے رجسٹرڈ ہے۔ براہِ کرم لاگ ان کریں۔' };
+    }
+
+    const newUser: PosUserLicense = {
+      email: cleanEmail,
+      name: params.name.trim(),
+      businessName: params.businessName.trim(),
+      phone: params.phone.trim(),
+      password: params.password,
+      approved: false, // 100% requires Super Admin manual approval!
+      registeredAt: new Date().toISOString(),
+      shopName: params.businessName.trim(),
+    };
+
+    const updatedDB = [newUser, ...usersDB];
+    setUsersDB(updatedDB);
+    storage.saveUsersDB(updatedDB);
+
+    // If business name was provided, customize shop profile
+    if (params.businessName.trim()) {
+      updateBusinessProfile({
+        nameUr: params.businessName.trim(),
+        nameEn: params.businessName.trim(),
+        phone: params.phone.trim() || undefined,
+      });
+    }
+
+    // Auto-dispatch notification to Developer Gmail & WhatsApp API
+    try {
+      await fetch('/api/auth/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail: cleanEmail,
+          userName: params.name.trim(),
+          businessName: params.businessName.trim(),
+          phone: params.phone.trim(),
+          action: 'NEW_REGISTRATION',
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to dispatch registration alert:', err);
+    }
+
+    return {
+      status: 'SUCCESS' as const,
+      message: 'اکاؤنٹ کامیابی سے رجسٹر ہو گیا ہے اور ایڈمن کو فوری نوٹیفکیشن ارسال کر دیا گیا ہے۔',
+    };
+  };
+
+  const loginUser = (params: {
+    email: string;
+    password?: string;
+    masterKey?: string;
+  }) => {
+    const cleanEmail = params.email.trim().toLowerCase();
+
+    // 1. Super Admin attempt
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      if (!params.masterKey || params.masterKey.trim() !== MASTER_ADMIN_KEY) {
+        return {
+          status: 'DENIED' as const,
+          message: '⛔ یہ ای میل ڈیولپر کے لیے مخصوص ہے۔ برائے مہربانی اپنا ذاتی رجسٹرڈ اکاؤنٹ استعمال فرمائیں یا ڈویلپر ماسٹر کی درج کریں۔',
+        };
+      }
+      setCurrentUserEmail(SUPER_ADMIN_EMAIL);
+      storage.setCurrentUser(SUPER_ADMIN_EMAIL);
+      return {
+        status: 'SUPER_ADMIN' as const,
+        message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
+      };
+    }
+
+    // 2. Client lookup in database
+    const userRec = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (!userRec) {
+      return {
+        status: 'NOT_FOUND' as const,
+        message: 'یہ جی میل رجسٹرڈ نہیں ہے۔ برائے مہربانی پہلے "نیا اکاؤنٹ بنائیں" پر کلک کر کے رجسٹریشن فرمائیں۔',
+      };
+    }
+
+    // 3. Password verification (if user set a password during registration)
+    if (userRec.password && params.password && userRec.password !== params.password) {
+      return {
+        status: 'WRONG_PASSWORD' as const,
+        message: 'پاسورڈ درست نہیں ہے۔ برائے مہربانی دوبارہ کوشش کریں۔',
+      };
+    }
+
+    // 4. Approval Check
+    if (!userRec.approved) {
+      return {
+        status: 'PENDING' as const,
+        message: 'آپ کا اکاؤنٹ فی الحال پینڈنگ ہے۔ سافٹ ویئر چلانے کے لیے چیف ایڈمن (سفیان حبیب - 03008998381) کی منظوری درکار ہے۔',
+        user: userRec,
+      };
+    }
+
+    // 5. Approved Client Login
+    setCurrentUserEmail(cleanEmail);
+    storage.setCurrentUser(cleanEmail);
+    return {
+      status: 'APPROVED' as const,
+      message: `خوش آمدید ${userRec.name || ''}! آپ کی رسائی منظور شدہ ہے۔`,
+      user: userRec,
+    };
   };
 
   const logoutUser = () => {
@@ -2188,6 +2347,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSuperAdminModalOpen,
         setIsSuperAdminModalOpen,
         loginWithGoogle,
+        registerUser,
+        loginUser,
+        superAdminLoginWithMasterKey,
         logoutUser,
         toggleUserApproval,
         addUserLicense,

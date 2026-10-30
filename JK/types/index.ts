@@ -440,9 +440,11 @@ export interface WhatsAppMessage {
 export interface PosUserLicense {
   email: string;
   name?: string;
+  businessName?: string;
+  phone?: string;
+  password?: string;
   approved: boolean;
   registeredAt?: string;
   approvedAt?: string;
-  phone?: string;
   shopName?: string;
 }

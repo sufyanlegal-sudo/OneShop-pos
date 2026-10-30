@@ -461,8 +461,15 @@ export const storage = {
       console.error('Failed to load users DB', e);
     }
     return [
-      { email: 'jkdevelopers.pk@gmail.com', name: 'سفیان حبیب (سپر ایڈمن)', approved: true, registeredAt: '2026-01-01' },
-      { email: 'client1@gmail.com', name: 'کلائنٹ ٹیسٹ 1', approved: false, registeredAt: '2026-10-20' },
+      {
+        email: 'jkdevelopers.pk@gmail.com',
+        name: 'سفیان حبیب (چیف ایڈمن)',
+        businessName: 'JK Developers پاکستان',
+        phone: '0300-8998381',
+        password: 'JK@8998381',
+        approved: true,
+        registeredAt: '2026-01-01',
+      },
     ];
   },
 

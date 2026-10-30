@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/context/ShopContext';
 import {
   ShieldAlert,
@@ -12,6 +12,8 @@ import {
   LogOut,
   Mail,
   User,
+  Building2,
+  KeyRound,
   ArrowRight,
   Sparkles,
   CloudDownload,
@@ -22,6 +24,8 @@ import {
   Layers,
   AlertCircle,
   FileCheck,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface AuthLicenseGateProps {
@@ -33,17 +37,43 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     currentUserEmail,
     isApprovedUser,
     isSuperAdmin,
-    loginWithGoogle,
+    loginUser,
+    registerUser,
+    superAdminLoginWithMasterKey,
     logoutUser,
     setIsSuperAdminModalOpen,
     fetchGoogleBackup,
     restoreFromGoogleCloud,
+    usersDB,
   } = useShop();
 
-  const [activeTab, setActiveTab] = useState<'restore' | 'login'>('restore');
-  const [inputEmail, setInputEmail] = useState('');
-  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
-  const [notificationSent, setNotificationSent] = useState(false);
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'restore'>('login');
+
+  // Login Form States
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Registration Form States
+  const [regName, setRegName] = useState('');
+  const [regBusinessName, setRegBusinessName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regError, setRegError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Pending user tracking (if client just registered or is awaiting approval)
+  const [pendingUser, setPendingUser] = useState<{
+    name: string;
+    businessName: string;
+    phone: string;
+    email: string;
+  } | null>(null);
 
   // Restore states
   const [restoreEmail, setRestoreEmail] = useState('');
@@ -55,60 +85,197 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     message: string;
   } | null>(null);
 
-  // Super Admin Master Key Protection States (Anti-Hijack)
+  // Hidden Super Admin Master Key States (NO visible public button)
   const [masterKeyModalOpen, setMasterKeyModalOpen] = useState(false);
   const [masterKeyInput, setMasterKeyInput] = useState('');
   const [masterKeyError, setMasterKeyError] = useState('');
-  const [pendingAdminAction, setPendingAdminAction] = useState<'login' | 'restore' | null>(null);
 
   const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
   const ADMIN_WHATSAPP = '+923008998381';
+
+  // Secret Keyboard Shortcut (Ctrl + Shift + S) to open Master Security Key dialog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        setMasterKeyInput('');
+        setMasterKeyError('');
+        setMasterKeyModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // If user is logged in and approved (or is Super Admin), render the full software!
   if (currentUserEmail && isApprovedUser) {
     return <>{children}</>;
   }
 
-  const handleSimulateLogin = (emailToUse?: string) => {
-    const targetEmail = (emailToUse || inputEmail).trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      alert('براہِ کرم درست جی میل (Gmail) درج فرمائیں۔');
+  // 1. Handle Client Login
+  const handleClientLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setLoginError('براہِ کرم درست جی میل (Gmail) ایڈریس درج فرمائیں۔');
       return;
     }
 
-    // STRICT ANTI-HIJACK CHECK: Users cannot use developer's Super Admin email
-    if (targetEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setPendingAdminAction('login');
-      setMasterKeyInput('');
-      setMasterKeyError('');
-      setMasterKeyModalOpen(true);
+    // STRICT ANTI-HIJACK CHECK: Users cannot log into developer's Super Admin email via regular form
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setLoginError('⛔ یہ ای میل ڈیولپر کے لیے مخصوص ہے۔ برائے مہربانی اپنا ذاتی رجسٹرڈ اکاؤنٹ استعمال فرمائیں۔');
       return;
     }
 
-    const res = loginWithGoogle(targetEmail);
-    setShowEmailPrompt(false);
-    setInputEmail('');
+    setIsLoggingIn(true);
+    const res = loginUser({
+      email: cleanEmail,
+      password: loginPassword,
+    });
+    setIsLoggingIn(false);
 
-    if (res.status === 'DENIED') {
-      alert(res.message);
+    if (res.status === 'NOT_FOUND') {
+      setLoginError(res.message);
+      return;
+    }
+
+    if (res.status === 'WRONG_PASSWORD') {
+      setLoginError(res.message);
       return;
     }
 
     if (res.status === 'PENDING') {
-      setNotificationSent(true);
+      setPendingUser({
+        name: res.user?.name || cleanEmail.split('@')[0],
+        businessName: res.user?.businessName || res.user?.shopName || 'کاروبار',
+        phone: res.user?.phone || '',
+        email: cleanEmail,
+      });
+      return;
+    }
+
+    if (res.status === 'DENIED') {
+      setLoginError(res.message);
+      return;
     }
   };
 
-  const handleSearchBackup = async (emailToUse?: string) => {
-    const targetEmail = (emailToUse || restoreEmail).trim().toLowerCase();
+  // 2. Handle Client Registration
+  const handleClientRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+
+    if (!regName.trim()) {
+      setRegError('براہِ کرم اپنا نام درج فرمائیں۔');
+      return;
+    }
+    if (!regBusinessName.trim()) {
+      setRegError('براہِ کرم اپنی دکان یا کاروبار کا نام درج فرمائیں۔');
+      return;
+    }
+    if (!regPhone.trim()) {
+      setRegError('براہِ کرم اپنا موبائل / واٹس ایپ نمبر درج فرمائیں۔');
+      return;
+    }
+    const cleanEmail = regEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setRegError('براہِ کرم درست جی میل (Gmail) درج فرمائیں۔');
+      return;
+    }
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setRegError('یہ ای میل ایڈریس محفوظ ہے۔ برائے مہربانی اپنی ذاتی جی میل درج فرمائیں۔');
+      return;
+    }
+    if (!regPassword || regPassword.length < 4) {
+      setRegError('پاسورڈ کم از کم 4 ہندسوں یا حروف پر مشتمل ہونا چاہیے۔');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setRegError('دونوں پاسورڈ میچ نہیں ہو رہے۔ برائے مہربانی دوبارہ چیک کریں۔');
+      return;
+    }
+
+    setIsRegistering(true);
+    const res = await registerUser({
+      name: regName.trim(),
+      businessName: regBusinessName.trim(),
+      phone: regPhone.trim(),
+      email: cleanEmail,
+      password: regPassword,
+    });
+    setIsRegistering(false);
+
+    if (res.status === 'EXISTS') {
+      setRegError(res.message);
+      return;
+    }
+    if (res.status === 'ERROR') {
+      setRegError(res.message);
+      return;
+    }
+
+    // Set client into Pending state
+    setPendingUser({
+      name: regName.trim(),
+      businessName: regBusinessName.trim(),
+      phone: regPhone.trim(),
+      email: cleanEmail,
+    });
+  };
+
+  // 3. Handle Secret Master Key Submit (Only for developer Sufyan Habib)
+  const handleMasterKeySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!masterKeyInput.trim()) {
+      setMasterKeyError('براہِ کرم ماسٹر سیکیورٹی کی درج فرمائیں۔');
+      return;
+    }
+
+    const res = superAdminLoginWithMasterKey(masterKeyInput);
+    if (!res.success) {
+      setMasterKeyError(res.message);
+      return;
+    }
+
+    setMasterKeyModalOpen(false);
+    setMasterKeyInput('');
+    setMasterKeyError('');
+  };
+
+  // 4. Handle WhatsApp Notification to Developer
+  const handleSendWhatsAppNotification = (userToNotify?: {
+    name: string;
+    businessName: string;
+    phone: string;
+    email: string;
+  }) => {
+    const u = userToNotify || pendingUser;
+    const msg = `السلام علیکم سفیان حبیب صاحب (JK Developers)!
+میں نے ون شاپ پی او ایس (OneShop POS) میں نیا اکاؤنٹ بنایا ہے۔
+━━━━━━━━━━━━━━━━━━
+👤 نام: ${u?.name || 'صارف'}
+🏪 کاروبار: ${u?.businessName || 'دکان'}
+📱 موبائل نمبر: ${u?.phone || 'N/A'}
+📧 جی میل: ${u?.email || currentUserEmail}
+🕒 وقت: ${new Date().toLocaleString('ur-PK')}
+━━━━━━━━━━━━━━━━━━
+براہ کرم میرا اکاؤنٹ چیک فرما کر سافٹ ویئر چلانے کی منظوری (Approval) عنایت فرمائیں۔ شکریہ!`;
+
+    const cleanPhone = ADMIN_WHATSAPP.replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // 5. Restore Search
+  const handleSearchBackup = async () => {
+    const targetEmail = restoreEmail.trim().toLowerCase();
     if (!targetEmail || !targetEmail.includes('@')) {
       alert('براہِ کرم درست جی میل (Gmail) درج فرمائیں۔');
       return;
     }
 
-    // STRICT ANTI-HIJACK CHECK: Users cannot fetch developer's private cloud backup
     if (targetEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setPendingAdminAction('restore');
       setMasterKeyInput('');
       setMasterKeyError('');
       setMasterKeyModalOpen(true);
@@ -128,7 +295,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
           success: false,
           message:
             res.message ||
-            `اس اکاؤنٹ (${targetEmail}) کا کوئی آن لائن کلاؤڈ بیک اپ نہیں ملا۔ آپ نیا سیٹ اپ کر سکتے ہیں یا فائل سے بحال کریں۔`,
+            `اس اکاؤنٹ (${targetEmail}) کا کوئی آن لائن کلاؤڈ بیک اپ نہیں ملا۔`,
         });
       }
     } catch (e: any) {
@@ -141,42 +308,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
   };
 
-  const handleMasterKeySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!masterKeyInput.trim()) {
-      setMasterKeyError('براہِ کرم ماسٹر سیکیورٹی کی درج فرمائیں۔');
-      return;
-    }
-
-    if (pendingAdminAction === 'login') {
-      const res = loginWithGoogle(SUPER_ADMIN_EMAIL, masterKeyInput);
-      if (res.status === 'DENIED') {
-        setMasterKeyError(res.message);
-        return;
-      }
-      setMasterKeyModalOpen(false);
-      setShowEmailPrompt(false);
-      setInputEmail('');
-    } else if (pendingAdminAction === 'restore') {
-      setIsSearchingBackup(true);
-      setRestoreStatus(null);
-      setFoundBackup(null);
-      const res = await fetchGoogleBackup(SUPER_ADMIN_EMAIL, masterKeyInput);
-      setIsSearchingBackup(false);
-      if (res.success && res.backup) {
-        setFoundBackup(res);
-        setMasterKeyModalOpen(false);
-      } else {
-        setMasterKeyError(res.message || 'غیر مجاز رسائی! ماسٹر سیکیورٹی کی غلط ہے۔');
-      }
-    }
-  };
-
+  // 6. Restore Execution
   const handleExecuteRestore = async () => {
-    const targetEmail = (restoreEmail || currentUserEmail || 'client@gmail.com')
-      .trim()
-      .toLowerCase();
-
+    const targetEmail = restoreEmail.trim().toLowerCase();
     setIsRestoring(true);
     setRestoreStatus(null);
 
@@ -187,6 +321,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
           success: true,
           message: res.message,
         });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         setRestoreStatus({
           success: false,
@@ -203,7 +340,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
   };
 
-  // Offline / Manual JSON File Restore from Google Drive
+  // 7. Manual JSON File Restore
   const handleFileUploadRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -212,12 +349,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     reader.onload = async (event) => {
       try {
         const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
         const { storage } = await import('@/lib/storage');
         const success = storage.importBackup(content);
         if (success) {
-          const autoEmail = restoreEmail.trim() || 'restored_user@gmail.com';
-          loginWithGoogle(autoEmail);
           alert('✓ فائل سے سارا ڈیٹا، اسٹاک اور کھاتے کامیابی سے بحال ہو گئے ہیں!');
           window.location.reload();
         } else {
@@ -230,42 +364,143 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     reader.readAsText(file);
   };
 
-  const handleRequestApprovalWhatsApp = () => {
-    const msg = `السلام علیکم سفیان حبیب صاحب (JK Developers)!
-میں نے ون شاپ پی او ایس (OneShop POS) میں لاگ ان کیا ہے۔
-میری جی میل: ${currentUserEmail}
-براہ کرم میرا اکاؤنٹ چیک کر کے سافٹ ویئر کے استعمال کی منظوری (Approval) عنایت فرمائیں۔ شکریہ!`;
-    const cleanPhone = ADMIN_WHATSAPP.replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
-
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center p-4 font-sans text-slate-800 dark:text-slate-100"
+      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 flex flex-col items-center justify-center p-3 sm:p-5 font-sans text-slate-100"
     >
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 m-2 transition-all">
-        {/* Brand Header */}
-        <div className="text-center mb-5">
-          <div className="w-14 h-14 mx-auto mb-2.5 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg text-white font-black text-xl">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 m-2 transition-all text-slate-900 dark:text-slate-100 relative">
+        {/* Top Brand Header */}
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg text-white font-black text-2xl">
             🛍️
           </div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-            ون شاپ پی او ایس (OneShop POS)
+            OneShop POS v2.0 PRO
           </h1>
-          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 px-3 py-0.5 rounded-full inline-block mt-1">
-            کلاؤڈ بیک اپ و لائف ٹائم لائسنس سسٹم
-          </span>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-            Developed & Supported by JK Developers Pakistan • 0300-8998381
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+            پوائنٹ آف سیل و انوائسنگ سسٹم • کلاؤڈ سیکیور پورٹل
           </p>
         </div>
 
-        {/* 1. SECTION: WHEN NOT LOGGED IN / FRESH SETUP */}
-        {!currentUserEmail && (
+        {/* ========================================================================= */}
+        {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
+        {/* ========================================================================= */}
+        {(pendingUser || (currentUserEmail && !isApprovedUser)) && (
+          <div className="space-y-4 animate-in fade-in zoom-in-95">
+            <div className="bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Clock className="w-6 h-6 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="font-black text-base sm:text-lg">
+                  ⏳ اکاؤنٹ زیرِ جائزہ ہے (Awaiting Approval)
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                  آپ کی معلومات سسٹم میں محفوظ ہو چکی ہیں اور ایڈمن کو الرٹ موصول ہو چکا ہے۔ سیکیورٹی پروٹیکشن کے تحت سافٹ ویئر چلانے کے لیے ایڈمن کی منظوری ضروری ہے۔
+                </p>
+              </div>
+
+              {/* Registered details card */}
+              <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-right space-y-1 font-mono">
+                {pendingUser?.name && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-sans">صارف کا نام:</span>
+                    <span className="font-bold font-sans text-slate-900 dark:text-white">
+                      {pendingUser.name}
+                    </span>
+                  </div>
+                )}
+                {pendingUser?.businessName && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-sans">کاروبار / دکان:</span>
+                    <span className="font-bold font-sans text-slate-900 dark:text-white">
+                      {pendingUser.businessName}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-sans">رجسٹرڈ جی میل:</span>
+                  <span className="font-bold text-slate-900 dark:text-white" dir="ltr">
+                    {pendingUser?.email || currentUserEmail}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-amber-200/60 dark:border-amber-800/60">
+                  <span className="text-slate-500 font-sans">اسٹیٹس:</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 font-sans">
+                    غیر منظور شدہ (Pending)
+                  </span>
+                </div>
+              </div>
+
+              {/* WhatsApp Notification Button */}
+              <button
+                type="button"
+                onClick={() => handleSendWhatsAppNotification()}
+                className="w-full py-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+              >
+                <Phone className="w-4 h-4" />
+                <span>واٹس ایپ پر فوری منظوری کی درخواست بھیجیں (0300-8998381)</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPendingUser(null);
+                logoutUser();
+                setActiveTab('login');
+              }}
+              className="w-full py-2 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold flex items-center justify-center gap-1.5 transition-all"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              <span>لاگ آؤٹ کریں اور واپس لاگ ان پر جائیں</span>
+            </button>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE                               */}
+        {/* ========================================================================= */}
+        {!pendingUser && (!currentUserEmail || isApprovedUser === false) && (
           <div className="space-y-4">
-            {/* Top Switcher Tabs: 1-Click Restore vs Standard Login */}
+            {/* Tab Bar */}
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('login');
+                  setLoginError('');
+                  setRegError('');
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'login'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>لاگ ان کریں</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('register');
+                  setLoginError('');
+                  setRegError('');
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'register'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>نیا اکاؤنٹ بنائیں</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -275,355 +510,406 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
                   activeTab === 'restore'
                     ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <CloudDownload className="w-4 h-4" />
-                <span>🔄 سنگل کلک ری اسٹور</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setRestoreStatus(null);
-                }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === 'login'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <span>🔑 نیا لاگ ان / سیٹ اپ</span>
+                <CloudDownload className="w-3.5 h-3.5" />
+                <span>بیک اپ ری اسٹور</span>
               </button>
             </div>
 
-            {/* TAB 1: 1-CLICK RESTORE FROM GOOGLE ACCOUNT */}
+            {/* ------------------------------------------------------------- */}
+            {/* TAB 1: CLIENT SIGN IN                                          */}
+            {/* ------------------------------------------------------------- */}
+            {activeTab === 'login' && (
+              <form onSubmit={handleClientLogin} className="space-y-3.5 animate-in fade-in duration-150">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    جی میل ایڈریس (Gmail Address):
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      dir="ltr"
+                      value={loginEmail}
+                      onChange={(e) => {
+                        setLoginEmail(e.target.value);
+                        setLoginError('');
+                      }}
+                      placeholder="e.g. yourstore@gmail.com"
+                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                      autoFocus
+                    />
+                    <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    پاسورڈ (Password):
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      dir="ltr"
+                      value={loginPassword}
+                      onChange={(e) => {
+                        setLoginPassword(e.target.value);
+                        setLoginError('');
+                      }}
+                      placeholder="پاسورڈ درج کریں..."
+                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute left-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {loginError && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>تصدیق ہو رہی ہے...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>سافٹ ویئر میں لاگ ان کریں</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('register')}
+                    className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                  >
+                    نیا کاروبار ہے؟ یہاں نیا اکاؤنٹ رجسٹر کریں
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* TAB 2: STORE OWNER REGISTRATION FORM                           */}
+            {/* ------------------------------------------------------------- */}
+            {activeTab === 'register' && (
+              <form onSubmit={handleClientRegister} className="space-y-3 animate-in fade-in duration-150">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    صارف کا نام (Full Name):
+                  </label>
+                  <input
+                    type="text"
+                    value={regName}
+                    onChange={(e) => {
+                      setRegName(e.target.value);
+                      setRegError('');
+                    }}
+                    placeholder="مثال: محمد احمد"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    دکان / کاروبار کا نام (Business / Store Name):
+                  </label>
+                  <input
+                    type="text"
+                    value={regBusinessName}
+                    onChange={(e) => {
+                      setRegBusinessName(e.target.value);
+                      setRegError('');
+                    }}
+                    placeholder="مثال: المدینہ کریانہ و جنرل اسٹور"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    موبائل / واٹس ایپ نمبر:
+                  </label>
+                  <input
+                    type="tel"
+                    dir="ltr"
+                    value={regPhone}
+                    onChange={(e) => {
+                      setRegPhone(e.target.value);
+                      setRegError('');
+                    }}
+                    placeholder="0300-1234567"
+                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    جی میل ایڈریس (Gmail Address):
+                  </label>
+                  <input
+                    type="email"
+                    dir="ltr"
+                    value={regEmail}
+                    onChange={(e) => {
+                      setRegEmail(e.target.value);
+                      setRegError('');
+                    }}
+                    placeholder="yourstore@gmail.com"
+                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                      پاسورڈ:
+                    </label>
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      dir="ltr"
+                      value={regPassword}
+                      onChange={(e) => {
+                        setRegPassword(e.target.value);
+                        setRegError('');
+                      }}
+                      placeholder="****"
+                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                      پاسورڈ تصدیق:
+                    </label>
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      dir="ltr"
+                      value={regConfirmPassword}
+                      onChange={(e) => {
+                        setRegConfirmPassword(e.target.value);
+                        setRegError('');
+                      }}
+                      placeholder="****"
+                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                    />
+                  </div>
+                </div>
+
+                {regError && (
+                  <div className="p-2.5 bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{regError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isRegistering}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all mt-2"
+                >
+                  {isRegistering ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>رجسٹریشن و نوٹیفکیشن ارسال ہو رہا ہے...</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4" />
+                      <span>اکاؤنٹ رجسٹر کریں اور منظوری کے لیے بھیجیں</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('login')}
+                    className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
+                  >
+                    پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* TAB 3: 1-CLICK RESTORE FROM GOOGLE ACCOUNT                     */}
+            {/* ------------------------------------------------------------- */}
             {activeTab === 'restore' && (
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-800 rounded-2xl p-4 md:p-5 space-y-3.5 animate-fadeIn">
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 bg-emerald-600 text-white rounded-xl shrink-0 shadow-sm">
-                    <CloudDownload className="w-5 h-5" />
+              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-800 rounded-2xl p-4 space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-2 bg-emerald-600 text-white rounded-xl shrink-0 shadow-sm">
+                    <CloudDownload className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-black text-sm text-emerald-950 dark:text-emerald-100">
-                      Restore from Google Account
+                    <h3 className="font-black text-xs text-emerald-950 dark:text-emerald-100">
+                      Google Cloud Restore
                     </h3>
-                    <p className="text-[11.5px] text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">
-                      اگر کمپیوٹر خراب، چوری یا ونڈوز کرپٹ ہو گئی ہے، تو نئے کمپیوٹر پر اپنی جی میل لاگ ان کریں، سافٹ ویئر خود ہی کلاؤڈ اور ڈرائیو سے آخری تاریخ کا بیک اپ تلاش کر کے سارا ڈیٹا، کھاتے اور اسٹاک چند سیکنڈ میں بحال کر دے گا۔
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">
+                      نئے کمپیوٹر پر اپنی رجسٹرڈ جی میل درج کریں، کلاؤڈ سے سارا اسٹاک، کھاتے اور ڈیٹا خودکار بحال ہو جائے گا۔
                     </p>
                   </div>
                 </div>
 
-                {/* Gmail Input for Restore */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                    اپنا گوگل / جی میل (Gmail) اکاؤنٹ درج فرمائیں:
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    رجسٹرڈ جی میل (Gmail) درج فرمائیں:
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="email"
+                      dir="ltr"
                       value={restoreEmail}
                       onChange={(e) => setRestoreEmail(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleSearchBackup();
-                        }
-                      }}
-                      placeholder="مثال: yourbusiness@gmail.com"
-                      className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                      placeholder="yourstore@gmail.com"
+                      className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 text-left"
                     />
                     <button
                       type="button"
                       disabled={isSearchingBackup || isRestoring}
-                      onClick={() => handleSearchBackup()}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-black shrink-0 shadow-md flex items-center gap-1.5 transition-all"
+                      onClick={handleSearchBackup}
+                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-black shrink-0 shadow-md flex items-center gap-1"
                     >
-                      {isSearchingBackup ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>تلاش جاری ہے...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>🔍 بیک اپ تلاش کریں</span>
-                        </>
-                      )}
+                      {isSearchingBackup ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>🔍 تلاش</span>}
                     </button>
                   </div>
                 </div>
 
-                {/* Status or Error Banner */}
                 {restoreStatus && (
                   <div
-                    className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                    className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
                       restoreStatus.success
-                        ? 'bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 text-emerald-800 dark:text-emerald-200'
-                        : 'bg-rose-100 dark:bg-rose-950 border border-rose-300 text-rose-800 dark:text-rose-200'
+                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300'
+                        : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-300'
                     }`}
                   >
-                    {restoreStatus.success ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    )}
+                    {restoreStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
                     <span>{restoreStatus.message}</span>
                   </div>
                 )}
 
-                {/* Found Cloud Backup Card */}
                 {foundBackup && (
-                  <div className="bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl p-3.5 space-y-3 shadow-md animate-in zoom-in-95">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
-                      <div className="flex items-center gap-2">
-                        <FileCheck className="w-4 h-4 text-emerald-600" />
-                        <span className="font-black text-xs text-slate-900 dark:text-white">
-                          تازہ ترین محفوظ شدہ کلاؤڈ بیک اپ مل گیا!
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full">
-                        ✓ تیار برائے بحالی
+                  <div className="bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-emerald-600">✓ کلاؤڈ بیک اپ مل گیا!</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(foundBackup.exportedAt).toLocaleDateString('ur-PK')}
                       </span>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                      <div className="bg-slate-50 dark:bg-slate-750 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <span className="block text-[10px] text-slate-400">📦 کل آئٹمز و اسٹاک</span>
-                        <span className="font-mono font-black text-slate-800 dark:text-white text-sm">
-                          {foundBackup.stats?.products || 0}
-                        </span>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-750 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <span className="block text-[10px] text-slate-400">👥 کسٹمرز و کھاتے</span>
-                        <span className="font-mono font-black text-slate-800 dark:text-white text-sm">
-                          {foundBackup.stats?.customers || 0}
-                        </span>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-750 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <span className="block text-[10px] text-slate-400">🧾 سابقہ انوائسز</span>
-                        <span className="font-mono font-black text-slate-800 dark:text-white text-sm">
-                          {foundBackup.stats?.invoices || 0}
-                        </span>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-750 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <span className="block text-[10px] text-slate-400">💰 روزنامچہ انٹریز</span>
-                        <span className="font-mono font-black text-slate-800 dark:text-white text-sm">
-                          {foundBackup.stats?.roznamcha || 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-slate-500 font-mono text-center">
-                      📅 آخری تاریخ: {new Date(foundBackup.exportedAt).toLocaleString('ur-PK')}
-                    </div>
-
-                    {/* 1-Click Restore Action Button */}
                     <button
                       type="button"
                       disabled={isRestoring}
                       onClick={handleExecuteRestore}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all"
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-black text-xs shadow-md flex items-center justify-center gap-2"
                     >
                       {isRestoring ? (
                         <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>سارا ڈیٹا، کھاتے اور اسٹاک بحال ہو رہا ہے...</span>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>بحال ہو رہا ہے...</span>
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-4 h-4" />
-                          <span>✨ سنگل کلک بحال کریں (Restore All Data Now)</span>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>سارا ڈیٹا بحال کریں (Restore All Data)</span>
                         </>
                       )}
                     </button>
                   </div>
                 )}
 
-                {/* Secondary Option: Upload JSON downloaded from Google Drive */}
                 <div className="pt-2 border-t border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">
-                    یا کمپیوٹر پر ڈاؤنلوڈ شدہ فائل سے بحال کریں:
-                  </span>
-                  <label className="cursor-pointer px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold inline-flex items-center gap-1 shadow-2xs">
+                  <span className="text-slate-500">یا فائل سے بحال کریں:</span>
+                  <label className="cursor-pointer px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold inline-flex items-center gap-1">
                     <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
                     <span>فائل منتخب کریں (.json)</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileUploadRestore}
-                      className="hidden"
-                    />
+                    <input type="file" accept=".json" onChange={handleFileUploadRestore} className="hidden" />
                   </label>
                 </div>
               </div>
             )}
-
-            {/* TAB 2: REGULAR LOGIN / SETUP */}
-            {activeTab === 'login' && (
-              <div className="space-y-3.5">
-                {!showEmailPrompt ? (
-                  <button
-                    onClick={() => setShowEmailPrompt(true)}
-                    className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 rounded-2xl p-3.5 text-slate-800 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-750 transition-all shadow-md active:scale-98"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.18v3.14C3.15 21.36 7.23 24 12 24z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.18C.43 8.14 0 9.87 0 12s.43 3.86 1.18 5.38l4.09-3.14z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.15 2.64 1.18 6.62l4.09 3.14c.95-2.85 3.6-4.96 6.73-4.96z"
-                      />
-                    </svg>
-                    <span>Google اکاؤنٹ کے ذریعے لاگ ان کریں</span>
-                  </button>
-                ) : (
-                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                      اپنا جی میل ایڈریس درج فرمائیں:
-                    </label>
-                    <input
-                      type="email"
-                      value={inputEmail}
-                      onChange={(e) => setInputEmail(e.target.value)}
-                      placeholder="username@gmail.com"
-                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSimulateLogin()}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-md"
-                      >
-                        لاگ ان تصدیق کریں
-                      </button>
-                      <button
-                        onClick={() => setShowEmailPrompt(false)}
-                        className="px-3 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
-                      >
-                        منسوخ
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Enterprise Security Notice */}
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-500 font-bold">
-                    🔒 انکرپٹڈ سیکیورٹی پروٹیکشن • برائے مہربانی صرف اپنی دکان یا کاروبار کی رجسٹرڈ جی میل درج فرمائیں۔
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* 2. SECTION: PENDING / BLOCKED (Logged in, but awaiting Super Admin approval) */}
-        {currentUserEmail && !isApprovedUser && (
-          <div className="text-center space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 p-5 rounded-2xl shadow-sm space-y-2">
-              <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-1">
-                <Clock className="w-6 h-6 animate-pulse" />
-              </div>
+        {/* Footer Credit & Discreet Hidden Developer Access Trigger */}
+        <div className="mt-6 pt-3 border-t border-slate-200 dark:border-slate-800 text-center flex items-center justify-between text-[11px] text-slate-400">
+          <span>© 2026 JK Developers پاکستان</span>
 
-              <h3 className="font-black text-lg">⏳ لائسنس منظوری کا انتظار ہے</h3>
-              <p className="text-xs leading-relaxed">
-                آپ کا اکاؤنٹ فی الحال پینڈنگ ہے۔ سافٹ ویئر تک مکمل رسائی کے لیے ایڈمن (سفیان حبیب) کی باضابطہ منظوری درکار ہے۔
-              </p>
-
-              <div
-                className="p-2 bg-white/80 dark:bg-slate-900/80 rounded-xl border border-amber-200 dark:border-amber-800 text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200"
-                dir="ltr"
-              >
-                {currentUserEmail}
-              </div>
-
-              <div className="pt-2 text-xs space-y-1">
-                <p className="text-slate-600 dark:text-slate-400 font-bold">ایڈمن واٹس ایپ رابطہ:</p>
-                <button
-                  onClick={handleRequestApprovalWhatsApp}
-                  className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>واٹس ایپ پر فوری منظوری مانگیں (03008998381)</span>
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={logoutUser}
-              className="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline flex items-center justify-center gap-1 mx-auto"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>لاگ آؤٹ کریں اور دوسری جی میل آزمائیں</span>
-            </button>
-          </div>
-        )}
-
-        {/* Super Admin Quick Link */}
-        {currentUserEmail === SUPER_ADMIN_EMAIL && (
-          <div className="mt-5 pt-3 border-t border-slate-200 dark:border-slate-800 text-center">
-            <button
-              onClick={() => setIsSuperAdminModalOpen(true)}
-              className="text-xs text-blue-600 dark:text-blue-400 font-black hover:underline flex items-center justify-center gap-1 mx-auto"
-            >
-              <span>⚙️ سپر ایڈمن کنٹرول پینل کھولیں</span>
-            </button>
-          </div>
-        )}
+          {/* Discreet Developer Key Lock Trigger (No visible text saying 'Super Admin') */}
+          <button
+            type="button"
+            onClick={() => {
+              setMasterKeyInput('');
+              setMasterKeyError('');
+              setMasterKeyModalOpen(true);
+            }}
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded transition"
+            title="Master Access"
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      <div className="text-center mt-3 text-[11px] text-slate-500">
-        © 2026 JK Developers Pakistan • تمام جملہ حقوق بحقِ ایڈمن محفوظ ہیں
-      </div>
-
-      {/* Developer Master Key Security Modal */}
+      {/* ========================================================================= */}
+      {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR SUFYAN HABIB • JK DEVELOPERS)  */}
+      {/* ========================================================================= */}
       {masterKeyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-slate-900 border-2 border-purple-500/60 rounded-3xl w-full max-w-md p-6 text-white shadow-2xl relative animate-in fade-in zoom-in-95">
+          <div className="bg-slate-900 border-2 border-emerald-500/70 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl relative animate-in fade-in zoom-in-95">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-purple-500/20 text-purple-400 rounded-2xl border border-purple-500/30">
-                <Lock className="w-6 h-6" />
+              <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
+                <Lock className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-base text-purple-200">
-                  🔐 سپر ایڈمن ماسٹر سیکیورٹی کی
+                <h3 className="font-black text-sm text-emerald-200">
+                  خفیہ ماسٹر سیکیورٹی رسائی
                 </h3>
-                <span className="text-[11px] font-mono text-purple-400">
-                  {SUPER_ADMIN_EMAIL}
+                <span className="text-[11px] font-mono text-slate-400">
+                  JK Developers Pakistan
                 </span>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              یہ ای میل ایڈریس JK Developers کے چیف ڈویلپر کے لیے مخصوص ہے۔ عام صارفین اس ای میل سے داخل ہونے کے مجاز نہیں ہیں۔ اگر آپ مجاز ڈویلپر ہیں تو اپنی ماسٹر سیکیورٹی کی درج فرمائیں۔
+              یہ پینل صرف سافٹ ویئر ڈویلپر (سفیان حبیب) کے لیے مخصوص ہے۔ برائے مہربانی اپنی خفیہ ماسٹر کی درج فرمائیں۔
             </p>
 
             <form onSubmit={handleMasterKeySubmit} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  سپر ایڈمن ماسٹر پاس ورڈ:
+                  ماسٹر سیکیورٹی کی (Master Key):
                 </label>
                 <input
                   type="password"
+                  dir="ltr"
                   value={masterKeyInput}
                   onChange={(e) => {
                     setMasterKeyInput(e.target.value);
                     setMasterKeyError('');
                   }}
-                  placeholder="Master Security Key درج کریں..."
-                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-purple-500 rounded-xl text-xs font-mono outline-none text-white focus:ring-2 focus:ring-purple-500/40"
+                  placeholder="Secret Key درج کریں..."
+                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs font-mono outline-none text-white focus:ring-2 focus:ring-emerald-500/40 text-left"
                   autoFocus
                 />
               </div>
@@ -638,7 +924,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-900/40 active:scale-95 transition-all"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-lg active:scale-95 transition-all"
                 >
                   تصدیق و داخلہ
                 </button>
@@ -649,9 +935,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                     setMasterKeyInput('');
                     setMasterKeyError('');
                   }}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all"
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl text-xs"
                 >
-                  منسوخ کریں
+                  منسوخ
                 </button>
               </div>
             </form>
