@@ -454,126 +454,54 @@ ${u?.name || 'Store Owner'}`
   return (
     <div
       dir="ltr"
-      className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-6 lg:p-10 font-sans relative overflow-x-hidden selection:bg-emerald-500 selection:text-white"
+      className="min-h-screen bg-[#07131b] text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-6 font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-white"
     >
       {/* Background ambient lighting glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Responsive Split-Screen Grid */}
-      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+      {/* Main Split-Screen Layout Grid */}
+      <div className="w-full max-w-7xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: HERO SHOWCASE WITH OFFICIAL IMAGE & FEATURE HIGHLIGHTS       */}
+        {/* LEFT COLUMN: HERO SHOWCASE ILLUSTRATION                                   */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 flex flex-col justify-center space-y-5 p-2 sm:p-4 lg:p-6 text-left">
-          {/* Top Brand Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wide">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Enterprise Retail & Supermarket POS</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold">
-              <span>🇵🇰</span>
-              <span>Made for Pakistan</span>
-            </div>
-          </div>
-
-          {/* Titles & Official Licensing */}
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-              OneShop POS <span className="text-emerald-400">v2.0 PRO</span>
-            </h1>
-            <p className="text-base sm:text-lg text-emerald-300 font-bold mt-1 font-urdu">
-              ون شاپ پی او ایس • جے کے ڈویلپرز پاکستان
-            </p>
-            <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-xl leading-relaxed">
-              Official retail management software engineered and licensed by{' '}
-              <span className="text-white font-bold">JK Developers Pakistan</span>. Complete barcode billing, Urdu receipts, khata ledgers, and WhatsApp integration.
-            </p>
-          </div>
-
-          {/* Showcase Image Card */}
-          <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-950 group">
-            <div className="aspect-[16/10] sm:aspect-[16/9] w-full relative overflow-hidden bg-slate-900">
-              <img
-                src="/images/oneshop-pos-banner.png"
-                alt="OneShop POS - Developed & Licensed by JK Developers Pakistan"
-                className="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-            </div>
-
-            {/* Bottom Overlay Badge on image */}
-            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent">
-              <div>
-                <p className="text-white font-black text-xs sm:text-sm tracking-wide flex items-center gap-2">
-                  <span>🛍️</span>
-                  <span>Developed & Licensed by JK Developers Pakistan</span>
-                </p>
-                <p className="text-[11px] text-emerald-400 font-medium">
-                  Official Helpline & Customer Support: 0300-8998381
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold">
-                  v2.0 PRO Edition
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature Highlights Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">⚡</div>
-              <div className="text-xs font-black text-white">Ultra-Fast POS</div>
-              <div className="text-[10px] text-slate-400">Barcode & Weighing Scale</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">🧾</div>
-              <div className="text-xs font-black text-white">Urdu & English Print</div>
-              <div className="text-[10px] text-slate-400">Thermal 80mm/58mm & A4</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">📱</div>
-              <div className="text-xs font-black text-white">WhatsApp Billing</div>
-              <div className="text-[10px] text-slate-400">1-Click PDF & Receipt Send</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">📊</div>
-              <div className="text-xs font-black text-white">Roznamcha & Khata</div>
-              <div className="text-[10px] text-slate-400">Customer & Vendor Ledger</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">☁️</div>
-              <div className="text-xs font-black text-white">Cloud Auto-Backup</div>
-              <div className="text-[10px] text-slate-400">Never Lose Store Records</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 text-lg mb-1">🔒</div>
-              <div className="text-xs font-black text-white">Licensed Security</div>
-              <div className="text-[10px] text-slate-400">By JK Developers Pakistan</div>
-            </div>
+        <div className="lg:col-span-7 flex flex-col justify-center">
+          <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-[4/3] rounded-3xl overflow-hidden border border-cyan-900/40 shadow-2xl bg-[#091b26] group">
+            <img
+              src="/images/oneshop-pos-supermarket.jpg"
+              alt="OneShop POS Supermarket - Developed & Licensed by JK Developers Pakistan"
+              className="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-102"
+            />
+            {/* Subtle dark gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* RIGHT COLUMN: INTERACTIVE AUTH GATE CARD (LOGIN / REGISTER / RESTORE)     */}
+        {/* RIGHT COLUMN: DARK GLASS AUTH CARD (MATCHING USER MOCKUP EXACTLY)         */}
         {/* ========================================================================= */}
         <div className="lg:col-span-5 flex flex-col justify-center">
-          <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 transition-all text-slate-900 dark:text-slate-100 relative">
-            {/* Top Brand Header */}
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg text-white font-black text-2xl">
-                🛍️
+          <div className="w-full max-w-md mx-auto bg-[#0f2430]/90 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-cyan-950/50 text-white relative">
+            {/* Top Brand Header matching mockup */}
+            <div className="text-center space-y-1 mb-5">
+              <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 text-2xl shadow-lg shadow-amber-500/25 border border-amber-300/40">
+                🛒
               </div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-                OneShop POS v2.0 PRO
-              </h2>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
-                Cloud Point of Sale & Billing Portal • JK Developers
-              </p>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight font-mono">
+                  <span className="text-white">ONE </span>
+                  <span className="text-cyan-400">SHOP POS</span>
+                </h2>
+                <p className="text-sm font-bold text-slate-200 font-urdu tracking-wide mt-0.5">
+                  ون شاپ پی او ایس
+                </p>
+                <p className="text-xs italic text-teal-300 font-serif font-medium mt-0.5">
+                  سیکیور کلاؤڈ سسٹم
+                </p>
+                <p className="text-[10px] text-slate-400 font-sans tracking-wide mt-0.5">
+                  (Admin Approval Required)
+                </p>
+              </div>
             </div>
 
         {/* ========================================================================= */}
@@ -600,59 +528,59 @@ ${u?.name || 'Store Owner'}`
                 </div>
               </div>
             ) : (
-              <div className="bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
-                <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <div className="bg-[#162e3d]/80 border border-amber-500/50 text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
                   <Clock className="w-6 h-6 animate-pulse" />
                 </div>
 
                 <div>
-                  <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
+                  <h3 className="font-black text-base sm:text-lg text-white">
                     ⏳ Account Awaiting Approval
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
                     Your store details have been registered. For security and license protection, administrator approval is required before you can access the POS software.
                   </p>
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full text-[11px] font-bold border border-emerald-300 dark:border-emerald-800">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950/80 text-emerald-300 rounded-full text-[11px] font-bold border border-emerald-700/60">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                     <span>Live Auto-Sync Active (Screen unlocks upon approval)</span>
                   </div>
                 </div>
 
                 {/* Registered details card */}
-                <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-left space-y-1.5 font-mono">
+                <div className="bg-[#0d212b] rounded-xl p-3 border border-slate-700 text-xs text-left space-y-1.5 font-mono">
                   {pendingUser?.name && (
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-sans">Full Name:</span>
-                      <span className="font-bold font-sans text-slate-900 dark:text-white">
+                      <span className="text-slate-400 font-sans">Full Name:</span>
+                      <span className="font-bold font-sans text-white">
                         {pendingUser.name}
                       </span>
                     </div>
                   )}
                   {pendingUser?.businessName && (
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-sans">Business / Shop:</span>
-                      <span className="font-bold font-sans text-slate-900 dark:text-white">
+                      <span className="text-slate-400 font-sans">Business / Shop:</span>
+                      <span className="font-bold font-sans text-white">
                         {pendingUser.businessName}
                       </span>
                     </div>
                   )}
                   {pendingUser?.phone && (
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-sans">Mobile / WhatsApp:</span>
-                      <span className="font-bold text-slate-900 dark:text-white">
+                      <span className="text-slate-400 font-sans">Mobile / WhatsApp:</span>
+                      <span className="font-bold text-white">
                         {pendingUser.phone}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-sans">Registered Gmail:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">
+                    <span className="text-slate-400 font-sans">Registered Gmail:</span>
+                    <span className="font-bold text-white">
                       {pendingUser?.email || currentUserEmail}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pt-1.5 border-t border-amber-200/60 dark:border-amber-800/60">
-                    <span className="text-slate-500 font-sans">License Status:</span>
-                    <span className="font-bold text-amber-600 dark:text-amber-400 font-sans bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full text-[11px]">
+                  <div className="flex justify-between items-center pt-1.5 border-t border-slate-700/60">
+                    <span className="text-slate-400 font-sans">License Status:</span>
+                    <span className="font-bold text-amber-400 font-sans bg-amber-950/70 border border-amber-800/80 px-2 py-0.5 rounded-full text-[11px]">
                       Pending Approval (Locked)
                     </span>
                   </div>
@@ -703,67 +631,35 @@ ${u?.name || 'Store Owner'}`
         {/* ========================================================================= */}
         {!pendingUser && (!currentUserEmail || isApprovedUser === false) && (
           <div className="space-y-4 text-left">
-            {/* Tab Bar */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setLoginError('');
-                  setRegError('');
-                }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === 'login'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('register');
-                  setLoginError('');
-                  setRegError('');
-                }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === 'register'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Create Account</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('restore');
-                  setRestoreStatus(null);
-                }}
-                className={`flex-1 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === 'restore'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <CloudDownload className="w-3.5 h-3.5" />
-                <span>Cloud Restore</span>
-              </button>
-            </div>
+            {/* Top Navigation Bar only shown when NOT on primary login screen */}
+            {activeTab !== 'login' && (
+              <div className="flex items-center justify-between p-2 rounded-2xl bg-[#132a38] border border-slate-700/60 mb-2">
+                <span className="text-xs font-bold text-cyan-300 px-2">
+                  {activeTab === 'register' ? 'New Store Account' : 'Cloud Restore'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('login');
+                    setLoginError('');
+                    setRegError('');
+                  }}
+                  className="px-3 py-1 bg-[#162e3d] hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-600/50"
+                >
+                  <ArrowRight className="w-3 h-3 rotate-180" />
+                  <span>لاگ ان پر واپس جائیں (Back)</span>
+                </button>
+              </div>
+            )}
 
             {/* ------------------------------------------------------------- */}
-            {/* TAB 1: CLIENT SIGN IN                                          */}
+            {/* TAB 1: CLIENT SIGN IN (MATCHING USER MOCKUP EXACTLY)           */}
             {/* ------------------------------------------------------------- */}
             {activeTab === 'login' && (
               <form onSubmit={handleClientLogin} className="space-y-3.5 animate-in fade-in duration-150">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Gmail Address:
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    User ID
                   </label>
                   <div className="relative">
                     <input
@@ -774,8 +670,8 @@ ${u?.name || 'Store Owner'}`
                         setLoginEmail(e.target.value);
                         setLoginError('');
                       }}
-                      placeholder="e.g. yourstore@gmail.com"
-                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-3.5 pr-10"
+                      placeholder="User ID / Username"
+                      className="w-full px-4 py-2.5 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left pr-10"
                       autoFocus
                     />
                     <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
@@ -783,8 +679,8 @@ ${u?.name || 'Store Owner'}`
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Password:
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Password
                   </label>
                   <div className="relative">
                     <input
@@ -795,13 +691,13 @@ ${u?.name || 'Store Owner'}`
                         setLoginPassword(e.target.value);
                         setLoginError('');
                       }}
-                      placeholder="Enter your password..."
-                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-3.5 pr-10"
+                      placeholder="Password"
+                      className="w-full px-4 py-2.5 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3 top-3 text-slate-400 hover:text-white"
                     >
                       {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -809,35 +705,53 @@ ${u?.name || 'Store Owner'}`
                 </div>
 
                 {loginError && (
-                  <div className="p-3 bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{loginError}</span>
                   </div>
                 )}
 
+                {/* VIBRANT TEAL/CYAN GRADIENT LOGIN BUTTON (MATCHING MOCKUP) */}
                 <button
                   type="submit"
                   disabled={isLoggingIn}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all"
+                  className="w-full py-3 bg-gradient-to-r from-teal-400 via-emerald-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 disabled:opacity-50 text-slate-950 rounded-xl font-black text-sm uppercase tracking-wide shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
                 >
                   {isLoggingIn ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
                       <span>Verifying credentials...</span>
                     </>
                   ) : (
-                    <>
-                      <KeyRound className="w-4 h-4" />
-                      <span>Sign In to POS Software</span>
-                    </>
+                    <span>لاگ ان / LOGIN</span>
                   )}
                 </button>
+
+                {/* Checkbox & Forgot Password Row (Matching Mockup) */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('restore')}
+                    className="hover:text-cyan-400 transition"
+                  >
+                    Forgot Password?
+                  </button>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer hover:text-slate-300 transition select-none">
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      className="rounded accent-cyan-500 bg-slate-800 border-slate-700"
+                    />
+                    <span>Remember Me</span>
+                  </label>
+                </div>
 
                 <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => setActiveTab('register')}
-                    className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-bold transition"
                   >
                     New Business? Register a new account here
                   </button>
@@ -851,7 +765,7 @@ ${u?.name || 'Store Owner'}`
             {activeTab === 'register' && (
               <form onSubmit={handleClientRegister} className="space-y-3 animate-in fade-in duration-150">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                     Owner Full Name:
                   </label>
                   <input
@@ -862,13 +776,13 @@ ${u?.name || 'Store Owner'}`
                       setRegError('');
                     }}
                     placeholder="e.g. Kamran Rafique"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                     Shop / Business Name:
                   </label>
                   <input
@@ -878,13 +792,13 @@ ${u?.name || 'Store Owner'}`
                       setRegBusinessName(e.target.value);
                       setRegError('');
                     }}
-                    placeholder="e.g. Farhan Traders Haveli Lakha"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    placeholder="e.g. Farhan Superstore"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                     Mobile / WhatsApp Number:
                   </label>
                   <input
@@ -896,12 +810,12 @@ ${u?.name || 'Store Owner'}`
                       setRegError('');
                     }}
                     placeholder="0300-1234567"
-                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                    className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                     Gmail Address:
                   </label>
                   <input
@@ -913,13 +827,13 @@ ${u?.name || 'Store Owner'}`
                       setRegError('');
                     }}
                     placeholder="yourstore@gmail.com"
-                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                    className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                       Password:
                     </label>
                     <input
@@ -931,12 +845,12 @@ ${u?.name || 'Store Owner'}`
                         setRegError('');
                       }}
                       placeholder="****"
-                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                      className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                    <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
                       Confirm Password:
                     </label>
                     <input
@@ -948,13 +862,13 @@ ${u?.name || 'Store Owner'}`
                         setRegError('');
                       }}
                       placeholder="****"
-                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                      className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-700 bg-[#162e3d] text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-left"
                     />
                   </div>
                 </div>
 
                 {regError && (
-                  <div className="p-2.5 bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <div className="p-2.5 bg-rose-950/70 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{regError}</span>
                   </div>
@@ -963,7 +877,7 @@ ${u?.name || 'Store Owner'}`
                 <button
                   type="submit"
                   disabled={isRegistering}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all mt-2"
+                  className="w-full py-3 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all mt-2"
                 >
                   {isRegistering ? (
                     <>
@@ -982,7 +896,7 @@ ${u?.name || 'Store Owner'}`
                   <button
                     type="button"
                     onClick={() => setActiveTab('login')}
-                    className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-bold"
                   >
                     Already have an account? Sign In here
                   </button>
@@ -994,23 +908,23 @@ ${u?.name || 'Store Owner'}`
             {/* TAB 3: 1-CLICK RESTORE FROM GOOGLE ACCOUNT                     */}
             {/* ------------------------------------------------------------- */}
             {activeTab === 'restore' && (
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-800 rounded-2xl p-4 space-y-3 animate-in fade-in duration-150">
+              <div className="bg-[#162e3d]/80 border border-slate-700 rounded-2xl p-4 space-y-3 animate-in fade-in duration-150">
                 <div className="flex items-start gap-2.5">
-                  <div className="p-2 bg-emerald-600 text-white rounded-xl shrink-0 shadow-sm">
+                  <div className="p-2 bg-cyan-600 text-white rounded-xl shrink-0 shadow-sm">
                     <CloudDownload className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-black text-xs text-emerald-950 dark:text-emerald-100">
+                    <h3 className="font-black text-xs text-white">
                       Google Cloud Restore
                     </h3>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">
+                    <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
                       On a new PC, enter your registered Gmail to automatically restore all inventory, ledgers, and sales data from cloud.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  <label className="block text-[11px] font-bold text-slate-300">
                     Registered Gmail Address:
                   </label>
                   <div className="flex gap-2">
@@ -1020,13 +934,13 @@ ${u?.name || 'Store Owner'}`
                       value={restoreEmail}
                       onChange={(e) => setRestoreEmail(e.target.value)}
                       placeholder="yourstore@gmail.com"
-                      className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 text-left"
+                      className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-700 bg-[#0d212b] text-white placeholder-slate-400 outline-none focus:ring-1 focus:ring-cyan-400 text-left"
                     />
                     <button
                       type="button"
                       disabled={isSearchingBackup || isRestoring}
                       onClick={handleSearchBackup}
-                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-black shrink-0 shadow-md flex items-center gap-1"
+                      className="px-3 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 disabled:opacity-50 text-white rounded-xl text-xs font-black shrink-0 shadow-md flex items-center gap-1"
                     >
                       {isSearchingBackup ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>🔍 Search</span>}
                     </button>
@@ -1037,19 +951,19 @@ ${u?.name || 'Store Owner'}`
                   <div
                     className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
                       restoreStatus.success
-                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300'
-                        : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-300'
+                        ? 'bg-emerald-950 text-emerald-200 border border-emerald-700'
+                        : 'bg-rose-950 text-rose-200 border border-rose-700'
                     }`}
                   >
-                    {restoreStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+                    {restoreStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
                     <span>{restoreStatus.message}</span>
                   </div>
                 )}
 
                 {foundBackup && (
-                  <div className="bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl p-3 space-y-2">
+                  <div className="bg-[#0f2430] border border-cyan-500/50 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-emerald-600">✓ Cloud Backup Found!</span>
+                      <span className="text-cyan-400">✓ Cloud Backup Found!</span>
                       <span className="text-[10px] text-slate-400 font-mono">
                         {new Date(foundBackup.exportedAt).toLocaleDateString('en-US')}
                       </span>
@@ -1059,7 +973,7 @@ ${u?.name || 'Store Owner'}`
                       type="button"
                       disabled={isRestoring}
                       onClick={handleExecuteRestore}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-black text-xs shadow-md flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl font-black text-xs shadow-md flex items-center justify-center gap-2"
                     >
                       {isRestoring ? (
                         <>
@@ -1076,10 +990,10 @@ ${u?.name || 'Store Owner'}`
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">Or restore from JSON file:</span>
-                  <label className="cursor-pointer px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold inline-flex items-center gap-1">
-                    <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
+                <div className="pt-2 border-t border-slate-700 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Or restore from JSON file:</span>
+                  <label className="cursor-pointer px-2.5 py-1 bg-[#0d212b] hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300 font-bold inline-flex items-center gap-1">
+                    <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
                     <span>Choose File (.json)</span>
                     <input type="file" accept=".json" onChange={handleFileUploadRestore} className="hidden" />
                   </label>
@@ -1088,28 +1002,34 @@ ${u?.name || 'Store Owner'}`
             )}
           </div>
         )}
-
-        {/* Footer Credit & Discreet Hidden Developer Access Trigger */}
-        <div className="mt-6 pt-3 border-t border-slate-200 dark:border-slate-800 text-center flex items-center justify-between text-[11px] text-slate-400">
-          <span>© 2026 JK Developers Pakistan</span>
-
-          {/* Discreet Developer Key Lock Trigger (No visible text saying 'Super Admin') */}
-          <button
-            type="button"
-            onClick={() => {
-              setMasterKeyInput('');
-              setMasterKeyError('');
-              setMasterKeyModalOpen(true);
-            }}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded transition"
-            title="Master Access"
-          >
-            <Lock className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
     </div>
   </div>
+
+  {/* ========================================================================= */}
+  {/* FULL-WIDTH BOTTOM FOOTER BAR (EXACTLY MATCHING USER MOCKUP)                */}
+  {/* ========================================================================= */}
+  <footer className="w-full max-w-7xl mx-auto mt-4 pt-3 border-t border-cyan-950/80 text-center text-xs text-slate-400 space-y-1">
+    <p className="font-medium text-slate-300">
+      Developed & Licensed by <span className="text-white font-bold">JK Developers Pakistan</span> • <span className="font-urdu">جے کے ڈویلپرز پاکستان</span>
+    </p>
+    <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
+      <span>© 2026 JK Developers Pakistan</span>
+      <span>•</span>
+      <button
+        type="button"
+        onClick={() => {
+          setMasterKeyInput('');
+          setMasterKeyError('');
+          setMasterKeyModalOpen(true);
+        }}
+        className="p-1 hover:text-cyan-400 transition"
+        title="Master Key Access"
+      >
+        <Lock className="w-3 h-3 inline opacity-40 hover:opacity-100" />
+      </button>
+    </div>
+  </footer>
 
       {/* ========================================================================= */}
       {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR JK DEVELOPERS PAKISTAN)        */}
