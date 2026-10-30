@@ -9,8 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@next/swc-wasm-nodejs": "^14.2.33",
-    "@next/swc-win32-x64-msvc": "^14.2.33",
     "clsx": "^2.1.1",
     "groq-sdk": "^0.13.0",
     "jsbarcode": "^3.12.3",
