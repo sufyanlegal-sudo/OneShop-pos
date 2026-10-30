@@ -107,6 +107,26 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Inspect URL parameters: If a link is opened or sent for another email, NEVER auto-log in!
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailParam = urlParams.get('email');
+      const actionParam = urlParams.get('action');
+
+      if (emailParam) {
+        logoutUser();
+        setLoginEmail(emailParam);
+        if (actionParam === 'register') {
+          setActiveTab('register');
+          setRegEmail(emailParam);
+        } else {
+          setActiveTab('login');
+        }
+      }
+    }
+  }, []);
+
   // If user is logged in and approved (or is Super Admin), render the full software!
   if (currentUserEmail && isApprovedUser) {
     return <>{children}</>;

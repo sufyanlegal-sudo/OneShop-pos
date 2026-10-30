@@ -481,20 +481,36 @@ export const storage = {
   getCurrentUser(): string | null {
     if (typeof window === 'undefined') return null;
     try {
-      const u = localStorage.getItem(KEYS.CURRENT_USER);
-      if (u) return JSON.parse(u);
+      // Use sessionStorage so opening a new link, sending link to another person,
+      // or opening in a new tab will NEVER auto-log in!
+      const sess = sessionStorage.getItem(KEYS.CURRENT_USER);
+      if (sess) {
+        try {
+          return JSON.parse(sess);
+        } catch {
+          return sess;
+        }
+      }
+      // Also clean up any legacy persistent localStorage login key
+      localStorage.removeItem(KEYS.CURRENT_USER);
     } catch (e) {
-      return localStorage.getItem(KEYS.CURRENT_USER);
+      console.error('Session storage error', e);
     }
     return null;
   },
 
   setCurrentUser(email: string | null): void {
     if (typeof window === 'undefined') return;
-    if (!email) {
+    try {
+      // Ensure localStorage is cleared so links never inherit old logged-in accounts
       localStorage.removeItem(KEYS.CURRENT_USER);
-    } else {
-      localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(email));
+      if (!email) {
+        sessionStorage.removeItem(KEYS.CURRENT_USER);
+      } else {
+        sessionStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(email));
+      }
+    } catch (e) {
+      console.error('Failed to set current user session', e);
     }
   },
 };

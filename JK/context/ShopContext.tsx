@@ -382,9 +382,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    setCurrentUserEmail(cleanEmail);
-    storage.setCurrentUser(cleanEmail);
-
     let updatedDB = [...usersDB];
     let userRec = updatedDB.find((u) => u.email.toLowerCase() === cleanEmail);
     if (!userRec) {
@@ -414,9 +411,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setCurrentUserEmail(cleanEmail);
+      storage.setCurrentUser(cleanEmail);
       return { status: 'SUPER_ADMIN' as const, message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔' };
     }
     if (userRec.approved) {
+      setCurrentUserEmail(cleanEmail);
+      storage.setCurrentUser(cleanEmail);
       return { status: 'APPROVED' as const, message: 'خوش آمدید! آپ کی رسائی منظور شدہ ہے۔' };
     }
     return { status: 'PENDING' as const, message: 'آپ کا اکاؤنٹ منظوری کے لیے پینڈنگ ہے۔ ایڈمن سے رابطہ کریں۔' };

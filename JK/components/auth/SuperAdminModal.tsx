@@ -17,6 +17,7 @@ import {
   Building2,
   LogOut,
   Send,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 export const SuperAdminModal: React.FC = () => {
@@ -92,6 +93,13 @@ export const SuperAdminModal: React.FC = () => {
 JK Developers پاکستان - 03008998381`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handleCopyClientLink = (email: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const url = `${origin}/?email=${encodeURIComponent(email)}`;
+    navigator.clipboard.writeText(url);
+    alert(`کلائنٹ لاگ ان لنک کاپی ہو گیا ہے:\n${url}\n\nاس لنک سے اوپن کرنے پر پرانا سیشن ختم ہوگا اور صارف سے پاسورڈ مانگا جائے گا (کوئی آٹو لاگ ان نہیں ہوگا)۔`);
   };
 
   const handleAdminLogout = () => {
@@ -331,6 +339,14 @@ JK Developers پاکستان - 03008998381`;
                                 <Phone className="w-3.5 h-3.5" />
                               </button>
                             )}
+
+                            <button
+                              onClick={() => handleCopyClientLink(user.email)}
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition shadow-xs"
+                              title="کلائنٹ کے لیے لاگ ان لنک کاپی کریں (کوئی آٹو لاگ ان نہیں ہوگا)"
+                            >
+                              <LinkIcon className="w-3.5 h-3.5" />
+                            </button>
 
                             <button
                               onClick={() => {
