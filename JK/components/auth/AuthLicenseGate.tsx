@@ -454,21 +454,127 @@ ${u?.name || 'Store Owner'}`
   return (
     <div
       dir="ltr"
-      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 flex flex-col items-center justify-center p-3 sm:p-5 font-sans text-slate-100"
+      className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-6 lg:p-10 font-sans relative overflow-x-hidden selection:bg-emerald-500 selection:text-white"
     >
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 m-2 transition-all text-slate-900 dark:text-slate-100 relative">
-        {/* Top Brand Header */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg text-white font-black text-2xl">
-            🛍️
+      {/* Background ambient lighting glows */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Main Responsive Split-Screen Grid */}
+      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+        {/* ========================================================================= */}
+        {/* LEFT COLUMN: HERO SHOWCASE WITH OFFICIAL IMAGE & FEATURE HIGHLIGHTS       */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-7 flex flex-col justify-center space-y-5 p-2 sm:p-4 lg:p-6 text-left">
+          {/* Top Brand Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Enterprise Retail & Supermarket POS</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold">
+              <span>🇵🇰</span>
+              <span>Made for Pakistan</span>
+            </div>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-            OneShop POS v2.0 PRO
-          </h1>
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
-            Cloud Point of Sale & Billing Portal • JK Developers
-          </p>
+
+          {/* Titles & Official Licensing */}
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              OneShop POS <span className="text-emerald-400">v2.0 PRO</span>
+            </h1>
+            <p className="text-base sm:text-lg text-emerald-300 font-bold mt-1 font-urdu">
+              ون شاپ پی او ایس • جے کے ڈویلپرز پاکستان
+            </p>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-xl leading-relaxed">
+              Official retail management software engineered and licensed by{' '}
+              <span className="text-white font-bold">JK Developers Pakistan</span>. Complete barcode billing, Urdu receipts, khata ledgers, and WhatsApp integration.
+            </p>
+          </div>
+
+          {/* Showcase Image Card */}
+          <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-950 group">
+            <div className="aspect-[16/10] sm:aspect-[16/9] w-full relative overflow-hidden bg-slate-900">
+              <img
+                src="/images/oneshop-pos-banner.png"
+                alt="OneShop POS - Developed & Licensed by JK Developers Pakistan"
+                className="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+            </div>
+
+            {/* Bottom Overlay Badge on image */}
+            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent">
+              <div>
+                <p className="text-white font-black text-xs sm:text-sm tracking-wide flex items-center gap-2">
+                  <span>🛍️</span>
+                  <span>Developed & Licensed by JK Developers Pakistan</span>
+                </p>
+                <p className="text-[11px] text-emerald-400 font-medium">
+                  Official Helpline & Customer Support: 0300-8998381
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold">
+                  v2.0 PRO Edition
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature Highlights Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">⚡</div>
+              <div className="text-xs font-black text-white">Ultra-Fast POS</div>
+              <div className="text-[10px] text-slate-400">Barcode & Weighing Scale</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">🧾</div>
+              <div className="text-xs font-black text-white">Urdu & English Print</div>
+              <div className="text-[10px] text-slate-400">Thermal 80mm/58mm & A4</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">📱</div>
+              <div className="text-xs font-black text-white">WhatsApp Billing</div>
+              <div className="text-[10px] text-slate-400">1-Click PDF & Receipt Send</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">📊</div>
+              <div className="text-xs font-black text-white">Roznamcha & Khata</div>
+              <div className="text-[10px] text-slate-400">Customer & Vendor Ledger</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">☁️</div>
+              <div className="text-xs font-black text-white">Cloud Auto-Backup</div>
+              <div className="text-[10px] text-slate-400">Never Lose Store Records</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
+              <div className="text-emerald-400 text-lg mb-1">🔒</div>
+              <div className="text-xs font-black text-white">Licensed Security</div>
+              <div className="text-[10px] text-slate-400">By JK Developers Pakistan</div>
+            </div>
+          </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT COLUMN: INTERACTIVE AUTH GATE CARD (LOGIN / REGISTER / RESTORE)     */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-5 flex flex-col justify-center">
+          <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 transition-all text-slate-900 dark:text-slate-100 relative">
+            {/* Top Brand Header */}
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg text-white font-black text-2xl">
+                🛍️
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                OneShop POS v2.0 PRO
+              </h2>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                Cloud Point of Sale & Billing Portal • JK Developers
+              </p>
+            </div>
 
         {/* ========================================================================= */}
         {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
@@ -1002,6 +1108,8 @@ ${u?.name || 'Store Owner'}`
           </button>
         </div>
       </div>
+    </div>
+  </div>
 
       {/* ========================================================================= */}
       {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR JK DEVELOPERS PAKISTAN)        */}
