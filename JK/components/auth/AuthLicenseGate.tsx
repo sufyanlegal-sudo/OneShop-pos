@@ -139,13 +139,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
     const cleanEmail = loginEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setLoginError('براہِ کرم درست جی میل (Gmail) ایڈریس درج فرمائیں۔');
+      setLoginError('Please enter a valid Gmail address.');
       return;
     }
 
     // STRICT ANTI-HIJACK CHECK: Users cannot log into developer's Super Admin email via regular form
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setLoginError('⛔ یہ ای میل ڈیولپر کے لیے مخصوص ہے۔ برائے مہربانی اپنا ذاتی رجسٹرڈ اکاؤنٹ استعمال فرمائیں۔');
+      setLoginError('⛔ This email is reserved for Developer Master Access. Please sign in with your own registered account.');
       return;
     }
 
@@ -157,19 +157,19 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     setIsLoggingIn(false);
 
     if (res.status === 'NOT_FOUND') {
-      setLoginError(res.message);
+      setLoginError(res.message || 'Account not found. Please create a new account.');
       return;
     }
 
     if (res.status === 'WRONG_PASSWORD') {
-      setLoginError(res.message);
+      setLoginError(res.message || 'Incorrect password. Please try again.');
       return;
     }
 
     if (res.status === 'PENDING') {
       setPendingUser({
         name: res.user?.name || cleanEmail.split('@')[0],
-        businessName: res.user?.businessName || res.user?.shopName || 'کاروبار',
+        businessName: res.user?.businessName || res.user?.shopName || 'Store',
         phone: res.user?.phone || '',
         email: cleanEmail,
       });
@@ -177,7 +177,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     if (res.status === 'DENIED') {
-      setLoginError(res.message);
+      setLoginError(res.message || 'Access has been denied by administrator.');
       return;
     }
   };
@@ -188,32 +188,32 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     setRegError('');
 
     if (!regName.trim()) {
-      setRegError('براہِ کرم اپنا نام درج فرمائیں۔');
+      setRegError('Please enter your full name.');
       return;
     }
     if (!regBusinessName.trim()) {
-      setRegError('براہِ کرم اپنی دکان یا کاروبار کا نام درج فرمائیں۔');
+      setRegError('Please enter your shop or business name.');
       return;
     }
     if (!regPhone.trim()) {
-      setRegError('براہِ کرم اپنا موبائل / واٹس ایپ نمبر درج فرمائیں۔');
+      setRegError('Please enter your mobile / WhatsApp number.');
       return;
     }
     const cleanEmail = regEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setRegError('براہِ کرم درست جی میل (Gmail) درج فرمائیں۔');
+      setRegError('Please enter a valid Gmail address.');
       return;
     }
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setRegError('یہ ای میل ایڈریس محفوظ ہے۔ برائے مہربانی اپنی ذاتی جی میل درج فرمائیں۔');
+      setRegError('This email address is reserved. Please enter your personal or business Gmail.');
       return;
     }
     if (!regPassword || regPassword.length < 4) {
-      setRegError('پاسورڈ کم از کم 4 ہندسوں یا حروف پر مشتمل ہونا چاہیے۔');
+      setRegError('Password must be at least 4 characters long.');
       return;
     }
     if (regPassword !== regConfirmPassword) {
-      setRegError('دونوں پاسورڈ میچ نہیں ہو رہے۔ برائے مہربانی دوبارہ چیک کریں۔');
+      setRegError('Passwords do not match. Please re-enter carefully.');
       return;
     }
 
@@ -228,11 +228,11 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     setIsRegistering(false);
 
     if (res.status === 'EXISTS') {
-      setRegError(res.message);
+      setRegError(res.message || 'An account with this email already exists.');
       return;
     }
     if (res.status === 'ERROR') {
-      setRegError(res.message);
+      setRegError(res.message || 'An error occurred during registration.');
       return;
     }
 
@@ -249,13 +249,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   const handleMasterKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!masterKeyInput.trim()) {
-      setMasterKeyError('براہِ کرم ماسٹر سیکیورٹی کی درج فرمائیں۔');
+      setMasterKeyError('Please enter the Master Security Key.');
       return;
     }
 
     const res = superAdminLoginWithMasterKey(masterKeyInput);
     if (!res.success) {
-      setMasterKeyError(res.message);
+      setMasterKeyError(res.message || 'Invalid Master Key. Access Denied.');
       return;
     }
 
@@ -272,26 +272,59 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     email: string;
   }) => {
     const u = userToNotify || pendingUser;
-    const msg = `السلام علیکم سفیان حبیب صاحب (JK Developers)!
-میں نے ون شاپ پی او ایس (OneShop POS) میں نیا اکاؤنٹ بنایا ہے۔
+    const msg = `Salam Sufyan Habib (JK Developers)!
+I have registered a new store account on OneShop POS:
 ━━━━━━━━━━━━━━━━━━
-👤 نام: ${u?.name || 'صارف'}
-🏪 کاروبار: ${u?.businessName || 'دکان'}
-📱 موبائل نمبر: ${u?.phone || 'N/A'}
-📧 جی میل: ${u?.email || currentUserEmail}
-🕒 وقت: ${new Date().toLocaleString('ur-PK')}
+👤 Owner Name: ${u?.name || 'Client'}
+🏪 Business: ${u?.businessName || 'Store'}
+📱 Phone/WhatsApp: ${u?.phone || 'N/A'}
+📧 Gmail: ${u?.email || currentUserEmail}
+🕒 Time: ${new Date().toLocaleString('en-US')}
 ━━━━━━━━━━━━━━━━━━
-براہ کرم میرا اکاؤنٹ چیک فرما کر سافٹ ویئر چلانے کی منظوری (Approval) عنایت فرمائیں۔ شکریہ!`;
+Please review and grant approval to activate my software license. Thank you!`;
 
     const cleanPhone = ADMIN_WHATSAPP.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // 4b. Handle Gmail / Email Notification to Developer
+  const handleSendEmailNotification = (userToNotify?: {
+    name: string;
+    businessName: string;
+    phone: string;
+    email: string;
+  }) => {
+    const u = userToNotify || pendingUser;
+    const subject = encodeURIComponent(
+      `OneShop POS Approval Request: ${u?.businessName || 'New Store'} (${u?.name || 'Client'})`
+    );
+    const body = encodeURIComponent(
+`Respected Sufyan Habib (JK Developers Pakistan),
+
+I have created a new store account on OneShop POS. Please review and approve my account:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Owner Full Name: ${u?.name || 'N/A'}
+- Business / Shop Name: ${u?.businessName || 'N/A'}
+- Mobile / WhatsApp: ${u?.phone || 'N/A'}
+- Registered Gmail: ${u?.email || currentUserEmail || 'N/A'}
+- Registration Timestamp: ${new Date().toLocaleString('en-US')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please activate my software license so I can proceed with the system.
+
+Thank you!
+${u?.name || 'Store Owner'}`
+    );
+
+    window.open(`mailto:${SUPER_ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank');
   };
 
   // 5. Restore Search
   const handleSearchBackup = async () => {
     const targetEmail = restoreEmail.trim().toLowerCase();
     if (!targetEmail || !targetEmail.includes('@')) {
-      alert('براہِ کرم درست جی میل (Gmail) درج فرمائیں۔');
+      alert('Please enter a valid Gmail address.');
       return;
     }
 
@@ -315,13 +348,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
           success: false,
           message:
             res.message ||
-            `اس اکاؤنٹ (${targetEmail}) کا کوئی آن لائن کلاؤڈ بیک اپ نہیں ملا۔`,
+            `No online cloud backup found for account (${targetEmail}).`,
         });
       }
     } catch (e: any) {
       setRestoreStatus({
         success: false,
-        message: 'بیک اپ تلاش کرنے میں خرابی پیش آگئی: ' + (e.message || ''),
+        message: 'Error searching cloud backup: ' + (e.message || ''),
       });
     } finally {
       setIsSearchingBackup(false);
@@ -339,7 +372,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
       if (res.success) {
         setRestoreStatus({
           success: true,
-          message: res.message,
+          message: res.message || 'Backup successfully restored!',
         });
         setTimeout(() => {
           window.location.reload();
@@ -347,13 +380,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
       } else {
         setRestoreStatus({
           success: false,
-          message: res.message,
+          message: res.message || 'Failed to restore backup.',
         });
       }
     } catch (e: any) {
       setRestoreStatus({
         success: false,
-        message: 'بحالی میں خرابی: ' + (e.message || ''),
+        message: 'Restore error: ' + (e.message || ''),
       });
     } finally {
       setIsRestoring(false);
@@ -372,13 +405,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         const { storage } = await import('@/lib/storage');
         const success = storage.importBackup(content);
         if (success) {
-          alert('✓ فائل سے سارا ڈیٹا، اسٹاک اور کھاتے کامیابی سے بحال ہو گئے ہیں!');
+          alert('✓ Data, inventory and accounts successfully restored from backup file!');
           window.location.reload();
         } else {
-          alert('فائل امپورٹ کرنے میں ناکامی ہوئی!');
+          alert('Failed to import backup file!');
         }
       } catch (err: any) {
-        alert('فائل درست فارمیٹ میں نہیں ہے: ' + err.message);
+        alert('File is not in valid format: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -386,7 +419,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
   return (
     <div
-      dir="rtl"
+      dir="ltr"
       className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 flex flex-col items-center justify-center p-3 sm:p-5 font-sans text-slate-100"
     >
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 m-2 transition-all text-slate-900 dark:text-slate-100 relative">
@@ -399,7 +432,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
             OneShop POS v2.0 PRO
           </h1>
           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
-            پوائنٹ آف سیل و انوائسنگ سسٹم • کلاؤڈ سیکیور پورٹل
+            Cloud Point of Sale & Billing Portal • JK Developers
           </p>
         </div>
 
@@ -407,62 +440,83 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
         {/* ========================================================================= */}
         {(pendingUser || (currentUserEmail && !isApprovedUser)) && (
-          <div className="space-y-4 animate-in fade-in zoom-in-95">
+          <div className="space-y-4 animate-in fade-in zoom-in-95 text-left">
             <div className="bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 p-5 rounded-2xl shadow-sm text-center space-y-3">
               <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
                 <Clock className="w-6 h-6 animate-pulse" />
               </div>
 
               <div>
-                <h3 className="font-black text-base sm:text-lg">
-                  ⏳ اکاؤنٹ زیرِ جائزہ ہے (Awaiting Approval)
+                <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
+                  ⏳ Account Awaiting Approval
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
-                  آپ کی معلومات سسٹم میں محفوظ ہو چکی ہیں اور ایڈمن کو الرٹ موصول ہو چکا ہے۔ سیکیورٹی پروٹیکشن کے تحت سافٹ ویئر چلانے کے لیے ایڈمن کی منظوری ضروری ہے۔
+                  Your store details have been registered. For security and license protection, administrator approval is required before you can access the POS software.
                 </p>
               </div>
 
               {/* Registered details card */}
-              <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-right space-y-1 font-mono">
+              <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 border border-amber-200 dark:border-amber-800 text-xs text-left space-y-1.5 font-mono">
                 {pendingUser?.name && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-sans">صارف کا نام:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Full Name:</span>
                     <span className="font-bold font-sans text-slate-900 dark:text-white">
                       {pendingUser.name}
                     </span>
                   </div>
                 )}
                 {pendingUser?.businessName && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-sans">کاروبار / دکان:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Business / Shop:</span>
                     <span className="font-bold font-sans text-slate-900 dark:text-white">
                       {pendingUser.businessName}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-sans">رجسٹرڈ جی میل:</span>
-                  <span className="font-bold text-slate-900 dark:text-white" dir="ltr">
+                {pendingUser?.phone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Mobile / WhatsApp:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {pendingUser.phone}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-sans">Registered Gmail:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {pendingUser?.email || currentUserEmail}
                   </span>
                 </div>
-                <div className="flex justify-between pt-1 border-t border-amber-200/60 dark:border-amber-800/60">
-                  <span className="text-slate-500 font-sans">اسٹیٹس:</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400 font-sans">
-                    غیر منظور شدہ (Pending)
+                <div className="flex justify-between items-center pt-1.5 border-t border-amber-200/60 dark:border-amber-800/60">
+                  <span className="text-slate-500 font-sans">License Status:</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 font-sans bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full text-[11px]">
+                    Pending Approval (Locked)
                   </span>
                 </div>
               </div>
 
-              {/* WhatsApp Notification Button */}
-              <button
-                type="button"
-                onClick={() => handleSendWhatsAppNotification()}
-                className="w-full py-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
-              >
-                <Phone className="w-4 h-4" />
-                <span>واٹس ایپ پر فوری منظوری کی درخواست بھیجیں (0300-8998381)</span>
-              </button>
+              {/* Notification Action Buttons */}
+              <div className="space-y-2 pt-1">
+                {/* 1. WhatsApp Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSendWhatsAppNotification()}
+                  className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Send Request via WhatsApp (0300-8998381)</span>
+                </button>
+
+                {/* 2. Gmail / Email Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSendEmailNotification()}
+                  className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Send Request via Gmail (jkdevelopers.pk@gmail.com)</span>
+                </button>
+              </div>
             </div>
 
             <button
@@ -474,8 +528,8 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
               }}
               className="w-full py-2 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold flex items-center justify-center gap-1.5 transition-all"
             >
-              <ArrowRight className="w-3.5 h-3.5" />
-              <span>لاگ آؤٹ کریں اور واپس لاگ ان پر جائیں</span>
+              <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+              <span>Sign Out & Return to Login</span>
             </button>
           </div>
         )}
@@ -484,7 +538,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         {/* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE                               */}
         {/* ========================================================================= */}
         {!pendingUser && (!currentUserEmail || isApprovedUser === false) && (
-          <div className="space-y-4">
+          <div className="space-y-4 text-left">
             {/* Tab Bar */}
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
               <button
@@ -501,7 +555,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 }`}
               >
                 <KeyRound className="w-3.5 h-3.5" />
-                <span>لاگ ان کریں</span>
+                <span>Sign In</span>
               </button>
 
               <button
@@ -518,7 +572,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
-                <span>نیا اکاؤنٹ بنائیں</span>
+                <span>Create Account</span>
               </button>
 
               <button
@@ -534,7 +588,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 }`}
               >
                 <CloudDownload className="w-3.5 h-3.5" />
-                <span>بیک اپ ری اسٹور</span>
+                <span>Cloud Restore</span>
               </button>
             </div>
 
@@ -545,7 +599,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
               <form onSubmit={handleClientLogin} className="space-y-3.5 animate-in fade-in duration-150">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    جی میل ایڈریس (Gmail Address):
+                    Gmail Address:
                   </label>
                   <div className="relative">
                     <input
@@ -557,7 +611,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                         setLoginError('');
                       }}
                       placeholder="e.g. yourstore@gmail.com"
-                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left"
+                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-3.5 pr-10"
                       autoFocus
                     />
                     <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
@@ -566,7 +620,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    پاسورڈ (Password):
+                    Password:
                   </label>
                   <div className="relative">
                     <input
@@ -577,13 +631,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                         setLoginPassword(e.target.value);
                         setLoginError('');
                       }}
-                      placeholder="پاسورڈ درج کریں..."
-                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-10"
+                      placeholder="Enter your password..."
+                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none text-left pl-3.5 pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute left-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
                       {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -605,12 +659,12 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                   {isLoggingIn ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>تصدیق ہو رہی ہے...</span>
+                      <span>Verifying credentials...</span>
                     </>
                   ) : (
                     <>
                       <KeyRound className="w-4 h-4" />
-                      <span>سافٹ ویئر میں لاگ ان کریں</span>
+                      <span>Sign In to POS Software</span>
                     </>
                   )}
                 </button>
@@ -621,7 +675,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                     onClick={() => setActiveTab('register')}
                     className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
                   >
-                    نیا کاروبار ہے؟ یہاں نیا اکاؤنٹ رجسٹر کریں
+                    New Business? Register a new account here
                   </button>
                 </div>
               </form>
@@ -634,7 +688,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
               <form onSubmit={handleClientRegister} className="space-y-3 animate-in fade-in duration-150">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                    صارف کا نام (Full Name):
+                    Owner Full Name:
                   </label>
                   <input
                     type="text"
@@ -643,7 +697,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                       setRegName(e.target.value);
                       setRegError('');
                     }}
-                    placeholder="مثال: محمد احمد"
+                    placeholder="e.g. Kamran Rafique"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                     autoFocus
                   />
@@ -651,7 +705,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                    دکان / کاروبار کا نام (Business / Store Name):
+                    Shop / Business Name:
                   </label>
                   <input
                     type="text"
@@ -660,14 +714,14 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                       setRegBusinessName(e.target.value);
                       setRegError('');
                     }}
-                    placeholder="مثال: المدینہ کریانہ و جنرل اسٹور"
+                    placeholder="e.g. Farhan Traders Haveli Lakha"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                    موبائل / واٹس ایپ نمبر:
+                    Mobile / WhatsApp Number:
                   </label>
                   <input
                     type="tel"
@@ -684,7 +738,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                    جی میل ایڈریس (Gmail Address):
+                    Gmail Address:
                   </label>
                   <input
                     type="email"
@@ -702,7 +756,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                      پاسورڈ:
+                      Password:
                     </label>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -719,7 +773,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                      پاسورڈ تصدیق:
+                      Confirm Password:
                     </label>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -750,12 +804,12 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                   {isRegistering ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>رجسٹریشن و نوٹیفکیشن ارسال ہو رہا ہے...</span>
+                      <span>Sending Registration & Notification...</span>
                     </>
                   ) : (
                     <>
                       <User className="w-4 h-4" />
-                      <span>اکاؤنٹ رجسٹر کریں اور منظوری کے لیے بھیجیں</span>
+                      <span>Register & Request Account Approval</span>
                     </>
                   )}
                 </button>
@@ -766,7 +820,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                     onClick={() => setActiveTab('login')}
                     className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
                   >
-                    پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں
+                    Already have an account? Sign In here
                   </button>
                 </div>
               </form>
@@ -786,14 +840,14 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                       Google Cloud Restore
                     </h3>
                     <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">
-                      نئے کمپیوٹر پر اپنی رجسٹرڈ جی میل درج کریں، کلاؤڈ سے سارا اسٹاک، کھاتے اور ڈیٹا خودکار بحال ہو جائے گا۔
+                      On a new PC, enter your registered Gmail to automatically restore all inventory, ledgers, and sales data from cloud.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    رجسٹرڈ جی میل (Gmail) درج فرمائیں:
+                    Registered Gmail Address:
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -810,7 +864,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                       onClick={handleSearchBackup}
                       className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-black shrink-0 shadow-md flex items-center gap-1"
                     >
-                      {isSearchingBackup ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>🔍 تلاش</span>}
+                      {isSearchingBackup ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>🔍 Search</span>}
                     </button>
                   </div>
                 </div>
@@ -831,9 +885,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 {foundBackup && (
                   <div className="bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-emerald-600">✓ کلاؤڈ بیک اپ مل گیا!</span>
+                      <span className="text-emerald-600">✓ Cloud Backup Found!</span>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(foundBackup.exportedAt).toLocaleDateString('ur-PK')}
+                        {new Date(foundBackup.exportedAt).toLocaleDateString('en-US')}
                       </span>
                     </div>
 
@@ -846,12 +900,12 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                       {isRestoring ? (
                         <>
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>بحال ہو رہا ہے...</span>
+                          <span>Restoring Data...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>سارا ڈیٹا بحال کریں (Restore All Data)</span>
+                          <span>Restore All Data from Cloud</span>
                         </>
                       )}
                     </button>
@@ -859,10 +913,10 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                 )}
 
                 <div className="pt-2 border-t border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">یا فائل سے بحال کریں:</span>
+                  <span className="text-slate-500">Or restore from JSON file:</span>
                   <label className="cursor-pointer px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold inline-flex items-center gap-1">
                     <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
-                    <span>فائل منتخب کریں (.json)</span>
+                    <span>Choose File (.json)</span>
                     <input type="file" accept=".json" onChange={handleFileUploadRestore} className="hidden" />
                   </label>
                 </div>
@@ -873,7 +927,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
         {/* Footer Credit & Discreet Hidden Developer Access Trigger */}
         <div className="mt-6 pt-3 border-t border-slate-200 dark:border-slate-800 text-center flex items-center justify-between text-[11px] text-slate-400">
-          <span>© 2026 JK Developers پاکستان</span>
+          <span>© 2026 JK Developers Pakistan</span>
 
           {/* Discreet Developer Key Lock Trigger (No visible text saying 'Super Admin') */}
           <button
@@ -895,15 +949,15 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
       {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR SUFYAN HABIB • JK DEVELOPERS)  */}
       {/* ========================================================================= */}
       {masterKeyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-slate-900 border-2 border-emerald-500/70 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl relative animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md" dir="ltr">
+          <div className="bg-slate-900 border-2 border-emerald-500/70 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl relative animate-in fade-in zoom-in-95 text-left">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-black text-sm text-emerald-200">
-                  خفیہ ماسٹر سیکیورٹی رسائی
+                  Developer Master Access
                 </h3>
                 <span className="text-[11px] font-mono text-slate-400">
                   JK Developers Pakistan
@@ -912,13 +966,13 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              یہ پینل صرف سافٹ ویئر ڈویلپر (سفیان حبیب) کے لیے مخصوص ہے۔ برائے مہربانی اپنی خفیہ ماسٹر کی درج فرمائیں۔
+              This panel is restricted exclusively to the developer (Sufyan Habib). Please enter your Master Security Key.
             </p>
 
             <form onSubmit={handleMasterKeySubmit} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  ماسٹر سیکیورٹی کی (Master Key):
+                  Master Security Key:
                 </label>
                 <input
                   type="password"
@@ -928,7 +982,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                     setMasterKeyInput(e.target.value);
                     setMasterKeyError('');
                   }}
-                  placeholder="Secret Key درج کریں..."
+                  placeholder="Enter secret key..."
                   className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs font-mono outline-none text-white focus:ring-2 focus:ring-emerald-500/40 text-left"
                   autoFocus
                 />
@@ -946,7 +1000,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                   type="submit"
                   className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-lg active:scale-95 transition-all"
                 >
-                  تصدیق و داخلہ
+                  Verify & Unlock
                 </button>
                 <button
                   type="button"
@@ -957,7 +1011,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
                   }}
                   className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl text-xs"
                 >
-                  منسوخ
+                  Cancel
                 </button>
               </div>
             </form>

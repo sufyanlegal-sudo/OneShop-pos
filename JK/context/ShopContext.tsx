@@ -448,15 +448,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }) => {
     const cleanEmail = params.email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { status: 'ERROR' as const, message: 'براہِ کرم درست جی میل ایڈریس درج فرمائیں۔' };
+      return { status: 'ERROR' as const, message: 'Please enter a valid Gmail address.' };
     }
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      return { status: 'ERROR' as const, message: 'یہ ای میل محفوظ ہے اور رجسٹریشن کے لیے دستیاب نہیں ہے۔' };
+      return { status: 'ERROR' as const, message: 'This email is reserved for developer access.' };
     }
 
     const existing = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
     if (existing) {
-      return { status: 'EXISTS' as const, message: 'یہ جی میل پہلے سے رجسٹرڈ ہے۔ براہِ کرم لاگ ان کریں۔' };
+      return { status: 'EXISTS' as const, message: 'An account with this email already exists. Please sign in.' };
     }
 
     const newUser: PosUserLicense = {
@@ -502,7 +502,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return {
       status: 'SUCCESS' as const,
-      message: 'اکاؤنٹ کامیابی سے رجسٹر ہو گیا ہے اور ایڈمن کو فوری نوٹیفکیشن ارسال کر دیا گیا ہے۔',
+      message: 'Account successfully registered. Awaiting administrator approval.',
     };
   };
 
@@ -518,14 +518,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!params.masterKey || params.masterKey.trim() !== MASTER_ADMIN_KEY) {
         return {
           status: 'DENIED' as const,
-          message: '⛔ یہ ای میل ڈیولپر کے لیے مخصوص ہے۔ برائے مہربانی اپنا ذاتی رجسٹرڈ اکاؤنٹ استعمال فرمائیں یا ڈویلپر ماسٹر کی درج کریں۔',
+          message: '⛔ This email is reserved for Developer Master Access. Please sign in with your registered account.',
         };
       }
       setCurrentUserEmail(SUPER_ADMIN_EMAIL);
       storage.setCurrentUser(SUPER_ADMIN_EMAIL);
       return {
         status: 'SUPER_ADMIN' as const,
-        message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
+        message: 'Welcome Sufyan Habib! Super Admin control granted.',
       };
     }
 
@@ -534,7 +534,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userRec) {
       return {
         status: 'NOT_FOUND' as const,
-        message: 'یہ جی میل رجسٹرڈ نہیں ہے۔ برائے مہربانی پہلے "نیا اکاؤنٹ بنائیں" پر کلک کر کے رجسٹریشن فرمائیں۔',
+        message: 'No account found with this Gmail. Please click "Create Account" to register.',
       };
     }
 
@@ -542,7 +542,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (userRec.password && params.password && userRec.password !== params.password) {
       return {
         status: 'WRONG_PASSWORD' as const,
-        message: 'پاسورڈ درست نہیں ہے۔ برائے مہربانی دوبارہ کوشش کریں۔',
+        message: 'Incorrect password. Please try again.',
       };
     }
 
@@ -550,7 +550,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userRec.approved) {
       return {
         status: 'PENDING' as const,
-        message: 'آپ کا اکاؤنٹ فی الحال پینڈنگ ہے۔ سافٹ ویئر چلانے کے لیے چیف ایڈمن (سفیان حبیب - 03008998381) کی منظوری درکار ہے۔',
+        message: 'Your account is pending approval by Developer Sufyan Habib (0300-8998381).',
         user: userRec,
       };
     }
@@ -560,7 +560,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.setCurrentUser(cleanEmail);
     return {
       status: 'APPROVED' as const,
-      message: `خوش آمدید ${userRec.name || ''}! آپ کی رسائی منظور شدہ ہے۔`,
+      message: `Welcome ${userRec.name || ''}! Your license is active.`,
       user: userRec,
     };
   };
