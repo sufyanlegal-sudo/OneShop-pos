@@ -147,8 +147,8 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     : 'Thank you for shopping with us! Please verify goods before leaving counter. Items can be exchanged with receipt within 3 days.';
 
   const developerCredit = isUrdu
-    ? 'سافٹ ویئر ڈویلپر: سفیان حبیب (JK Developers پاکستان) • ہیلپ لائن: 03008998381'
-    : 'Software Developed by: Sufyan Habib (JK Developers Pakistan) • Helpline: +923008998381';
+    ? 'سافٹ ویئر: ون شاپ پی او ایس (OneShop POS) • جے کے ڈویلپرز پاکستان (JK Developers) • ہیلپ لائن: 03008998381'
+    : 'Software: OneShop POS • JK Developers Pakistan • Helpline: +923008998381';
 
   const changeAmount =
     invoice.changeDue ||
@@ -635,7 +635,7 @@ ${developerCredit}`;
                     ★ OneShop POS v2.0 PRO ★
                   </div>
                   <div className="text-[9.5px] font-bold text-black">
-                    {isUrdu ? 'سافٹ ویئر ڈویلپر: سفیان حبیب (JK Developers پاکستان)' : 'Developer: Sufyan Habib (JK Developers Pakistan)'}
+                    {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                   </div>
                   <div className="text-[9.5px] font-mono font-black text-black">
                     {isUrdu ? 'سرکاری ہیلپ لائن: 0300-8998381' : 'Official Helpline: +92 300 8998381'}
@@ -741,7 +741,7 @@ ${developerCredit}`;
                 <div className="mt-2 pt-1 border-t-2 border-black text-center space-y-0.5 text-[8.5px]">
                   <div className="font-black text-black">★ OneShop POS v2.0 PRO ★</div>
                   <div className="font-bold text-black">
-                    {isUrdu ? 'ڈویلپر: سفیان حبیب (JK Developers)' : 'Dev: Sufyan Habib (JK Developers)'}
+                    {isUrdu ? 'JK Developers پاکستان' : 'JK Developers Pakistan'}
                   </div>
                   <div className="font-mono font-bold text-black">0300-8998381</div>
                 </div>
@@ -891,7 +891,7 @@ ${developerCredit}`;
                     </div>
                     <div className="text-right font-mono">
                       <div className="font-black text-slate-900 text-xs">
-                        {isUrdu ? 'سافٹ ویئر ڈویلپر: سفیان حبیب (JK Developers پاکستان)' : 'Developed by: Sufyan Habib (JK Developers Pakistan)'}
+                        {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                       </div>
                       <div className="text-emerald-700 font-black text-xs mt-0.5">
                         {isUrdu ? 'سرکاری رابطہ و ہیلپ لائن: 0300-8998381' : 'Official Helpline: +92 300 8998381'}
@@ -994,7 +994,7 @@ ${developerCredit}`;
                       <span className="font-black text-emerald-900">★ OneShop POS v2.0 PRO ★</span>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="font-bold">{isUrdu ? 'ڈویلپر: سفیان حبیب (JK Developers)' : 'Dev: Sufyan Habib (JK Developers)'}</span>
+                      <span className="font-bold">{isUrdu ? 'JK Developers پاکستان' : 'JK Developers Pakistan'}</span>
                       <span className="mx-1">•</span>
                       <span className="font-black text-emerald-700">0300-8998381</span>
                     </div>

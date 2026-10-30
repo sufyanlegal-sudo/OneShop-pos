@@ -460,7 +460,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
       setCurrentUserEmail(cleanEmail);
       storage.setCurrentUser(cleanEmail);
-      return { status: 'SUPER_ADMIN' as const, message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔' };
+      return { status: 'SUPER_ADMIN' as const, message: 'خوش آمدید! JK Developers سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔' };
     }
     if (userRec.approved) {
       setCurrentUserEmail(cleanEmail);
@@ -477,7 +477,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsSuperAdminModalOpen(true);
       return {
         success: true,
-        message: 'خوش آمدید سفیان حبیب صاحب! سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
+        message: 'خوش آمدید! JK Developers سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
       };
     }
     return {

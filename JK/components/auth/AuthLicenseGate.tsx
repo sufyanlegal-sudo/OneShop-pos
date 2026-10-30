@@ -1004,7 +1004,7 @@ ${u?.name || 'Store Owner'}`
       </div>
 
       {/* ========================================================================= */}
-      {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR SUFYAN HABIB • JK DEVELOPERS)  */}
+      {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR JK DEVELOPERS PAKISTAN)        */}
       {/* ========================================================================= */}
       {masterKeyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md" dir="ltr">
@@ -1024,7 +1024,7 @@ ${u?.name || 'Store Owner'}`
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              This panel is restricted exclusively to the developer (Sufyan Habib). Please enter your Master Security Key.
+              This panel is restricted exclusively to JK Developers Pakistan. Please enter your Master Security Key.
             </p>
 
             <form onSubmit={handleMasterKeySubmit} className="space-y-3.5">
