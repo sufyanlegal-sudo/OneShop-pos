@@ -832,45 +832,47 @@ export const PosTerminal: React.FC = () => {
     );
   };
 
-  // Sub-renderer for Customer, Payment, Notes Calculator & Checkout Controls
+  // Sub-renderer for Customer, Payment, Notes Calculator & Checkout Controls (Candela / Nebs Fixed Dock)
   const renderCheckoutControls = () => {
     return (
-      <div className="space-y-3">
-        {/* Customer Selection / Quick Khata Search */}
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-            {lang === 'ur' ? 'گاہک منتخب کریں (کھاتہ / ادھار):' : 'Select Customer:'}
-          </label>
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => handleSelectCustomer(e.target.value)}
-              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-medium outline-none"
-            >
-              <option value="">
-                {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
-              </option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'}{' '}
-                  {c.currentBalance.toLocaleString()} PKR
+      <div className="flex flex-col h-full min-h-0 justify-between">
+        {/* Scrollable Upper Area (Customer & Payment Options) */}
+        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5">
+          {/* Customer Selection / Quick Khata Search */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              {lang === 'ur' ? 'گاہک منتخب کریں (کھاتہ / ادھار):' : 'Select Customer:'}
+            </label>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => handleSelectCustomer(e.target.value)}
+                className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-medium outline-none"
+              >
+                <option value="">
+                  {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
                 </option>
-              ))}
-            </select>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'}{' '}
+                    {c.currentBalance.toLocaleString()} PKR
+                  </option>
+                ))}
+              </select>
 
-            <button
-              type="button"
-              onClick={() => {
-                setVoiceMode('customer');
-                setVoiceModalOpen(true);
-              }}
-              className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
-              title="Dictate Customer Name & Phone"
-            >
-              <Mic className="w-3.5 h-3.5 text-emerald-600" />
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setVoiceMode('customer');
+                  setVoiceModalOpen(true);
+                }}
+                className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
+                title="Dictate Customer Name & Phone"
+              >
+                <Mic className="w-3.5 h-3.5 text-emerald-600" />
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* If new walk-in / custom name or phone */}
         {!selectedCustomerId && (
@@ -1201,54 +1203,60 @@ export const PosTerminal: React.FC = () => {
           </div>
         )}
 
-        {/* Totals Summary */}
-        <div className="space-y-1 text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex justify-between text-slate-500">
-            <span>{t('subtotal')}:</span>
-            <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
-          </div>
-
-          {isMarginUnlocked && (
-            <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg">
-              <span className="flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5" />
-                {t('netProfit')}:
-              </span>
-              <span className="font-mono">+{cartTotals.totalProfit.toLocaleString()} PKR</span>
-            </div>
-          )}
-
-          {orderDiscount > 0 && (
-            <div className="flex justify-between text-rose-500 font-bold">
-              <span>رعایت (ڈسکاؤنٹ):</span>
-              <span className="font-mono">- {orderDiscount.toLocaleString()} PKR</span>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-2 border-t-2 border-slate-300 dark:border-slate-700">
-            <span>{t('grandTotal')}:</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 text-2xl sm:text-3xl font-black">
-              {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
-            </span>
-          </div>
         </div>
+        {/* END SCROLLABLE UPPER AREA */}
 
-        {/* Checkout Button with Keyboard Shortcut Badge */}
-        <button
-          type="button"
-          onClick={handleCheckout}
-          disabled={cart.length === 0}
-          className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-900/40 active:scale-95 transition-all"
-        >
-          <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2.5 py-1 rounded-lg font-mono border border-white/20">
-            Rs.
-          </span>
-          <Printer className="w-5 h-5 text-emerald-100" />
-          <span>{t('completeSale')}</span>
-          <span className="px-2.5 py-1 rounded bg-black/30 text-xs font-mono text-emerald-200 border border-white/10 ml-1">
-            (Enter / F12)
-          </span>
-        </button>
+        {/* PINNED FIXED BOTTOM DOCK (CANDELA & NEBS STYLE - ZERO SCROLLING FOR TOTAL & PRINT) */}
+        <div className="shrink-0 pt-2 border-t-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 space-y-2">
+          {/* Totals Summary */}
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between text-slate-500 font-bold">
+              <span>{t('subtotal')}:</span>
+              <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
+            </div>
+
+            {isMarginUnlocked && (
+              <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg text-xs">
+                <span className="flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  {t('netProfit')}:
+                </span>
+                <span className="font-mono">+{cartTotals.totalProfit.toLocaleString()} PKR</span>
+              </div>
+            )}
+
+            {orderDiscount > 0 && (
+              <div className="flex justify-between text-rose-500 font-bold text-xs">
+                <span>رعایت (ڈسکاؤنٹ):</span>
+                <span className="font-mono">- {orderDiscount.toLocaleString()} PKR</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-1.5 border-t-2 border-slate-300 dark:border-slate-700">
+              <span>{t('grandTotal')}:</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-2xl sm:text-3xl font-black">
+                {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
+              </span>
+            </div>
+          </div>
+
+          {/* Checkout Button with Keyboard Shortcut Badge (Always Visible & Pinned) */}
+          <button
+            type="button"
+            onClick={handleCheckout}
+            disabled={cart.length === 0}
+            className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-900/40 active:scale-95 transition-all"
+          >
+            <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2.5 py-1 rounded-lg font-mono border border-white/20">
+              Rs.
+            </span>
+            <Printer className="w-5 h-5 text-emerald-100" />
+            <span>{t('completeSale')}</span>
+            <span className="px-2.5 py-1 rounded bg-black/30 text-xs font-mono text-emerald-200 border border-white/10 ml-1">
+              (Enter / F12)
+            </span>
+          </button>
+        </div>
       </div>
     );
   };
@@ -1794,8 +1802,8 @@ export const PosTerminal: React.FC = () => {
                 {renderCartItems()}
               </div>
 
-              {/* Right Pane: Customer, Notes Counter & Checkout Controls */}
-              <div className="w-full lg:w-[380px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 overflow-y-auto shadow-inner">
+              {/* Right Pane: Customer, Notes Counter & Checkout Controls (Candela Fixed Dock) */}
+              <div className="w-full lg:w-[400px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col min-h-0 shadow-inner">
                 {renderCheckoutControls()}
               </div>
             </div>
@@ -1805,7 +1813,7 @@ export const PosTerminal: React.FC = () => {
               <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth">
                 {renderCartItems()}
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 max-h-[48%] overflow-y-auto">
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 max-h-[50%] flex flex-col min-h-0">
                 {renderCheckoutControls()}
               </div>
             </div>
