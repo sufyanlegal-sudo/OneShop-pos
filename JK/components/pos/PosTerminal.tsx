@@ -841,73 +841,74 @@ export const PosTerminal: React.FC = () => {
 
   // Sub-renderer for Customer, Payment, Notes Calculator & Checkout Controls (Candela / Nebs Fixed Dock)
   const renderCheckoutControls = () => {
+    const effectiveNetTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
+    const activeTendered =
+      paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
+        ? notesCalculatedTotal
+        : tenderedAmount;
+    const changeDue = activeTendered > effectiveNetTotal ? activeTendered - effectiveNetTotal : 0;
+    const isShort = activeTendered > 0 && activeTendered < effectiveNetTotal;
+    const shortAmount = isShort ? effectiveNetTotal - activeTendered : 0;
+
     return (
-      <div className="flex flex-col h-full min-h-0 justify-between">
-        {/* Scrollable Upper Area (Customer & Payment Options) */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5">
-          {/* Customer Selection / Quick Khata Search */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-              {lang === 'ur' ? 'گاہک منتخب کریں (کھاتہ / ادھار):' : 'Select Customer:'}
-            </label>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => handleSelectCustomer(e.target.value)}
-                className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-medium outline-none"
-              >
-                <option value="">
-                  {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
+      <div className="flex flex-col h-full min-h-0 justify-between gap-1.5">
+        {/* Upper Area: Customer & Payment Method (Compact Row) */}
+        <div className="space-y-1.5 shrink-0">
+          {/* Customer Selection Row */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => handleSelectCustomer(e.target.value)}
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold outline-none text-slate-800 dark:text-slate-200"
+            >
+              <option value="">
+                {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
+              </option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'}{' '}
+                  {c.currentBalance.toLocaleString()} PKR
                 </option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'}{' '}
-                    {c.currentBalance.toLocaleString()} PKR
-                  </option>
-                ))}
-              </select>
+              ))}
+            </select>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setVoiceMode('customer');
-                  setVoiceModalOpen(true);
-                }}
-                className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
-                title="Dictate Customer Name & Phone"
-              >
-                <Mic className="w-3.5 h-3.5 text-emerald-600" />
-              </button>
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setVoiceMode('customer');
+                setVoiceModalOpen(true);
+              }}
+              className="p-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
+              title="Dictate Customer Name & Phone"
+            >
+              <Mic className="w-3.5 h-3.5 text-emerald-600" />
+            </button>
+          </div>
+
+          {/* If new walk-in / custom name or phone */}
+          {!selectedCustomerId && (
+            <div className="grid grid-cols-2 gap-1.5">
+              <input
+                type="text"
+                value={customerName}
+                onKeyDown={() => posSound.playKeyClick()}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder={t('customerName')}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold outline-none focus:border-emerald-500"
+              />
+              <input
+                type="text"
+                value={customerPhone}
+                onKeyDown={() => posSound.playKeyClick()}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder={t('customerPhone')}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-emerald-500"
+              />
             </div>
-          </div>
+          )}
 
-        {/* If new walk-in / custom name or phone */}
-        {!selectedCustomerId && (
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={customerName}
-              onKeyDown={() => posSound.playKeyClick()}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder={t('customerName')}
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500"
-            />
-            <input
-              type="text"
-              value={customerPhone}
-              onKeyDown={() => posSound.playKeyClick()}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder={t('customerPhone')}
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-emerald-500"
-            />
-          </div>
-        )}
-
-        {/* Payment Method Pills */}
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-            {lang === 'ur' ? 'طریقہ ادائیگی:' : 'Payment Method:'}
-          </label>
+          {/* Payment Method Pills */}
           <div className="grid grid-cols-4 gap-1 text-[11px] font-bold">
             <button
               type="button"
@@ -915,7 +916,7 @@ export const PosTerminal: React.FC = () => {
                 posSound.playClick();
                 setPaymentMethod('CASH');
               }}
-              className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CASH'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -930,7 +931,7 @@ export const PosTerminal: React.FC = () => {
                 posSound.playClick();
                 setPaymentMethod('ONLINE');
               }}
-              className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'ONLINE'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -945,7 +946,7 @@ export const PosTerminal: React.FC = () => {
                 posSound.playClick();
                 setPaymentMethod('CREDIT');
               }}
-              className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CREDIT'
                   ? 'bg-rose-600 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -960,7 +961,7 @@ export const PosTerminal: React.FC = () => {
                 posSound.playClick();
                 setPaymentMethod('SPLIT');
               }}
-              className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'SPLIT'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -972,96 +973,10 @@ export const PosTerminal: React.FC = () => {
           </div>
         </div>
 
-        {/* Pakistani Notes Counter Option (If Notes Mode Selected) */}
-        {paymentMethod === 'CASH' && cashInputMode === 'notes' && (
-          <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                {lang === 'ur' ? 'پاکستانی نوٹوں کی تعداد درج کریں:' : 'Pakistani Notes Counter:'}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  posSound.playClick();
-                  resetDenominations();
-                }}
-                className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
-              >
-                {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-1 text-[11px]">
-              {[
-                { key: 'note5000' as const, label: '5000 کا نوٹ' },
-                { key: 'note1000' as const, label: '1000 کا نوٹ' },
-                { key: 'note500' as const, label: '500 کا نوٹ' },
-                { key: 'note100' as const, label: '100 کا نوٹ' },
-                { key: 'note50' as const, label: '50 کا نوٹ' },
-                { key: 'note20' as const, label: '20 کا نوٹ' },
-                { key: 'note10' as const, label: '10 کا نوٹ' },
-                { key: 'coins' as const, label: 'سکے (Coins)' },
-              ].map((d) => {
-                const count = denominations[d.key] || 0;
-                return (
-                  <div
-                    key={d.key}
-                    className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700"
-                  >
-                    <span className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">
-                      {d.label}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          posSound.playClick();
-                          updateDenomination(d.key, -1);
-                        }}
-                        className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-bold text-xs"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={count}
-                        onKeyDown={() => posSound.playKeyClick()}
-                        onChange={(e) => setDenominationCount(d.key, parseInt(e.target.value) || 0)}
-                        className="w-8 text-center font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-[11px]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          posSound.playClick();
-                          updateDenomination(d.key, 1);
-                        }}
-                        className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-emerald-200 dark:border-emerald-800">
-              <span className="text-slate-600 dark:text-slate-300">
-                {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
-              </span>
-              <span className="font-mono text-emerald-700 dark:text-emerald-400 text-base font-black">
-                {notesCalculatedTotal.toLocaleString()} PKR
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Split Payment inputs */}
+        {/* Split Payment inputs if SPLIT mode */}
         {paymentMethod === 'SPLIT' && (
-          <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 rounded-xl space-y-1.5 text-xs">
-            <span className="font-bold text-amber-900 dark:text-amber-200 block">
+          <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 rounded-xl space-y-1 text-xs shrink-0">
+            <span className="font-bold text-amber-900 dark:text-amber-200 block text-[11px]">
               {lang === 'ur' ? 'کیش و آن لائن تقسیم:' : 'Split Cash & Online:'}
             </span>
             <div className="grid grid-cols-2 gap-2">
@@ -1072,72 +987,43 @@ export const PosTerminal: React.FC = () => {
                   min="0"
                   value={amountPaid}
                   onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-white dark:bg-slate-800 border rounded-lg px-2 py-1 text-xs font-mono font-bold"
+                  className="w-full bg-white dark:bg-slate-800 border rounded-lg px-2 py-0.5 text-xs font-mono font-bold"
                 />
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">باقی ادھار/آن لائن:</span>
-                <div className="font-mono font-bold text-rose-600 dark:text-rose-400 py-1">
-                  {Math.max(
-                    0,
-                    cartTotals.grandTotal - amountPaid
-                  ).toLocaleString()}{' '}
-                  PKR
+                <div className="font-mono font-bold text-rose-600 dark:text-rose-400 py-0.5">
+                  {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        </div>
-        {/* END SCROLLABLE UPPER AREA */}
-
-        {/* PINNED FIXED BOTTOM DOCK (CANDELA & NEBS STYLE - ZERO SCROLLING FOR CASH, TOTAL & PRINT) */}
-        <div className="shrink-0 pt-2 border-t-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 space-y-2">
-          {/* Totals Summary */}
-          <div className="space-y-0.5 text-xs">
-            <div className="flex justify-between text-slate-500 font-bold">
-              <span>{t('subtotal')}:</span>
-              <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
-            </div>
-
-            {isMarginUnlocked && (
-              <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg text-xs">
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  {t('netProfit')}:
+        {/* ========================================================================= */}
+        {/* CANDELA & NEBS 3-COLUMN FRONT ROW: TOTAL | CASH RECEIVED | CHANGE RETURN */}
+        {/* 100% VISIBLE ON THE FRONT - ZERO SCROLLING - NO MOUSE REQUIRED           */}
+        {/* ========================================================================= */}
+        <div className="shrink-0 space-y-1.5 pt-1">
+          {paymentMethod === 'CASH' ? (
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              {/* 1. TOTAL BILL (کل بل) */}
+              <div className="bg-slate-900 text-white p-2 rounded-2xl flex flex-col justify-between shadow-sm border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 truncate">
+                  {lang === 'ur' ? 'کل بل (Total):' : 'Grand Total:'}
                 </span>
-                <span className="font-mono">+{cartTotals.totalProfit.toLocaleString()} PKR</span>
-              </div>
-            )}
-
-            {orderDiscount > 0 && (
-              <div className="flex justify-between text-rose-500 font-bold text-xs">
-                <span>رعایت (ڈسکاؤنٹ):</span>
-                <span className="font-mono">- {orderDiscount.toLocaleString()} PKR</span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-1 border-t-2 border-slate-300 dark:border-slate-700">
-              <span>{t('grandTotal')}:</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-2xl sm:text-3xl font-black">
-                {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
-              </span>
-            </div>
-          </div>
-
-          {/* CASH RECEIVED & CHANGE RETURN (PINNED & VISIBLE AT ALL TIMES - NEVER SCROLLED) */}
-          {paymentMethod === 'CASH' && (
-            <div className="bg-emerald-50/90 dark:bg-emerald-950/40 p-2 sm:p-2.5 rounded-2xl border-2 border-emerald-400 dark:border-emerald-700 space-y-1.5 shadow-sm">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-                <span>{lang === 'ur' ? 'گاہک سے موصول شدہ کیش:' : 'Cash Received:'}</span>
-                <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300 font-black">
-                  بل: {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
-                </span>
+                <div className="font-mono text-base sm:text-xl font-black text-emerald-400 truncate">
+                  {effectiveNetTotal.toLocaleString()}
+                  <span className="text-[9px] font-sans ml-1 text-slate-400">PKR</span>
+                </div>
               </div>
 
-              {/* Prominent Cash Input Box */}
-              <div className="relative">
+              {/* 2. CASH RECEIVED (موصول کیش) */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 rounded-2xl p-1.5 flex flex-col justify-between shadow-sm focus-within:ring-2 focus-within:ring-emerald-400">
+                <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                  <span className="truncate">{lang === 'ur' ? 'موصول کیش:' : 'Cash Received:'}</span>
+                  <span className="bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[9px] px-1 rounded font-mono">F4</span>
+                </div>
                 <input
                   ref={tenderedInputRef}
                   type="number"
@@ -1151,77 +1037,94 @@ export const PosTerminal: React.FC = () => {
                       handleCheckout();
                     }
                   }}
-                  placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
-                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-1.5 sm:py-2 text-lg sm:text-xl font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none shadow-sm focus:ring-4 focus:ring-emerald-500/20"
+                  placeholder={String(effectiveNetTotal)}
+                  className="w-full bg-white dark:bg-slate-900 border border-emerald-400 dark:border-emerald-600 rounded-lg px-1.5 py-0.5 text-base sm:text-lg font-mono font-black text-center text-emerald-800 dark:text-emerald-200 outline-none"
                 />
               </div>
 
-              {/* Quick Note Pills */}
-              <div className="flex gap-1 flex-wrap text-xs font-mono font-bold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount));
-                  }}
-                  className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] active:scale-95 shadow-xs"
-                >
-                  برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
-                </button>
-                {[500, 1000, 1500, 2000, 5000].map((note) => (
-                  <button
-                    key={note}
-                    type="button"
-                    onClick={() => {
-                      posSound.playClick();
-                      setTenderedAmount(note);
-                    }}
-                    className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] active:scale-95 shadow-xs"
-                  >
-                    {note}
-                  </button>
-                ))}
-              </div>
-
-              {/* Return Change Banner (Always Visible!) */}
-              {tenderedAmount > 0 && (
-                <div
-                  className={`p-2 rounded-xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
-                    tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-rose-600 text-white'
-                  }`}
-                >
-                  <span className="text-xs sm:text-sm font-bold">
-                    {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                      ? lang === 'ur'
-                        ? '💵 گاہک کو بقایا واپس دیں:'
-                        : 'Change to Return:'
-                      : lang === 'ur'
-                      ? '⚠️ رقم کم ہے (بقایا واجب الادا):'
-                      : 'Short Amount:'}
-                  </span>
-                  <span className="font-mono text-base sm:text-xl font-black">
-                    {Math.abs(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR
-                  </span>
+              {/* 3. RETURN CHANGE (واپسی بقایا - LIVE UPDATE) */}
+              <div
+                className={`p-2 rounded-2xl flex flex-col justify-between shadow-sm transition-all border ${
+                  changeDue > 0
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/30'
+                    : isShort
+                    ? 'bg-rose-600 text-white border-rose-500'
+                    : activeTendered >= effectiveNetTotal && activeTendered > 0
+                    ? 'bg-teal-700 text-white border-teal-600'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                }`}
+              >
+                <span className="text-[10px] font-bold truncate">
+                  {changeDue > 0
+                    ? (lang === 'ur' ? '💵 واپسی بقایا:' : 'Change Return:')
+                    : isShort
+                    ? (lang === 'ur' ? '⚠️ کم رقم:' : 'Short:')
+                    : (lang === 'ur' ? 'واپسی بقایا:' : 'Change Return:')}
+                </span>
+                <div className="font-mono text-base sm:text-xl font-black truncate">
+                  {changeDue > 0
+                    ? changeDue.toLocaleString()
+                    : isShort
+                    ? shortAmount.toLocaleString()
+                    : '0'}
+                  <span className="text-[9px] font-sans ml-1 opacity-80">PKR</span>
                 </div>
-              )}
+              </div>
+            </div>
+          ) : (
+            /* Non-cash modes (Online, Khata, Split) */
+            <div className="flex justify-between items-center p-2.5 bg-slate-900 text-white rounded-2xl border border-slate-800">
+              <span className="text-xs font-bold">{t('grandTotal')}:</span>
+              <span className="font-mono text-xl font-black text-emerald-400">
+                {effectiveNetTotal.toLocaleString()} PKR
+              </span>
             </div>
           )}
 
-          {/* Checkout Button with Keyboard Shortcut Badge (Always Visible & Pinned) */}
+          {/* Quick Note Pills (1-Click Cash Buttons) */}
+          {paymentMethod === 'CASH' && (
+            <div className="flex gap-1 items-center justify-between overflow-x-auto py-0.5 text-xs font-mono font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  posSound.playClick();
+                  setTenderedAmount(effectiveNetTotal);
+                  tenderedInputRef.current?.focus();
+                }}
+                className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold active:scale-95 text-center shadow-xs whitespace-nowrap"
+              >
+                برابر ({effectiveNetTotal})
+              </button>
+              {[500, 1000, 1500, 2000, 5000].map((note) => (
+                <button
+                  key={note}
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setTenderedAmount(note);
+                    tenderedInputRef.current?.focus();
+                  }}
+                  className="py-1 px-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-800 dark:text-slate-200 text-[10px] font-bold active:scale-95 shadow-xs whitespace-nowrap"
+                >
+                  {note}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Full-width Instant Complete & Print Button */}
           <button
             type="button"
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-900/40 active:scale-95 transition-all"
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-95 transition-all"
           >
-            <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2.5 py-1 rounded-lg font-mono border border-white/20">
+            <span className="bg-white/20 text-white font-black text-[11px] px-2 py-0.5 rounded font-mono">
               Rs.
             </span>
-            <Printer className="w-5 h-5 text-emerald-100" />
+            <Printer className="w-4 h-4 text-emerald-100" />
             <span>{t('completeSale')}</span>
-            <span className="px-2.5 py-1 rounded bg-black/30 text-xs font-mono text-emerald-200 border border-white/10 ml-1">
+            <span className="px-2 py-0.5 rounded bg-black/30 text-[10px] sm:text-[11px] font-mono text-emerald-200 border border-white/10">
               (Enter / F12)
             </span>
           </button>
@@ -1782,7 +1685,7 @@ export const PosTerminal: React.FC = () => {
               <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth">
                 {renderCartItems()}
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 max-h-[50%] flex flex-col min-h-0">
+              <div className="shrink-0 p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col">
                 {renderCheckoutControls()}
               </div>
             </div>
