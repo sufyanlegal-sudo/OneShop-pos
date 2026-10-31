@@ -35,7 +35,12 @@ import {
   Bot,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { posSound } from '@/lib/sound';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
 import { BusinessPresetType } from '@/types';
@@ -82,6 +87,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     return false;
   });
 
+  // Sound Engine State
+  const [soundActive, setSoundActive] = useState<boolean>(() => {
+    return posSound.isEnabled();
+  });
+
+  const handleToggleSound = () => {
+    const next = posSound.toggleSound();
+    setSoundActive(next);
+  };
+
+  // Nav Carousel Slider Ref & Controls
+  const navSliderRef = React.useRef<HTMLDivElement>(null);
+  const scrollNav = (direction: 'left' | 'right') => {
+    if (navSliderRef.current) {
+      const scrollAmount = direction === 'left' ? -220 : 220;
+      navSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      posSound.playClick();
+    }
+  };
+
   const toggleHeaderCollapsed = () => {
     setIsHeaderCollapsed((prev) => {
       const next = !prev;
@@ -112,22 +137,101 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   ];
 
   const navItems = [
-    { id: 'pos', label: t('posTerminal'), icon: ShoppingBag },
-    { id: 'billsHistory', label: t('billsHistory'), icon: History },
-    { id: 'grn', label: t('grnTitle'), icon: Truck },
-    { id: 'vendors', label: t('vendorsTitle'), icon: Building2 },
-    { id: 'roznamcha', label: t('roznamcha'), icon: BookOpen },
-    { id: 'khata', label: t('khataLedger'), icon: Users },
-    { id: 'inventory', label: t('inventory'), icon: Boxes },
-    { id: 'staff', label: t('staffTitle'), icon: UserPlus },
-    { id: 'reports', label: t('reports'), icon: BarChart3 },
-    { id: 'aiChatboard', label: lang === 'ur' ? 'AI رپورٹ چیٹ' : 'AI Chatboard', icon: Bot },
-    { id: 'audit', label: t('auditLogs'), icon: ShieldCheck },
-    { id: 'whatsapp', label: t('whatsappBot'), icon: MessageSquare },
-    { id: 'settings', label: t('settings'), icon: Settings },
+    {
+      id: 'pos',
+      label: t('posTerminal'),
+      icon: ShoppingBag,
+      activeBg: 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-emerald-900/50 border-emerald-400 ring-2 ring-emerald-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-emerald-950/60 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'billsHistory',
+      label: t('billsHistory'),
+      icon: History,
+      activeBg: 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-blue-900/50 border-blue-400 ring-2 ring-blue-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-blue-950/60 text-blue-300 border-blue-500/30',
+    },
+    {
+      id: 'grn',
+      label: t('grnTitle'),
+      icon: Truck,
+      activeBg: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-black shadow-amber-900/50 border-amber-300 ring-2 ring-amber-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-amber-950/60 text-amber-300 border-amber-500/30',
+    },
+    {
+      id: 'vendors',
+      label: t('vendorsTitle'),
+      icon: Building2,
+      activeBg: 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white shadow-purple-900/50 border-purple-400 ring-2 ring-purple-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-purple-950/60 text-purple-300 border-purple-500/30',
+    },
+    {
+      id: 'roznamcha',
+      label: t('roznamcha'),
+      icon: BookOpen,
+      activeBg: 'bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 text-white shadow-cyan-900/50 border-cyan-400 ring-2 ring-cyan-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-cyan-950/60 text-cyan-300 border-cyan-500/30',
+    },
+    {
+      id: 'khata',
+      label: t('khataLedger'),
+      icon: Users,
+      activeBg: 'bg-gradient-to-r from-rose-600 via-pink-600 to-red-600 text-white shadow-rose-900/50 border-rose-400 ring-2 ring-rose-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-rose-950/60 text-rose-300 border-rose-500/30',
+    },
+    {
+      id: 'inventory',
+      label: t('inventory'),
+      icon: Boxes,
+      activeBg: 'bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-500 text-white shadow-teal-900/50 border-teal-400 ring-2 ring-teal-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-teal-950/60 text-teal-300 border-teal-500/30',
+    },
+    {
+      id: 'staff',
+      label: t('staffTitle'),
+      icon: UserPlus,
+      activeBg: 'bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black shadow-yellow-900/50 border-yellow-300 ring-2 ring-yellow-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-yellow-950/60 text-yellow-300 border-yellow-500/30',
+    },
+    {
+      id: 'reports',
+      label: t('reports'),
+      icon: BarChart3,
+      activeBg: 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 text-white shadow-red-900/50 border-red-400 ring-2 ring-red-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-red-950/60 text-red-300 border-red-500/30',
+    },
+    {
+      id: 'aiChatboard',
+      label: lang === 'ur' ? 'AI رپورٹ چیٹ' : 'AI Chatboard',
+      icon: Bot,
+      activeBg: 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-pink-600 text-white shadow-fuchsia-900/50 border-fuchsia-400 ring-2 ring-fuchsia-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-fuchsia-950/60 text-fuchsia-300 border-fuchsia-500/30',
+    },
+    {
+      id: 'audit',
+      label: t('auditLogs'),
+      icon: ShieldCheck,
+      activeBg: 'bg-gradient-to-r from-slate-700 via-slate-800 to-zinc-900 text-white shadow-slate-900/50 border-slate-400 ring-2 ring-slate-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-600/30',
+    },
+    {
+      id: 'whatsapp',
+      label: t('whatsappBot'),
+      icon: MessageSquare,
+      activeBg: 'bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white shadow-emerald-900/50 border-emerald-400 ring-2 ring-emerald-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-emerald-950/60 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'settings',
+      label: t('settings'),
+      icon: Settings,
+      activeBg: 'bg-gradient-to-r from-slate-700 via-cyan-800 to-slate-800 text-white shadow-cyan-900/50 border-cyan-400 ring-2 ring-cyan-400',
+      inactiveBg: 'bg-slate-800/80 hover:bg-cyan-950/60 text-cyan-300 border-cyan-500/30',
+    },
   ];
 
   const handleTabClick = (tabId: string) => {
+    posSound.playClick();
     const isAllowed = hasAccess(tabId);
     if (!isAllowed) {
       setPendingTab(tabId);
@@ -294,6 +398,30 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 <span>{lang === 'ur' ? 'English' : 'اردو'}</span>
               </button>
 
+              {/* POS Mechanical Sound Effects Toggle Button */}
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold transition-all shadow-sm active:scale-95 ${
+                  soundActive
+                    ? 'bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border-emerald-500/80 shadow-emerald-900/30'
+                    : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 border-slate-700'
+                }`}
+                title={lang === 'ur' ? (soundActive ? 'کلک اور ٹائپنگ ساؤنڈ آن ہے (کلک کر کے بند کریں)' : 'ساؤنڈ آف ہے (آن کریں)') : 'Toggle POS Sound Effects'}
+              >
+                {soundActive ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[11px] font-mono hidden sm:inline">ساؤنڈ آن</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[11px] font-mono hidden sm:inline">ساؤنڈ آف</span>
+                  </>
+                )}
+              </button>
+
               {/* Super Admin Control Panel Trigger (Only for jkdevelopers.pk@gmail.com) */}
               {isSuperAdmin && (
                 <div className="flex items-center gap-1.5">
@@ -414,45 +542,73 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           )}
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              const isLocked = !hasAccess(item.id);
+          {/* Colorful Sliding Carousel Navigation Bar */}
+          <div className="relative flex items-center max-w-full flex-1 min-w-0">
+            {/* Scroll Left Button */}
+            <button
+              type="button"
+              onClick={() => scrollNav('left')}
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-90 transition-all mr-1 z-10"
+              title={lang === 'ur' ? 'پچھلے آپشنز دیکھیں (Scroll Left)' : 'Scroll Left'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabClick(item.id)}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/30'
-                      : isLocked
-                      ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 opacity-60'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                  }`}
-                  title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (مینجر پن درکار ہے)' : 'Locked for cashier') : ''}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                  {item.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsWhatsAppOrdersModalOpen(true);
-                      }}
-                      className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] animate-pulse hover:scale-110 cursor-pointer"
-                      title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
-                    >
-                      {pendingWhatsAppOrdersCount}
-                    </span>
-                  )}
-                  {isLocked && <Lock className="w-3 h-3 text-amber-500/90 ml-0.5" />}
-                </button>
-              );
-            })}
-          </nav>
+            {/* Carousel Slider */}
+            <nav
+              ref={navSliderRef}
+              className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth no-scrollbar flex-1"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const isLocked = !hasAccess(item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 whitespace-nowrap transition-all border shadow-sm shrink-0 active:scale-95 ${
+                      isActive
+                        ? `${item.activeBg} shadow-lg`
+                        : isLocked
+                        ? 'bg-slate-900/60 text-slate-500 border-slate-800/80 opacity-60 hover:opacity-80'
+                        : `${item.inactiveBg} hover:shadow-md`
+                    }`}
+                    title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (مینجر پن درکار ہے)' : 'Locked for cashier') : ''}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                    {item.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          posSound.playClick();
+                          setIsWhatsAppOrdersModalOpen(true);
+                        }}
+                        className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] animate-pulse hover:scale-110 cursor-pointer"
+                        title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
+                      >
+                        {pendingWhatsAppOrdersCount}
+                      </span>
+                    )}
+                    {isLocked && <Lock className="w-3 h-3 text-amber-500/90 ml-0.5" />}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Scroll Right Button */}
+            <button
+              type="button"
+              onClick={() => scrollNav('right')}
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-90 transition-all ml-1 z-10"
+              title={lang === 'ur' ? 'اگلے آپشنز دیکھیں (Scroll Right)' : 'Scroll Right'}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Mobile / Tablet Preset Selector Bar (Hidden when collapsed) */}

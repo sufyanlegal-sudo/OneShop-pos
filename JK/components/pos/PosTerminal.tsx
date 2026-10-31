@@ -46,6 +46,7 @@ import { Product, PaymentMethod, Invoice, CurrencyDenominations } from '@/types'
 import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
 import { ExchangeModal } from '@/components/pos/ExchangeModal';
+import { posSound } from '@/lib/sound';
 
 export const PosTerminal: React.FC = () => {
   const { lang, t } = useLanguage();
@@ -357,6 +358,7 @@ export const PosTerminal: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchResults.length > 0) {
+      posSound.playScanBeep();
       addToCart(searchResults[0], 1);
       setSearchQuery('');
       setSearchSuggestionsOpen(false);
@@ -378,6 +380,7 @@ export const PosTerminal: React.FC = () => {
     );
 
     if (matched) {
+      posSound.playScanBeep();
       addToCart(matched, 1);
       setQrSuccessMsg(
         lang === 'ur'
@@ -387,6 +390,7 @@ export const PosTerminal: React.FC = () => {
       setQrManualInput('');
       setTimeout(() => setQrSuccessMsg(null), 2500);
     } else {
+      posSound.playErrorBuzz();
       alert(lang === 'ur' ? 'یہ کیو آر کوڈ یا بارکوڈ سسٹم میں موجود نہیں!' : 'QR / Barcode not found!');
     }
   };
@@ -412,9 +416,11 @@ export const PosTerminal: React.FC = () => {
     );
 
     if (matched) {
+      posSound.playScanBeep();
       addToCart(matched, 1);
       setBarcodeInput('');
     } else {
+      posSound.playErrorBuzz();
       alert(lang === 'ur' ? 'یہ بارکوڈ پروڈکٹ میں نہیں ملا!' : 'Barcode not found!');
     }
   };
@@ -584,6 +590,7 @@ export const PosTerminal: React.FC = () => {
   // Checkout submission
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    posSound.playSuccessChime();
 
     const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
     const tendered = tenderedAmount > 0 ? tenderedAmount : (paymentMethod === 'CASH' ? netTotal : amountPaid);
@@ -679,7 +686,7 @@ export const PosTerminal: React.FC = () => {
     }
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {cart.map((item, idx) => {
           const isWeight = isWeightEligible(item);
           const isLiter = isLiterEligible(item);
@@ -689,35 +696,35 @@ export const PosTerminal: React.FC = () => {
           return (
             <div
               key={item.id}
-              className="p-2.5 sm:p-3 bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all shadow-xs flex flex-wrap items-center justify-between gap-2.5"
+              className="p-3 sm:p-3.5 bg-white dark:bg-slate-850 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500/70 transition-all shadow-sm flex flex-wrap items-center justify-between gap-3"
             >
               {/* 1. Item Name, Number, Unit Rate & Sub-badge */}
-              <div className="flex items-center gap-2.5 min-w-[190px] flex-1">
-                <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-750 flex items-center justify-center font-mono font-black text-xs text-slate-600 dark:text-slate-300 shrink-0">
+              <div className="flex items-center gap-3 min-w-[210px] flex-1">
+                <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 dark:bg-slate-750 flex items-center justify-center font-mono font-black text-xs sm:text-sm text-slate-700 dark:text-slate-200 shrink-0 border border-slate-300 dark:border-slate-700 shadow-xs">
                   {idx + 1}
                 </span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h5 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
+                    <h5 className="font-black text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
                       {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
                     </h5>
                     {item.packagedVariant && (
-                      <span className="px-1.5 py-0.2 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                         {item.packagedVariant}
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
+                  <div className="text-xs text-slate-500 font-mono flex items-center gap-2 mt-1 flex-wrap">
                     <span>
-                      ریٹ: {unitRate.toLocaleString()} PKR / {displayUnit}
+                      ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}
                     </span>
                     {isWeight && item.quantity < 1 && (
-                      <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.2 rounded">
+                      <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
                         ({Math.round(item.quantity * 1000)} گرام)
                       </span>
                     )}
                     {isLiter && item.quantity < 1 && (
-                      <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.2 rounded">
+                      <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.5 rounded">
                         ({Math.round(item.quantity * 1000)} ml)
                       </span>
                     )}
@@ -726,10 +733,11 @@ export const PosTerminal: React.FC = () => {
               </div>
 
               {/* 2. Compact Stepper & Quantity / Weight Input (Standard POS - No Sliders) */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
+                    posSound.playClick();
                     const step = (isWeight || isLiter) ? 0.25 : 1;
                     if (item.quantity > step) {
                       const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
@@ -744,10 +752,10 @@ export const PosTerminal: React.FC = () => {
                       removeFromCart(item.id);
                     }
                   }}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 active:scale-95 transition-all shadow-xs"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-sm text-slate-700 dark:text-slate-200 active:scale-90 transition-all shadow-xs border border-slate-300 dark:border-slate-700"
                   title="مقدار کم کریں"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <Minus className="w-4 h-4" />
                 </button>
 
                 <div className="relative">
@@ -756,6 +764,7 @@ export const PosTerminal: React.FC = () => {
                     min="0.01"
                     step={isWeight || isLiter ? "0.05" : "1"}
                     value={item.quantity}
+                    onKeyDown={() => posSound.playKeyClick()}
                     onChange={(e) => {
                       const val = Math.max(0.01, parseFloat(e.target.value) || 0);
                       updateCartItem(item.id, {
@@ -766,7 +775,7 @@ export const PosTerminal: React.FC = () => {
                         total: Math.round(val * unitRate),
                       });
                     }}
-                    className="w-16 text-center text-xs font-mono font-black bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-1 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-20 text-center text-sm font-mono font-black bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl py-1.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                   />
                   <span className="absolute -bottom-3.5 left-0 right-0 text-center text-[9px] font-bold text-slate-400 font-mono pointer-events-none">
                     {displayUnit}
@@ -776,6 +785,7 @@ export const PosTerminal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    posSound.playClick();
                     const step = (isWeight || isLiter) ? 0.25 : 1;
                     const next = Math.round((item.quantity + step) * 100) / 100;
                     updateCartItem(item.id, {
@@ -786,25 +796,28 @@ export const PosTerminal: React.FC = () => {
                       total: Math.round(next * unitRate),
                     });
                   }}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-bold text-xs active:scale-95 transition-all shadow-sm"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-bold text-sm active:scale-90 transition-all shadow-sm"
                   title="مقدار بڑھائیں"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
 
               {/* 3. Line Total & Delete Button */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="text-right min-w-[75px]">
-                  <span className="font-mono font-black text-xs sm:text-base text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-3">
+                <div className="text-right min-w-[85px]">
+                  <span className="font-mono font-black text-sm sm:text-lg text-emerald-600 dark:text-emerald-400">
                     {item.total.toLocaleString()} PKR
                   </span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => removeFromCart(item.id)}
-                  className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
+                  onClick={() => {
+                    posSound.playClick();
+                    removeFromCart(item.id);
+                  }}
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
                   title="آئٹم حذف کریں"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -865,16 +878,18 @@ export const PosTerminal: React.FC = () => {
             <input
               type="text"
               value={customerName}
+              onKeyDown={() => posSound.playKeyClick()}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder={t('customerName')}
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs outline-none"
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500"
             />
             <input
               type="text"
               value={customerPhone}
+              onKeyDown={() => posSound.playKeyClick()}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder={t('customerPhone')}
-              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono outline-none"
+              className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-emerald-500"
             />
           </div>
         )}
@@ -887,7 +902,10 @@ export const PosTerminal: React.FC = () => {
           <div className="grid grid-cols-4 gap-1 text-[11px] font-bold">
             <button
               type="button"
-              onClick={() => setPaymentMethod('CASH')}
+              onClick={() => {
+                posSound.playClick();
+                setPaymentMethod('CASH');
+              }}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CASH'
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -899,7 +917,10 @@ export const PosTerminal: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setPaymentMethod('ONLINE')}
+              onClick={() => {
+                posSound.playClick();
+                setPaymentMethod('ONLINE');
+              }}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'ONLINE'
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -911,7 +932,10 @@ export const PosTerminal: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setPaymentMethod('CREDIT')}
+              onClick={() => {
+                posSound.playClick();
+                setPaymentMethod('CREDIT');
+              }}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'CREDIT'
                   ? 'bg-rose-600 text-white shadow-sm'
@@ -923,7 +947,10 @@ export const PosTerminal: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setPaymentMethod('SPLIT')}
+              onClick={() => {
+                posSound.playClick();
+                setPaymentMethod('SPLIT');
+              }}
               className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
                 paymentMethod === 'SPLIT'
                   ? 'bg-amber-600 text-white shadow-sm'
@@ -938,7 +965,7 @@ export const PosTerminal: React.FC = () => {
 
         {/* CASH TENDER & CURRENCY DENOMINATIONS */}
         {paymentMethod === 'CASH' && (
-          <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 space-y-2">
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-3 rounded-2xl border-2 border-emerald-300 dark:border-emerald-900/60 space-y-2.5 shadow-sm">
             {/* Switch: Direct Numeric vs Pakistani Currency Notes */}
             <div className="flex items-center justify-between text-xs border-b border-emerald-200 dark:border-emerald-900/50 pb-1.5">
               <span className="font-bold text-slate-800 dark:text-slate-200">
@@ -947,10 +974,13 @@ export const PosTerminal: React.FC = () => {
               <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
                 <button
                   type="button"
-                  onClick={() => setCashInputMode('direct')}
-                  className={`px-2 py-0.5 rounded transition-all ${
+                  onClick={() => {
+                    posSound.playClick();
+                    setCashInputMode('direct');
+                  }}
+                  className={`px-2.5 py-1 rounded-md transition-all font-bold ${
                     cashInputMode === 'direct'
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
@@ -958,10 +988,13 @@ export const PosTerminal: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCashInputMode('notes')}
-                  className={`px-2 py-0.5 rounded transition-all ${
+                  onClick={() => {
+                    posSound.playClick();
+                    setCashInputMode('notes');
+                  }}
+                  className={`px-2.5 py-1 rounded-md transition-all font-bold ${
                     cashInputMode === 'notes'
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
@@ -970,14 +1003,14 @@ export const PosTerminal: React.FC = () => {
               </div>
             </div>
 
-            {/* Direct Cash Input */}
+            {/* Direct Cash Input (Enlarged Box) */}
             {cashInputMode === 'direct' && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     {lang === 'ur' ? 'گاہک سے موصول شدہ کیش:' : 'Cash Received:'}
                   </label>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                     بل: {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
                   </span>
                 </div>
@@ -988,19 +1021,23 @@ export const PosTerminal: React.FC = () => {
                   value={tenderedAmount || ''}
                   onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
                   onKeyDown={(e) => {
+                    posSound.playKeyClick();
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleCheckout();
                     }
                   }}
                   placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
-                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-base font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none"
+                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3.5 py-2.5 text-xl font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none shadow-sm focus:ring-4 focus:ring-emerald-500/20"
                 />
-                <div className="flex gap-1 flex-wrap text-[10px] font-mono font-bold">
+                <div className="flex gap-1.5 flex-wrap text-xs font-mono font-bold">
                   <button
                     type="button"
-                    onClick={() => setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount))}
-                    className="px-2 py-0.5 rounded bg-emerald-600 text-white shadow-xs"
+                    onClick={() => {
+                      posSound.playClick();
+                      setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount));
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95"
                   >
                     برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
                   </button>
@@ -1008,8 +1045,11 @@ export const PosTerminal: React.FC = () => {
                     <button
                       key={note}
                       type="button"
-                      onClick={() => setTenderedAmount(note)}
-                      className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400"
+                      onClick={() => {
+                        posSound.playClick();
+                        setTenderedAmount(note);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 active:scale-95 transition-all shadow-xs"
                     >
                       {note}
                     </button>
@@ -1020,7 +1060,7 @@ export const PosTerminal: React.FC = () => {
 
             {/* Notes Counter Mode */}
             {cashInputMode === 'notes' && (
-              <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2 rounded-xl border border-emerald-300 dark:border-emerald-800">
+              <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                     <Coins className="w-3.5 h-3.5 text-emerald-600" />
@@ -1028,7 +1068,10 @@ export const PosTerminal: React.FC = () => {
                   </span>
                   <button
                     type="button"
-                    onClick={resetDenominations}
+                    onClick={() => {
+                      posSound.playClick();
+                      resetDenominations();
+                    }}
                     className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
                   >
                     {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
@@ -1058,7 +1101,10 @@ export const PosTerminal: React.FC = () => {
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => updateDenomination(d.key, -1)}
+                            onClick={() => {
+                              posSound.playClick();
+                              updateDenomination(d.key, -1);
+                            }}
                             className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-bold text-xs"
                           >
                             -
@@ -1067,12 +1113,16 @@ export const PosTerminal: React.FC = () => {
                             type="number"
                             min="0"
                             value={count}
+                            onKeyDown={() => posSound.playKeyClick()}
                             onChange={(e) => setDenominationCount(d.key, parseInt(e.target.value) || 0)}
                             className="w-8 text-center font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-[11px]"
                           />
                           <button
                             type="button"
-                            onClick={() => updateDenomination(d.key, 1)}
+                            onClick={() => {
+                              posSound.playClick();
+                              updateDenomination(d.key, 1);
+                            }}
                             className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
                           >
                             +
@@ -1087,23 +1137,23 @@ export const PosTerminal: React.FC = () => {
                   <span className="text-slate-600 dark:text-slate-300">
                     {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
                   </span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-400 text-sm">
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 text-base font-black">
                     {notesCalculatedTotal.toLocaleString()} PKR
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Return Change Banner */}
+            {/* Return Change Banner (Large & Prominent) */}
             {tenderedAmount > 0 && (
               <div
-                className={`p-2 rounded-xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
+                className={`p-2.5 sm:p-3 rounded-2xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
                   tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
                     ? 'bg-emerald-600 text-white'
                     : 'bg-rose-600 text-white'
                 }`}
               >
-                <span className="text-xs">
+                <span className="text-xs sm:text-sm font-bold">
                   {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
                     ? lang === 'ur'
                       ? '💵 واپسی بقایا رقم (گاہک کو دیں):'
@@ -1112,7 +1162,7 @@ export const PosTerminal: React.FC = () => {
                     ? '⚠️ رقم کم ہے (بقایا واجب الادا):'
                     : 'Short Amount:'}
                 </span>
-                <span className="font-mono text-sm font-black">
+                <span className="font-mono text-base sm:text-xl font-black">
                   {Math.abs(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR
                 </span>
               </div>
@@ -1175,9 +1225,9 @@ export const PosTerminal: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-between items-center text-base font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-750">
+          <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-2 border-t-2 border-slate-300 dark:border-slate-700">
             <span>{t('grandTotal')}:</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl font-black">
+            <span className="font-mono text-emerald-600 dark:text-emerald-400 text-2xl sm:text-3xl font-black">
               {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
             </span>
           </div>
@@ -1188,14 +1238,14 @@ export const PosTerminal: React.FC = () => {
           type="button"
           onClick={handleCheckout}
           disabled={cart.length === 0}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-95 transition-all"
+          className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-900/40 active:scale-95 transition-all"
         >
-          <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2 py-0.5 rounded-md font-mono border border-white/20">
+          <span className="inline-flex items-center justify-center bg-white/20 text-white font-black text-xs px-2.5 py-1 rounded-lg font-mono border border-white/20">
             Rs.
           </span>
-          <Printer className="w-4 h-4 text-emerald-100" />
+          <Printer className="w-5 h-5 text-emerald-100" />
           <span>{t('completeSale')}</span>
-          <span className="px-2 py-0.5 rounded bg-black/25 text-[10px] font-mono text-emerald-200 border border-white/10 ml-1">
+          <span className="px-2.5 py-1 rounded bg-black/30 text-xs font-mono text-emerald-200 border border-white/10 ml-1">
             (Enter / F12)
           </span>
         </button>
@@ -1306,28 +1356,30 @@ export const PosTerminal: React.FC = () => {
         </div>
       )}
 
-      {/* 2. UNIVERSAL SCANNER, SEARCH & QUICK ACTIONS BAR */}
-      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center gap-2">
-        {/* Barcode scanner input */}
-        <form onSubmit={handleBarcodeSubmit} className="flex-1 min-w-[200px] relative">
-          <Barcode className="w-5 h-5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+      {/* 2. UNIVERSAL SCANNER, SEARCH & QUICK ACTIONS BAR (ENLARGED & PRO STYLED) */}
+      <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 shadow-md flex flex-wrap items-center gap-3">
+        {/* Barcode scanner input (Prominent Large Input Box) */}
+        <form onSubmit={handleBarcodeSubmit} className="flex-1 min-w-[240px] relative">
+          <Barcode className="w-6 h-6 absolute left-3.5 top-3.5 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
           <input
             ref={barcodeInputRef}
             type="text"
             value={barcodeInput}
+            onKeyDown={() => posSound.playKeyClick()}
             onChange={(e) => setBarcodeInput(e.target.value)}
             placeholder={lang === 'ur' ? 'بارکوڈ اسکین کریں یا لکھیں...' : 'Scan barcode or SKU...'}
-            className="w-full pl-10 pr-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/20 font-mono outline-none transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl text-sm sm:text-base font-mono font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all shadow-inner"
           />
         </form>
 
         {/* Search by name / keyword with Auto-Suggestions Dropdown */}
-        <div className="flex-1 min-w-[220px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+        <div className="flex-1 min-w-[240px] relative">
+          <Search className="w-5 h-5 absolute left-3.5 top-3.5 text-slate-400 pointer-events-none" />
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
               value={searchQuery}
+              onKeyDown={() => posSound.playKeyClick()}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setSearchSuggestionsOpen(true);
@@ -1336,19 +1388,20 @@ export const PosTerminal: React.FC = () => {
                 if (searchQuery.trim()) setSearchSuggestionsOpen(true);
               }}
               placeholder={lang === 'ur' ? 'آئٹم کا نام لکھیں یا تلاش کریں (چینی، چاول، دال)...' : 'Search product name or press Enter...'}
-              className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+              className="w-full pl-11 pr-10 py-3 bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl text-sm sm:text-base font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all shadow-inner"
             />
           </form>
           {searchQuery && (
             <button
               type="button"
               onClick={() => {
+                posSound.playClick();
                 setSearchQuery('');
                 setSearchSuggestionsOpen(false);
               }}
-              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
 
@@ -1368,6 +1421,7 @@ export const PosTerminal: React.FC = () => {
                   <div
                     key={p.id}
                     onClick={() => {
+                      posSound.playScanBeep();
                       addToCart(p, 1);
                       setSearchQuery('');
                       setSearchSuggestionsOpen(false);
@@ -1489,7 +1543,10 @@ export const PosTerminal: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => addToCart(p, 1)}
+                    onClick={() => {
+                      posSound.playScanBeep();
+                      addToCart(p, 1);
+                    }}
                     className="group relative bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-600 rounded-xl p-2.5 flex flex-col justify-between cursor-pointer transition-all shadow-2xs hover:shadow-sm"
                   >
                     {isLowStock && (
