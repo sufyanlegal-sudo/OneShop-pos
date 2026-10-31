@@ -171,15 +171,55 @@ export const PosTerminal: React.FC = () => {
   const [saveCustomToCatalog, setSaveCustomToCatalog] = useState<boolean>(true);
   const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
 
-  // Auto-scroll ref for active bill list
+  // Auto-scroll refs for active bill list
   const cartEndRef = useRef<HTMLDivElement>(null);
+  const cartContainerRef = useRef<HTMLDivElement>(null);
+  const tenderedInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll the bill list down to the latest item smoothly whenever an item is added
+  // Auto-scroll the bill list down to the latest item smoothly whenever cart updates (NO MOUSE NEEDED)
   useEffect(() => {
     if (cart.length > 0) {
-      cartEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => {
+        if (cartContainerRef.current) {
+          cartContainerRef.current.scrollTop = cartContainerRef.current.scrollHeight;
+        }
+        cartEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 50);
     }
-  }, [cart.length]);
+  }, [cart, cart.length]);
+
+  // Keyboard Shortcuts: F12 or Enter = Complete & Print, F4 = Cash Input, F2/F9 = Barcode Search
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // F12 or Alt+Enter -> Instant Complete & Print Bill
+      if (e.key === 'F12' || (e.altKey && e.key === 'Enter')) {
+        e.preventDefault();
+        if (cart.length > 0) {
+          handleCheckout();
+        }
+        return;
+      }
+
+      // F4 -> Jump directly to Cash Received Input
+      if (e.key === 'F4') {
+        e.preventDefault();
+        tenderedInputRef.current?.focus();
+        tenderedInputRef.current?.select();
+        return;
+      }
+
+      // F2 or F9 -> Jump focus back to Barcode Scanner Input
+      if (e.key === 'F2' || e.key === 'F9') {
+        e.preventDefault();
+        barcodeInputRef.current?.focus();
+        barcodeInputRef.current?.select();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [cart.length, cartTotals.subtotal, orderDiscount, tenderedAmount, paymentMethod, amountPaid]);
 
   // Currency Denominations State (Notes Counter)
   const [cashInputMode, setCashInputMode] = useState<'direct' | 'notes'>('direct');
@@ -354,7 +394,18 @@ export const PosTerminal: React.FC = () => {
   // Handle Barcode Scanner Enter Key
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!barcodeInput.trim()) return;
+    if (!barcodeInput.trim()) {
+      // If empty barcode and cart has items: jump straight to tendered amount or checkout without mouse!
+      if (cart.length > 0) {
+        if (tenderedAmount > 0) {
+          handleCheckout();
+        } else {
+          tenderedInputRef.current?.focus();
+          tenderedInputRef.current?.select();
+        }
+      }
+      return;
+    }
 
     const matched = products.find(
       (p) => p.barcode === barcodeInput.trim() || p.sku.toLowerCase() === barcodeInput.trim().toLowerCase()
@@ -931,10 +982,17 @@ export const PosTerminal: React.FC = () => {
                   </span>
                 </div>
                 <input
+                  ref={tenderedInputRef}
                   type="number"
                   min="0"
                   value={tenderedAmount || ''}
                   onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCheckout();
+                    }
+                  }}
                   placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
                   className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-base font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none"
                 />
@@ -1125,7 +1183,7 @@ export const PosTerminal: React.FC = () => {
           </div>
         </div>
 
-        {/* Checkout Button */}
+        {/* Checkout Button with Keyboard Shortcut Badge */}
         <button
           type="button"
           onClick={handleCheckout}
@@ -1137,13 +1195,16 @@ export const PosTerminal: React.FC = () => {
           </span>
           <Printer className="w-4 h-4 text-emerald-100" />
           <span>{t('completeSale')}</span>
+          <span className="px-2 py-0.5 rounded bg-black/25 text-[10px] font-mono text-emerald-200 border border-white/10 ml-1">
+            (Enter / F12)
+          </span>
         </button>
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col gap-2.5 h-[calc(100vh-130px)] p-2 md:p-3 overflow-hidden">
+    <div className="flex flex-col gap-2.5 h-[calc(100vh-70px)] p-2 md:p-3 overflow-hidden">
       {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
       <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -1672,7 +1733,7 @@ export const PosTerminal: React.FC = () => {
             /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar */
             <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
               {/* Left Pane: Items in Active Bill */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 scroll-smooth">
                 {renderCartItems()}
               </div>
 
@@ -1684,7 +1745,7 @@ export const PosTerminal: React.FC = () => {
           ) : (
             /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth">
                 {renderCartItems()}
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 max-h-[48%] overflow-y-auto">

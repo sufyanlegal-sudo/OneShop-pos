@@ -33,6 +33,8 @@ import {
   Clock,
   LogOut,
   Bot,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -73,6 +75,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pos_header_collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const toggleHeaderCollapsed = () => {
+    setIsHeaderCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pos_header_collapsed', String(next));
+      }
+      return next;
+    });
+  };
 
   // Manager PIN state
   const [pinInput, setPinInput] = useState('');
@@ -155,177 +173,201 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <>
       <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-xl">
-        {/* Top Bar: Software Branding & Quick Tools (NO SHOP NAME ON FRONT UI) */}
-        <div className="bg-slate-950/90 px-4 py-2 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-4">
+        {/* Top Bar: Software Branding & Quick Tools (Collapsible for Max Screen Space) */}
+        {!isHeaderCollapsed && (
+          <div className="bg-slate-950/90 px-4 py-2 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="font-mono font-black text-emerald-400 tracking-wide text-xs">
+                  {businessProfile.softwareName || 'OneShop POS'}
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                  Multi-Counter ERP
+                </span>
+              </div>
+
+              <div className="hidden md:flex items-center gap-3 text-slate-400 text-[11px]">
+                <span>
+                  Powered by <strong className="text-amber-400 font-sans">JK Developers Pakistan</strong>
+                </span>
+                <span>•</span>
+                <span className="text-emerald-400 font-mono font-bold">Helpline: 03008998381</span>
+              </div>
+            </div>
+
+            {/* Quick Buttons: Collapse Top, Barcode Generator, Backup, Support, Role, Language */}
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="font-mono font-black text-emerald-400 tracking-wide text-xs">
-                {businessProfile.softwareName || 'OneShop POS'}
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                Multi-Counter ERP
-              </span>
-            </div>
-
-            <div className="hidden md:flex items-center gap-3 text-slate-400 text-[11px]">
-              <span>
-                Powered by <strong className="text-amber-400 font-sans">JK Developers Pakistan</strong>
-              </span>
-              <span>•</span>
-              <span className="text-emerald-400 font-mono font-bold">Helpline: 03008998381</span>
-            </div>
-          </div>
-
-          {/* Quick Buttons: Barcode Generator, Backup, Support, Role, Language */}
-          <div className="flex items-center gap-2">
-            {/* Barcode / QR Code Generator Button */}
-            <button
-              onClick={() => setShowBarcodeModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 font-bold transition-all shadow-sm"
-              title={lang === 'ur' ? 'بارکوڈ اور کیو آر کوڈ بنائیں / پرنٹ کریں' : 'Generate & Print Barcode / QR'}
-            >
-              <QrCode className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">
-                {lang === 'ur' ? 'بارکوڈ و کیو آر جنریٹر' : 'Barcode/QR'}
-              </span>
-            </button>
-
-            {/* Gmail Backup Button */}
-            <button
-              onClick={() => setShowBackupModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-all"
-              title={lang === 'ur' ? 'جی میل پر ڈیٹا بیک اپ بھیجیں' : 'Backup to Gmail'}
-            >
-              <Mail className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">{lang === 'ur' ? 'جی میل بیک اپ' : 'Gmail Backup'}</span>
-            </button>
-
-            {/* JK Developers Pakistan Support Button */}
-            <button
-              onClick={() => setShowSupportModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold transition-all shadow-sm"
-              title="JK Developers Pakistan Official Support: 03008998381"
-            >
-              <Headphones className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-mono text-[11px] font-bold">JK Developers: 03008998381</span>
-            </button>
-
-            {/* Multi-Counter & Role Switcher */}
-            <button
-              onClick={() => {
-                setRoleModalTab(currentRole === 'MANAGER' ? 'cashier' : 'manager');
-                setShowRoleModal(true);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${
-                currentRole === 'MANAGER'
-                  ? 'bg-purple-950/80 border-purple-600/70 text-purple-200 hover:bg-purple-900'
-                  : 'bg-emerald-950/80 border-emerald-600/70 text-emerald-200 hover:bg-emerald-900'
-              }`}
-              title={lang === 'ur' ? 'کاؤنٹر اور رول تبدیل کریں' : 'Switch Counter / Manager'}
-            >
-              {currentRole === 'MANAGER' ? (
-                <>
-                  <Unlock className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{lang === 'ur' ? '👑 مینجر موڈ' : '👑 Manager'}</span>
-                </>
-              ) : (
-                <>
-                  <Monitor className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>
-                    {lang === 'ur'
-                      ? `کاؤنٹر #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'کیشیئر'})`
-                      : `Counter #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'Cashier'})`}
-                  </span>
-                </>
-              )}
-            </button>
-
-            {/* Quick Pending WhatsApp Orders Button */}
-            {pendingWhatsAppOrdersCount > 0 && (
+              {/* Collapse Top Header Button */}
               <button
                 type="button"
-                onClick={() => setIsWhatsAppOrdersModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all animate-pulse"
-                title={lang === 'ur' ? 'پینڈنگ واٹس ایپ آرڈرز دیکھیں اور بل بنائیں' : 'View Pending Orders'}
+                onClick={toggleHeaderCollapsed}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition shadow-md active:scale-95 border border-cyan-300"
+                title={lang === 'ur' ? 'اوپر والا ایریا بند کریں تاکہ بلنگ کیلئے بڑی اسکرین مل سکے' : 'Collapse Header for Max Screen Space'}
               >
-                <Clock className="w-3.5 h-3.5 text-slate-950" />
-                <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'پینڈنگ آرڈرز' : 'Pending'}</span>
+                <ChevronUp className="w-4 h-4 stroke-[3]" />
+                <span>{lang === 'ur' ? 'اوپر بند کریں (Full Screen)' : 'Collapse Top'}</span>
               </button>
-            )}
 
-            {/* 1-Click Language Switcher */}
-            <button
-              onClick={toggleLang}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-sm active:scale-95"
-              title="Toggle Urdu / English"
-            >
-              <Languages className="w-3.5 h-3.5" />
-              <span>{lang === 'ur' ? 'English' : 'اردو'}</span>
-            </button>
-
-            {/* Super Admin Control Panel Trigger (Only for jkdevelopers.pk@gmail.com) */}
-            {isSuperAdmin && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsSuperAdminModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition-all active:scale-95"
-                  title="سپر ایڈمن کنٹرول پینل کھولیں"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                  <span>ایڈمن پینل</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logoutUser();
-                    window.location.reload();
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition-all"
-                  title="سپر ایڈمن موڈ فوری بند اور لاگ آؤٹ کریں"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>لاگ آؤٹ</span>
-                </button>
-              </div>
-            )}
-
-            {/* Logged in User Pill & Logout */}
-            {currentUserEmail && (
-              <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-emerald-400 font-mono text-[11px] truncate max-w-[130px]" dir="ltr">
-                  {currentUserEmail}
+              {/* Barcode / QR Code Generator Button */}
+              <button
+                onClick={() => setShowBarcodeModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 font-bold transition-all shadow-sm"
+                title={lang === 'ur' ? 'بارکوڈ اور کیو آر کوڈ بنائیں / پرنٹ کریں' : 'Generate & Print Barcode / QR'}
+              >
+                <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">
+                  {lang === 'ur' ? 'بارکوڈ و کیو آر جنریٹر' : 'Barcode/QR'}
                 </span>
+              </button>
+
+              {/* Gmail Backup Button */}
+              <button
+                onClick={() => setShowBackupModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-all"
+                title={lang === 'ur' ? 'جی میل پر ڈیٹا بیک اپ بھیجیں' : 'Backup to Gmail'}
+              >
+                <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">{lang === 'ur' ? 'جی میل بیک اپ' : 'Gmail Backup'}</span>
+              </button>
+
+              {/* JK Developers Pakistan Support Button */}
+              <button
+                onClick={() => setShowSupportModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold transition-all shadow-sm"
+                title="JK Developers Pakistan Official Support: 03008998381"
+              >
+                <Headphones className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-mono text-[11px] font-bold">JK Developers: 03008998381</span>
+              </button>
+
+              {/* Multi-Counter & Role Switcher */}
+              <button
+                onClick={() => {
+                  setRoleModalTab(currentRole === 'MANAGER' ? 'cashier' : 'manager');
+                  setShowRoleModal(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                  currentRole === 'MANAGER'
+                    ? 'bg-purple-950/80 border-purple-600/70 text-purple-200 hover:bg-purple-900'
+                    : 'bg-emerald-950/80 border-emerald-600/70 text-emerald-200 hover:bg-emerald-900'
+                }`}
+                title={lang === 'ur' ? 'کاؤنٹر اور رول تبدیل کریں' : 'Switch Counter / Manager'}
+              >
+                {currentRole === 'MANAGER' ? (
+                  <>
+                    <Unlock className="w-3.5 h-3.5 text-purple-400" />
+                    <span>{lang === 'ur' ? '👑 مینجر موڈ' : '👑 Manager'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>
+                      {lang === 'ur'
+                        ? `کاؤنٹر #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'کیشیئر'})`
+                        : `Counter #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'Cashier'})`}
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {/* Quick Pending WhatsApp Orders Button */}
+              {pendingWhatsAppOrdersCount > 0 && (
                 <button
                   type="button"
-                  onClick={logoutUser}
-                  className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
-                  title="لاگ آؤٹ کریں"
+                  onClick={() => setIsWhatsAppOrdersModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all animate-pulse"
+                  title={lang === 'ur' ? 'پینڈنگ واٹس ایپ آرڈرز دیکھیں اور بل بنائیں' : 'View Pending Orders'}
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <Clock className="w-3.5 h-3.5 text-slate-950" />
+                  <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'پینڈنگ آرڈرز' : 'Pending'}</span>
                 </button>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
 
-        {/* Main Bar: Software Title (NO SHOP NAME HERE) */}
-        <div className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+              {/* 1-Click Language Switcher */}
+              <button
+                onClick={toggleLang}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-sm active:scale-95"
+                title="Toggle Urdu / English"
+              >
+                <Languages className="w-3.5 h-3.5" />
+                <span>{lang === 'ur' ? 'English' : 'اردو'}</span>
+              </button>
+
+              {/* Super Admin Control Panel Trigger (Only for jkdevelopers.pk@gmail.com) */}
+              {isSuperAdmin && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsSuperAdminModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition-all active:scale-95"
+                    title="سپر ایڈمن کنٹرول پینل کھولیں"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                    <span>ایڈمن پینل</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logoutUser();
+                      window.location.reload();
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition-all"
+                    title="سپر ایڈمن موڈ فوری بند اور لاگ آؤٹ کریں"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>لاگ آؤٹ</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Logged in User Pill & Logout */}
+              {currentUserEmail && (
+                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+                  <span className="text-emerald-400 font-mono text-[11px] truncate max-w-[130px]" dir="ltr">
+                    {currentUserEmail}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={logoutUser}
+                    className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
+                    title="لاگ آؤٹ کریں"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Main Bar: Software Title (Compact when collapsed) */}
+        <div className={`px-4 flex flex-wrap items-center justify-between gap-3 transition-all ${isHeaderCollapsed ? 'py-1.5' : 'py-2.5'}`}>
           {/* Software Title Only */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg font-black text-sm text-white border border-emerald-400/30">
+            <div className={`rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg font-black text-white border border-emerald-400/30 transition-all ${isHeaderCollapsed ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-sm'}`}>
               POS
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight leading-tight text-white font-mono flex items-center gap-2">
+                <h1 className={`font-black tracking-tight leading-tight text-white font-mono flex items-center gap-2 ${isHeaderCollapsed ? 'text-base' : 'text-xl'}`}>
                   <span>{businessProfile.softwareName || 'OneShop POS'}</span>
                 </h1>
                 <span className="text-[10px] uppercase font-mono font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800 shadow-sm">
                   v2.0 PRO
                 </span>
-                {currentRole === 'MANAGER' && (
+                {isHeaderCollapsed && (
+                  <button
+                    type="button"
+                    onClick={toggleHeaderCollapsed}
+                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-slate-950 border border-cyan-500/50 font-bold text-[11px] transition active:scale-95 shadow-sm"
+                    title="اوپر والا ایریا کھولیں"
+                  >
+                    <span>{lang === 'ur' ? 'اوپر کھولیں' : 'Expand Top'}</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {currentRole === 'MANAGER' && !isHeaderCollapsed && (
                   <button
                     onClick={() => handleTabClick('settings')}
                     className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-md transition-colors"
@@ -335,38 +377,42 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">
-                {lang === 'ur'
-                  ? 'جے کے ڈویلپرز پاکستان • مکمل ریٹیل و ہول سیل پی او ایس سسٹم (03008998381)'
-                  : 'Powered by JK Developers Pakistan • Multi-Counter Enterprise POS (03008998381)'}
-              </p>
+              {!isHeaderCollapsed && (
+                <p className="text-[11px] text-slate-400 font-medium">
+                  {lang === 'ur'
+                    ? 'جے کے ڈویلپرز پاکستان • مکمل ریٹیل و ہول سیل پی او ایس سسٹم (03008998381)'
+                    : 'Powered by JK Developers Pakistan • Multi-Counter Enterprise POS (03008998381)'}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Dynamic Business Profile Preset Switcher */}
-          <div className="hidden 2xl:flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
-            <span className="text-[11px] text-slate-400 font-medium px-2 flex items-center gap-1">
-              <Store className="w-3 h-3 text-slate-400" />
-              {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
-            </span>
-            {presets.map((p) => {
-              const isActive = activePreset === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPreset(p.id)}
-                  className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <span>{p.icon}</span>
-                  <span>{lang === 'ur' ? p.labelUr : p.labelEn}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Dynamic Business Profile Preset Switcher (Hidden when collapsed) */}
+          {!isHeaderCollapsed && (
+            <div className="hidden 2xl:flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+              <span className="text-[11px] text-slate-400 font-medium px-2 flex items-center gap-1">
+                <Store className="w-3 h-3 text-slate-400" />
+                {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
+              </span>
+              {presets.map((p) => {
+                const isActive = activePreset === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setPreset(p.id)}
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{p.icon}</span>
+                    <span>{lang === 'ur' ? p.labelUr : p.labelEn}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Navigation Tabs */}
           <nav className="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
@@ -409,25 +455,27 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </nav>
         </div>
 
-        {/* Mobile / Tablet Preset Selector Bar */}
-        <div className="2xl:hidden px-3 py-1.5 bg-slate-950/90 border-t border-slate-800/80 flex items-center gap-1 overflow-x-auto text-xs">
-          <span className="text-[10px] text-slate-400 whitespace-nowrap">
-            {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
-          </span>
-          {presets.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPreset(p.id)}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
-                activePreset === p.id
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              {p.icon} {lang === 'ur' ? p.labelUr : p.labelEn}
-            </button>
-          ))}
-        </div>
+        {/* Mobile / Tablet Preset Selector Bar (Hidden when collapsed) */}
+        {!isHeaderCollapsed && (
+          <div className="2xl:hidden px-3 py-1.5 bg-slate-950/90 border-t border-slate-800/80 flex items-center gap-1 overflow-x-auto text-xs animate-in fade-in duration-150">
+            <span className="text-[10px] text-slate-400 whitespace-nowrap">
+              {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
+            </span>
+            {presets.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPreset(p.id)}
+                className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
+                  activePreset === p.id
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                {p.icon} {lang === 'ur' ? p.labelUr : p.labelEn}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Manager & Multi-Counter Cashier Session Modal */}
         {showRoleModal && (
