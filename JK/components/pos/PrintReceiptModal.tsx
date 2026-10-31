@@ -41,45 +41,51 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const [showBarcode, setShowBarcode] = useState<boolean>(true);
   const [showQrCode, setShowQrCode] = useState<boolean>(true);
   const [mounted, setMounted] = useState(false);
+  const [receiptLang, setReceiptLang] = useState<'ur' | 'en'>('ur');
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [barcodeDataUrl, setBarcodeDataUrl] = useState<string>('');
+  const [customTendered, setCustomTendered] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Dedicated Print Language: Defaults to UI language (Urdu -> Urdu Bill, English -> English Bill)
-  const [receiptLang, setReceiptLang] = useState<'ur' | 'en'>('ur');
-
   useEffect(() => {
     setReceiptLang(lang === 'ur' ? 'ur' : 'en');
   }, [lang, isOpen]);
 
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [barcodeDataUrl, setBarcodeDataUrl] = useState<string>('');
+  useEffect(() => {
+    setCustomTendered(null);
+  }, [isOpen, invoice]);
 
   // Generate QR Code and Barcode images whenever modal opens or invoice changes
   useEffect(() => {
     if (!isOpen || !invoice) return;
 
     // 1. Generate QR Code
-    const qrPayload = JSON.stringify({
-      software: businessProfile.softwareName || 'OneShop POS',
-      dev: 'JK Developers Pakistan (03008998381)',
-      shop: businessProfile.nameUr || businessProfile.nameEn,
-      inv: invoice.invoiceNo,
-      date: invoice.date,
-      total: invoice.grandTotal,
-      paid: invoice.paidAmount,
-      balance: invoice.balanceDue,
-      counter: invoice.counterNumber !== undefined ? invoice.counterNumber : 1,
-    });
+    try {
+      const qrPayload = JSON.stringify({
+        software: businessProfile?.softwareName || 'OneShop POS',
+        dev: 'JK Developers Pakistan (03008998381)',
+        shop: businessProfile?.nameUr || businessProfile?.nameEn || 'ون شاپ',
+        inv: invoice.invoiceNo,
+        date: invoice.date,
+        total: invoice.grandTotal,
+        paid: invoice.paidAmount,
+        balance: invoice.balanceDue,
+        counter: invoice.counterNumber !== undefined ? invoice.counterNumber : 1,
+      });
 
-    QRCodeLib.toDataURL(qrPayload, {
-      width: 140,
-      margin: 1,
-      color: { dark: '#000000', light: '#ffffff' },
-    })
-      .then((url) => setQrDataUrl(url))
-      .catch((err) => console.error('QR Code Generation Error:', err));
+      QRCodeLib.toDataURL(qrPayload, {
+        width: 140,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+        .then((url) => setQrDataUrl(url))
+        .catch((err) => console.error('QR Code Generation Error:', err));
+    } catch (e) {
+      console.error('QR Payload Error:', e);
+    }
 
     // 2. Generate Barcode (CODE128)
     try {
@@ -100,6 +106,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     }
   }, [isOpen, invoice, businessProfile]);
 
+  // ALL HOOKS MUST BE DECLARED ABOVE THIS LINE!
   if (!isOpen || !invoice || !mounted) return null;
 
   const handlePrint = () => {
@@ -114,9 +121,9 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const isUrdu = receiptLang === 'ur';
 
   // Localized Labels and Content
-  const shopName = isUrdu ? (businessProfile.nameUr || businessProfile.nameEn) : (businessProfile.nameEn || businessProfile.nameUr);
-  const shopTagline = isUrdu ? businessProfile.taglineUr : businessProfile.taglineEn;
-  const shopAddress = isUrdu ? (businessProfile.addressUr || businessProfile.addressEn) : (businessProfile.addressEn || businessProfile.addressUr);
+  const shopName = isUrdu ? (businessProfile?.nameUr || businessProfile?.nameEn || 'ون شاپ') : (businessProfile?.nameEn || businessProfile?.nameUr || 'OneShop POS');
+  const shopTagline = isUrdu ? businessProfile?.taglineUr : businessProfile?.taglineEn;
+  const shopAddress = isUrdu ? (businessProfile?.addressUr || businessProfile?.addressEn) : (businessProfile?.addressEn || businessProfile?.addressUr);
 
   const invoiceNoLabel = isUrdu ? 'انوائس نمبر:' : 'Invoice #:';
   const dateLabel = isUrdu ? 'تاریخ و وقت:' : 'Date & Time:';
@@ -149,12 +156,6 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const developerCredit = isUrdu
     ? 'سافٹ ویئر: ون شاپ پی او ایس (OneShop POS) • جے کے ڈویلپرز پاکستان (JK Developers) • ہیلپ لائن: 03008998381'
     : 'Software: OneShop POS • JK Developers Pakistan • Helpline: +923008998381';
-
-  const [customTendered, setCustomTendered] = useState<number | null>(null);
-
-  useEffect(() => {
-    setCustomTendered(null);
-  }, [isOpen, invoice]);
 
   const activeTendered = customTendered !== null ? customTendered : (invoice.tenderedAmount || invoice.paidAmount || 0);
   const effectiveChange = activeTendered > invoice.grandTotal ? activeTendered - invoice.grandTotal : (invoice.changeDue || 0);
@@ -851,7 +852,7 @@ ${developerCredit}`;
                           {item.isGram ? `${item.weightInGrams}g` : item.isLiter && item.volumeInMl ? `${item.volumeInMl}ml` : `${item.quantity} ${item.unit}`}
                         </td>
                         <td className="p-2.5 text-right font-mono">
-                          {(item.ratePerKg || item.ratePerLiter || item.unitPrice).toLocaleString()}
+                          {((item.ratePerKg || item.ratePerLiter || item.unitPrice) || 0).toLocaleString()}
                         </td>
                         <td className="p-2.5 text-right font-mono font-black">
                           {item.total.toLocaleString()} PKR

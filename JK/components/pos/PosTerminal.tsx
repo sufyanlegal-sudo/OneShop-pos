@@ -590,46 +590,52 @@ export const PosTerminal: React.FC = () => {
   // Checkout submission
   const handleCheckout = () => {
     if (cart.length === 0) return;
-    posSound.playSuccessChime();
+    try {
+      posSound.playSuccessChime();
 
-    const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
-    const tendered =
-      paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
-        ? notesCalculatedTotal
-        : tenderedAmount > 0
-        ? tenderedAmount
-        : paymentMethod === 'CASH'
-        ? netTotal
-        : amountPaid;
-    const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
-
-    const invoice = checkoutInvoice({
-      customerName: customerName.trim() || (lang === 'ur' ? 'عام گاہک (Walk-in)' : 'Walk-in Customer'),
-      customerPhone: customerPhone.trim(),
-      paymentMethod,
-      amountPaid: paid,
-      tenderedAmount: tendered,
-      currencyDenominations:
+      const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
+      const tendered =
         paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
-          ? denominations
-          : undefined,
-      discount: orderDiscount,
-      tableNo: tableNo || undefined,
-    });
+          ? notesCalculatedTotal
+          : tenderedAmount > 0
+          ? tenderedAmount
+          : paymentMethod === 'CASH'
+          ? netTotal
+          : amountPaid;
+      const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
 
-    setCompletedInvoice(invoice);
-    setReceiptModalOpen(true);
+      const invoice = checkoutInvoice({
+        customerName: customerName.trim() || (lang === 'ur' ? 'عام گاہک (Walk-in)' : 'Walk-in Customer'),
+        customerPhone: customerPhone.trim(),
+        paymentMethod,
+        amountPaid: paid,
+        tenderedAmount: tendered,
+        currencyDenominations:
+          paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
+            ? denominations
+            : undefined,
+        discount: orderDiscount,
+        tableNo: tableNo || undefined,
+      });
 
-    // Reset local customer form & denominations
-    setCustomerName('');
-    setCustomerPhone('');
-    setSelectedCustomerId('');
-    setOrderDiscount(0);
-    setTenderedAmount(0);
-    setAmountPaid(0);
-    setTableNo('');
-    resetDenominations();
-    setCashInputMode('direct');
+      setCompletedInvoice(invoice);
+      setReceiptModalOpen(true);
+
+      // Reset local customer form & denominations
+      setCustomerName('');
+      setCustomerPhone('');
+      setSelectedCustomerId('');
+      setOrderDiscount(0);
+      setTenderedAmount(0);
+      setAmountPaid(0);
+      setTableNo('');
+      resetDenominations();
+      setCashInputMode('direct');
+    } catch (err) {
+      console.error('Checkout error:', err);
+      posSound.playErrorBuzz();
+      alert(lang === 'ur' ? 'بل محفوظ کرتے وقت غیر متوقع خرابی پیش آئی ہے۔' : 'An error occurred while saving the bill.');
+    }
   };
 
   // Sub-renderer for Cart Items List
