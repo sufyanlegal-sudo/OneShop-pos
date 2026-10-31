@@ -51,6 +51,7 @@ import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
 import { ExchangeModal } from '@/components/pos/ExchangeModal';
 import { posSound } from '@/lib/sound';
+import { getProductImageUrl } from '@/utils/productImages';
 
 export const PosTerminal: React.FC = () => {
   const { lang, t } = useLanguage();
@@ -1721,14 +1722,16 @@ export const PosTerminal: React.FC = () => {
               ))}
             </div>
 
-            {/* Products Grid */}
-            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {/* Products Grid (2-column layout with high-definition product visual cards matching user reference) */}
+            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {filteredProducts.map((p) => {
                 const isLowStock = p.stock <= p.minStockAlert;
                 const profitPerUnit = p.salePrice - p.costPrice;
                 const isWeight = isWeightEligibleProduct(p);
                 const isLiter = isLiterEligibleProduct(p);
                 const hasSizes = Boolean(p.sizes && p.sizes.length > 0);
+                const imgUrl = getProductImageUrl(p);
+                const displayUnit = p.unit || (lang === 'ur' ? 'Piece' : 'Piece');
 
                 return (
                   <div
@@ -1737,50 +1740,85 @@ export const PosTerminal: React.FC = () => {
                       posSound.playScanBeep();
                       addToCart(p, 1);
                     }}
-                    className="group relative bg-white dark:bg-slate-850 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-3 flex flex-col justify-between cursor-pointer transition-all shadow-xs hover:shadow-md"
+                    className="group relative bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 rounded-3xl p-3 flex items-center justify-between gap-3 cursor-pointer transition-all shadow-xs hover:shadow-md select-none"
                   >
                     {isLowStock && (
-                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">
+                      <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">
                         {lang === 'ur' ? 'کم اسٹاک' : 'Low Stock'}
                       </span>
                     )}
 
-                    <div>
-                      <div className="text-[10px] text-slate-400 font-mono font-bold tracking-wider">{p.sku}</div>
-                      <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-1 line-clamp-2">
-                        {lang === 'ur' ? p.nameUr : p.nameEn}
-                      </h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
-                        {lang === 'ur' ? p.nameEn : p.nameUr}
-                      </p>
+                    {/* LEFT SIDE: Clean Product Image with Unit label underneath */}
+                    <div className="w-24 sm:w-28 h-28 sm:h-32 flex flex-col items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-1.5 border border-slate-150 dark:border-slate-750">
+                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={imgUrl}
+                          alt={p.nameUr || p.nameEn}
+                          className="max-h-full max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200"
+                          loading="lazy"
+                        />
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-sans tracking-wide mt-1 text-center truncate w-full">
+                        {displayUnit}
+                      </span>
                     </div>
 
-                    <div>
-                      <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
-                        <div>
-                          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight flex items-baseline gap-1">
-                            <span>{p.salePrice.toLocaleString()}</span>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">PKR</span>
-                          </div>
-                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                            {lang === 'ur' ? `فی ${p.unit}` : `per ${p.unit}`}
-                          </div>
+                    {/* RIGHT SIDE: Product Name, Price, Margin & "+ Add to Cart" Pill Button */}
+                    <div className="flex-1 flex flex-col justify-between h-full min-w-0 text-right py-0.5">
+                      {/* Product Name (Urdu First, Bold & Prominent) */}
+                      <div>
+                        <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-snug line-clamp-2">
+                          {lang === 'ur' ? p.nameUr : p.nameEn}
+                        </h4>
+                        {p.nameEn && p.nameUr && (
+                          <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 font-sans line-clamp-1 mt-0.5">
+                            {lang === 'ur' ? p.nameEn : p.nameUr}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Price & Unit Details */}
+                      <div className="my-1">
+                        <div className="flex items-baseline justify-end gap-1 font-mono">
+                          <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            {p.salePrice.toLocaleString()}
+                          </span>
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                            PKR
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">
+                          {displayUnit}
                         </div>
 
-                        {isMarginUnlocked ? (
-                          <span className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-black shadow-xs">
-                            +{profitPerUnit} PKR
-                          </span>
-                        ) : (
-                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                            {p.stock} {p.unit}
-                          </span>
+                        {isMarginUnlocked && (
+                          <div className="mt-0.5">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-bold">
+                              +{profitPerUnit} PKR
+                            </span>
+                          </div>
                         )}
+                      </div>
+
+                      {/* Action Pill Button: "+ Add to Cart" (Exact Match to Reference Image) */}
+                      <div className="flex items-center justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            posSound.playScanBeep();
+                            addToCart(p, 1);
+                          }}
+                          className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span className="font-sans font-bold">+ Add to Cart</span>
+                        </button>
                       </div>
 
                       {/* Weight Quick-Add Pills */}
                       {isWeight && (
-                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap justify-end">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1814,34 +1852,12 @@ export const PosTerminal: React.FC = () => {
                           >
                             +250g
                           </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 100, ratePerKg: p.salePrice });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 text-purple-800 dark:text-purple-300 font-bold text-[9.5px] transition-all"
-                            title="100g شامل کریں"
-                          >
-                            +100g
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 50, ratePerKg: p.salePrice });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/50 hover:bg-rose-200 text-rose-800 dark:text-rose-300 font-bold text-[9.5px] transition-all"
-                            title="50g شامل کریں"
-                          >
-                            +50g
-                          </button>
                         </div>
                       )}
 
                       {/* Liter Quick-Add Pills */}
                       {isLiter && !isWeight && (
-                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap justify-end">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1860,27 +1876,16 @@ export const PosTerminal: React.FC = () => {
                               addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 500, ratePerLiter: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 text-blue-800 dark:text-blue-300 font-bold text-[9.5px] transition-all"
-                            title="ہاف لیٹر 500ml شامل کریں"
+                            title="500ml شامل کریں"
                           >
                             +500ml
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 250, ratePerLiter: p.salePrice });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/50 hover:bg-teal-200 text-teal-800 dark:text-teal-300 font-bold text-[9.5px] transition-all"
-                            title="250ml شامل کریں"
-                          >
-                            +250ml
                           </button>
                         </div>
                       )}
 
                       {/* Packaged Size Variations Pills */}
                       {hasSizes && (
-                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap">
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex items-center gap-1 flex-wrap justify-end">
                           {p.sizes!.map((s) => {
                             const priceMatch = s.match(/(\d+)\s*(?:PKR|روپے)/i);
                             const variantPrice = priceMatch ? parseInt(priceMatch[1], 10) : p.salePrice;
