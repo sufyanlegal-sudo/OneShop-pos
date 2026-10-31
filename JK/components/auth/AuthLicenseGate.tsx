@@ -454,55 +454,53 @@ ${u?.name || 'Store Owner'}`
   return (
     <div
       dir="ltr"
-      className="min-h-screen bg-[#07131b] text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-6 font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-white"
+      className="min-h-screen w-full bg-[#07131b] text-slate-100 flex flex-col lg:flex-row font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-white"
     >
       {/* Background ambient lighting glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/3 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-10 w-[500px] h-[500px] bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Split-Screen Layout Grid */}
-      <div className="w-full max-w-7xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
-        {/* ========================================================================= */}
-        {/* LEFT COLUMN: HERO SHOWCASE ILLUSTRATION                                   */}
-        {/* ========================================================================= */}
-        <div className="lg:col-span-7 flex flex-col justify-center">
-          <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-[4/3] rounded-3xl overflow-hidden border border-cyan-900/40 shadow-2xl bg-[#091b26] group">
-            <img
-              src="/images/oneshop-pos-supermarket.jpg"
-              alt="OneShop POS Supermarket - Developed & Licensed by JK Developers Pakistan"
-              className="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-102"
-            />
-            {/* Subtle dark gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
-          </div>
-        </div>
+      {/* ========================================================================= */}
+      {/* LEFT COLUMN: FULL-HEIGHT EDGE-TO-EDGE IMMERSIVE SUPERMARKET HERO           */}
+      {/* ========================================================================= */}
+      <div className="relative w-full lg:flex-1 h-[42vh] sm:h-[48vh] lg:h-screen lg:min-h-screen overflow-hidden bg-[#091b26] flex items-center justify-center">
+        <img
+          src="/images/oneshop-pos-supermarket.jpg"
+          alt="OneShop POS Supermarket - Developed & Licensed by JK Developers Pakistan"
+          className="w-full h-full object-cover object-center transform transition-transform duration-1000 hover:scale-101"
+        />
+        {/* Subtle desktop transition fade into the auth panel on the right */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#07131b]/90 hidden lg:block pointer-events-none" />
+        {/* Mobile transition fade to bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#07131b] via-transparent to-transparent lg:hidden pointer-events-none" />
+      </div>
 
-        {/* ========================================================================= */}
-        {/* RIGHT COLUMN: DARK GLASS AUTH CARD (MATCHING USER MOCKUP EXACTLY)         */}
-        {/* ========================================================================= */}
-        <div className="lg:col-span-5 flex flex-col justify-center">
-          <div className="w-full max-w-md mx-auto bg-[#0f2430]/90 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-cyan-950/50 text-white relative">
-            {/* Top Brand Header matching mockup */}
-            <div className="text-center space-y-1 mb-5">
-              <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 text-2xl shadow-lg shadow-amber-500/25 border border-amber-300/40">
-                🛒
-              </div>
-              <div>
-                <h2 className="text-2xl font-black tracking-tight font-mono">
-                  <span className="text-white">ONE </span>
-                  <span className="text-cyan-400">SHOP POS</span>
-                </h2>
-                <p className="text-sm font-bold text-slate-200 font-urdu tracking-wide mt-0.5">
-                  ون شاپ پی او ایس
-                </p>
-                <p className="text-xs italic text-teal-300 font-serif font-medium mt-0.5">
-                  سیکیور کلاؤڈ سسٹم
-                </p>
-                <p className="text-[10px] text-slate-400 font-sans tracking-wide mt-0.5">
-                  (Admin Approval Required)
-                </p>
-              </div>
+      {/* ========================================================================= */}
+      {/* RIGHT COLUMN: FULL-HEIGHT DOCKED AUTH PANEL (ZERO WASTED EMPTY MARGINS)    */}
+      {/* ========================================================================= */}
+      <div className="w-full lg:w-[480px] xl:w-[520px] lg:min-h-screen flex flex-col justify-between p-6 sm:p-8 lg:p-10 bg-[#0a1a24]/95 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-cyan-500/20 shadow-2xl relative z-10">
+        <div className="my-auto w-full max-w-sm mx-auto">
+          {/* Top Brand Header matching mockup */}
+          <div className="text-center space-y-1 mb-6">
+            <div className="w-14 h-14 mx-auto mb-2.5 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 text-2xl shadow-lg shadow-amber-500/25 border border-amber-300/40">
+              🛒
             </div>
+            <div>
+              <h2 className="text-2xl font-black tracking-tight font-mono">
+                <span className="text-white">ONE </span>
+                <span className="text-cyan-400">SHOP POS</span>
+              </h2>
+              <p className="text-sm font-bold text-slate-200 font-urdu tracking-wide mt-0.5">
+                ون شاپ پی او ایس
+              </p>
+              <p className="text-xs italic text-teal-300 font-serif font-medium mt-0.5">
+                سیکیور کلاؤڈ سسٹم
+              </p>
+              <p className="text-[10px] text-slate-400 font-sans tracking-wide mt-0.5">
+                (Admin Approval Required)
+              </p>
+            </div>
+          </div>
 
         {/* ========================================================================= */}
         {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
@@ -1002,34 +1000,33 @@ ${u?.name || 'Store Owner'}`
             )}
           </div>
         )}
-      </div>
-    </div>
-  </div>
+        </div>
 
-  {/* ========================================================================= */}
-  {/* FULL-WIDTH BOTTOM FOOTER BAR (EXACTLY MATCHING USER MOCKUP)                */}
-  {/* ========================================================================= */}
-  <footer className="w-full max-w-7xl mx-auto mt-4 pt-3 border-t border-cyan-950/80 text-center text-xs text-slate-400 space-y-1">
-    <p className="font-medium text-slate-300">
-      Developed & Licensed by <span className="text-white font-bold">JK Developers Pakistan</span> • <span className="font-urdu">جے کے ڈویلپرز پاکستان</span>
-    </p>
-    <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
-      <span>© 2026 JK Developers Pakistan</span>
-      <span>•</span>
-      <button
-        type="button"
-        onClick={() => {
-          setMasterKeyInput('');
-          setMasterKeyError('');
-          setMasterKeyModalOpen(true);
-        }}
-        className="p-1 hover:text-cyan-400 transition"
-        title="Master Key Access"
-      >
-        <Lock className="w-3 h-3 inline opacity-40 hover:opacity-100" />
-      </button>
-    </div>
-  </footer>
+        {/* ========================================================================= */}
+        {/* BOTTOM FOOTER BAR (PURE ENGLISH - ZERO URDU AS REQUESTED)                 */}
+        {/* ========================================================================= */}
+        <footer className="mt-8 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400 space-y-1 w-full">
+          <p className="font-medium text-slate-300">
+            Developed & Licensed by <span className="text-white font-bold">JK Developers Pakistan</span>
+          </p>
+          <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
+            <span>© 2026 JK Developers Pakistan</span>
+            <span>•</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMasterKeyInput('');
+                setMasterKeyError('');
+                setMasterKeyModalOpen(true);
+              }}
+              className="p-1 hover:text-cyan-400 transition"
+              title="Master Key Access"
+            >
+              <Lock className="w-3 h-3 inline opacity-40 hover:opacity-100" />
+            </button>
+          </div>
+        </footer>
+      </div>
 
       {/* ========================================================================= */}
       {/* DEVELOPER MASTER KEY SECRET MODAL (ONLY FOR JK DEVELOPERS PAKISTAN)        */}
