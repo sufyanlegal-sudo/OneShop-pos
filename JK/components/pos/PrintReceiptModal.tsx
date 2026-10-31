@@ -150,14 +150,17 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     ? 'سافٹ ویئر: ون شاپ پی او ایس (OneShop POS) • جے کے ڈویلپرز پاکستان (JK Developers) • ہیلپ لائن: 03008998381'
     : 'Software: OneShop POS • JK Developers Pakistan • Helpline: +923008998381';
 
-  const changeAmount =
-    invoice.changeDue ||
-    (invoice.tenderedAmount && invoice.tenderedAmount > invoice.grandTotal
-      ? invoice.tenderedAmount - invoice.grandTotal
-      : 0);
+  const [customTendered, setCustomTendered] = useState<number | null>(null);
 
-  const changeLine = changeAmount > 0
-    ? (isUrdu ? `\nبقایا رقم واپس: ${changeAmount.toLocaleString()} روپے` : `\nChange Return: Rs. ${changeAmount.toLocaleString()}`)
+  useEffect(() => {
+    setCustomTendered(null);
+  }, [isOpen, invoice]);
+
+  const activeTendered = customTendered !== null ? customTendered : (invoice.tenderedAmount || invoice.paidAmount || 0);
+  const effectiveChange = activeTendered > invoice.grandTotal ? activeTendered - invoice.grandTotal : (invoice.changeDue || 0);
+
+  const changeLine = effectiveChange > 0
+    ? (isUrdu ? `\nبقایا رقم واپس (Change): ${effectiveChange.toLocaleString()} روپے` : `\nChange Return: Rs. ${effectiveChange.toLocaleString()}`)
     : '';
 
   const dueLine = invoice.balanceDue > 0
@@ -187,7 +190,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const whatsAppMessage = isUrdu
     ? `محترم ${custName} صاحب!
 آپ کی آج کی خریداری کا بل ${invoice.grandTotal.toLocaleString()} روپے بنا۔
-وصول شدہ رقم: ${(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()} روپے${changeLine}${dueLine}
+وصول شدہ رقم: ${activeTendered.toLocaleString()} روپے${changeLine}${dueLine}
 ${
   invoice.previousBalance && invoice.previousBalance > 0
     ? `سابقہ بقایا کھاتہ: ${invoice.previousBalance.toLocaleString()} روپے\nکل واجب الادا رقم: ${(invoice.netTotalDebt || 0).toLocaleString()} روپے\n`
@@ -209,7 +212,7 @@ ${shopName} (${businessProfile.phone})
 ${developerCredit}`
     : `Dear ${custName}!
 Your bill total for today is Rs. ${invoice.grandTotal.toLocaleString()}.
-Cash Tendered: Rs. ${(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()}${changeLine}${dueLine}
+Cash Tendered: Rs. ${activeTendered.toLocaleString()}${changeLine}${dueLine}
 ${
   invoice.previousBalance && invoice.previousBalance > 0
     ? `Previous Balance: Rs. ${invoice.previousBalance.toLocaleString()}\nNet Total Debt: Rs. ${(invoice.netTotalDebt || 0).toLocaleString()}\n`
@@ -370,6 +373,26 @@ ${developerCredit}`;
               {copiedWhatsApp ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
               <span>{copiedWhatsApp ? (isUrdu ? 'کاپی ہو گیا!' : 'Copied!') : (isUrdu ? 'ٹیکسٹ کاپی' : 'Copy Text')}</span>
             </button>
+          </div>
+
+          {/* Live Cash Tendered & Change Return Adjuster (Candela Style) */}
+          <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/70 border-2 border-emerald-500 px-3 py-1.5 rounded-xl shadow-xs">
+            <span className="font-black text-slate-900 dark:text-white text-xs">
+              {isUrdu ? 'موصول کیش:' : 'Cash Tendered:'}
+            </span>
+            <input
+              type="number"
+              min="0"
+              value={activeTendered || ''}
+              onChange={(e) => setCustomTendered(parseFloat(e.target.value) || 0)}
+              placeholder={String(invoice.grandTotal)}
+              className="w-24 px-2 py-0.5 rounded-lg border-2 border-emerald-500 font-mono font-black text-xs text-center bg-white dark:bg-slate-900 text-emerald-800 dark:text-emerald-300 outline-none shadow-xs"
+            />
+            {effectiveChange > 0 && (
+              <span className="font-mono font-black text-xs text-white bg-emerald-600 px-2 py-0.5 rounded border border-emerald-400">
+                {isUrdu ? `بقایا: ${effectiveChange.toLocaleString()} PKR` : `Change: Rs. ${effectiveChange.toLocaleString()}`}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300 font-bold">
@@ -571,18 +594,18 @@ ${developerCredit}`;
                     <span className="font-mono">{invoice.grandTotal.toLocaleString()} PKR</span>
                   </div>
 
-                  <div className="flex justify-between text-[11px]">
+                  <div className="flex justify-between text-[11px] font-bold">
                     <span>{cashReceivedLabel}</span>
                     <span className="font-mono font-black text-[12px]">
-                      {(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()} PKR
+                      {activeTendered.toLocaleString()} PKR
                     </span>
                   </div>
 
-                  {changeAmount > 0 && (
-                    <div className="flex justify-between items-center text-[11.5px] font-black bg-gray-100 border border-black px-1.5 py-0.5 rounded-sm">
+                  {effectiveChange > 0 && (
+                    <div className="flex justify-between items-center text-[12px] font-black bg-gray-100 border-2 border-black px-1.5 py-1 rounded-sm my-0.5">
                       <span>{changeReturnLabel}</span>
-                      <span className="font-mono font-black text-[12.5px]">
-                        {changeAmount.toLocaleString()} PKR
+                      <span className="font-mono font-black text-[13px]">
+                        {effectiveChange.toLocaleString()} PKR
                       </span>
                     </div>
                   )}
@@ -715,14 +738,14 @@ ${developerCredit}`;
                     <span>{totalPayableLabel}</span>
                     <span className="font-mono">{invoice.grandTotal.toLocaleString()} PKR</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between font-bold">
                     <span>{cashReceivedLabel}</span>
-                    <span className="font-mono">{(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()} PKR</span>
+                    <span className="font-mono">{activeTendered.toLocaleString()} PKR</span>
                   </div>
-                  {changeAmount > 0 && (
-                    <div className="flex justify-between font-bold bg-gray-100 p-0.5">
+                  {effectiveChange > 0 && (
+                    <div className="flex justify-between font-black bg-gray-100 border border-black p-0.5 rounded-sm">
                       <span>{changeReturnLabel}</span>
-                      <span className="font-mono">{changeAmount.toLocaleString()} PKR</span>
+                      <span className="font-mono text-[10.5px]">{effectiveChange.toLocaleString()} PKR</span>
                     </div>
                   )}
                   {invoice.balanceDue > 0 && (
@@ -855,14 +878,14 @@ ${developerCredit}`;
                       <span>{totalPayableLabel}</span>
                       <span className="font-mono text-emerald-800">{invoice.grandTotal.toLocaleString()} PKR</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <div className="flex justify-between pt-1 border-t border-gray-200 font-bold">
                       <span>{cashReceivedLabel}</span>
-                      <span className="font-mono">{(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()} PKR</span>
+                      <span className="font-mono">{activeTendered.toLocaleString()} PKR</span>
                     </div>
-                    {changeAmount > 0 && (
-                      <div className="flex justify-between font-bold bg-emerald-100 p-1 rounded">
+                    {effectiveChange > 0 && (
+                      <div className="flex justify-between font-black bg-emerald-100 border border-emerald-500 p-1 rounded text-emerald-900">
                         <span>{changeReturnLabel}</span>
-                        <span className="font-mono">{changeAmount.toLocaleString()} PKR</span>
+                        <span className="font-mono text-base">{effectiveChange.toLocaleString()} PKR</span>
                       </div>
                     )}
                     {invoice.balanceDue > 0 && (
@@ -968,14 +991,14 @@ ${developerCredit}`;
                       <span>{totalPayableLabel}</span>
                       <span className="font-mono">{invoice.grandTotal.toLocaleString()} PKR</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-bold">
                       <span>{cashReceivedLabel}</span>
-                      <span className="font-mono">{(invoice.tenderedAmount || invoice.paidAmount).toLocaleString()} PKR</span>
+                      <span className="font-mono">{activeTendered.toLocaleString()} PKR</span>
                     </div>
-                    {changeAmount > 0 && (
-                      <div className="flex justify-between font-bold bg-emerald-100 p-0.5 rounded">
+                    {effectiveChange > 0 && (
+                      <div className="flex justify-between font-black bg-emerald-100 border border-emerald-500 p-0.5 rounded text-emerald-900">
                         <span>{changeReturnLabel}</span>
-                        <span className="font-mono">{changeAmount.toLocaleString()} PKR</span>
+                        <span className="font-mono">{effectiveChange.toLocaleString()} PKR</span>
                       </div>
                     )}
                     {invoice.balanceDue > 0 && (

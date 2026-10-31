@@ -593,7 +593,14 @@ export const PosTerminal: React.FC = () => {
     posSound.playSuccessChime();
 
     const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
-    const tendered = tenderedAmount > 0 ? tenderedAmount : (paymentMethod === 'CASH' ? netTotal : amountPaid);
+    const tendered =
+      paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
+        ? notesCalculatedTotal
+        : tenderedAmount > 0
+        ? tenderedAmount
+        : paymentMethod === 'CASH'
+        ? netTotal
+        : amountPaid;
     const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
 
     const invoice = checkoutInvoice({
@@ -965,210 +972,89 @@ export const PosTerminal: React.FC = () => {
           </div>
         </div>
 
-        {/* CASH TENDER & CURRENCY DENOMINATIONS */}
-        {paymentMethod === 'CASH' && (
-          <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-3 rounded-2xl border-2 border-emerald-300 dark:border-emerald-900/60 space-y-2.5 shadow-sm">
-            {/* Switch: Direct Numeric vs Pakistani Currency Notes */}
-            <div className="flex items-center justify-between text-xs border-b border-emerald-200 dark:border-emerald-900/50 pb-1.5">
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {lang === 'ur' ? 'وصول رقم موڈ:' : 'Cash Mode:'}
+        {/* Pakistani Notes Counter Option (If Notes Mode Selected) */}
+        {paymentMethod === 'CASH' && cashInputMode === 'notes' && (
+          <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                {lang === 'ur' ? 'پاکستانی نوٹوں کی تعداد درج کریں:' : 'Pakistani Notes Counter:'}
               </span>
-              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    setCashInputMode('direct');
-                  }}
-                  className={`px-2.5 py-1 rounded-md transition-all font-bold ${
-                    cashInputMode === 'direct'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {lang === 'ur' ? 'سیدھی رقم' : 'Direct'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    setCashInputMode('notes');
-                  }}
-                  className={`px-2.5 py-1 rounded-md transition-all font-bold ${
-                    cashInputMode === 'notes'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {lang === 'ur' ? 'نوٹ گنیں' : 'Notes Counter'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  posSound.playClick();
+                  resetDenominations();
+                }}
+                className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
+              >
+                {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
+              </button>
             </div>
 
-            {/* Direct Cash Input (Enlarged Box) */}
-            {cashInputMode === 'direct' && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {lang === 'ur' ? 'گاہک سے موصول شدہ کیش:' : 'Cash Received:'}
-                  </label>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                    بل: {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
-                  </span>
-                </div>
-                <input
-                  ref={tenderedInputRef}
-                  type="number"
-                  min="0"
-                  value={tenderedAmount || ''}
-                  onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
-                  onKeyDown={(e) => {
-                    posSound.playKeyClick();
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleCheckout();
-                    }
-                  }}
-                  placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
-                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3.5 py-2.5 text-xl font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none shadow-sm focus:ring-4 focus:ring-emerald-500/20"
-                />
-                <div className="flex gap-1.5 flex-wrap text-xs font-mono font-bold">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      posSound.playClick();
-                      setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount));
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95"
+            <div className="grid grid-cols-2 gap-1 text-[11px]">
+              {[
+                { key: 'note5000' as const, label: '5000 کا نوٹ' },
+                { key: 'note1000' as const, label: '1000 کا نوٹ' },
+                { key: 'note500' as const, label: '500 کا نوٹ' },
+                { key: 'note100' as const, label: '100 کا نوٹ' },
+                { key: 'note50' as const, label: '50 کا نوٹ' },
+                { key: 'note20' as const, label: '20 کا نوٹ' },
+                { key: 'note10' as const, label: '10 کا نوٹ' },
+                { key: 'coins' as const, label: 'سکے (Coins)' },
+              ].map((d) => {
+                const count = denominations[d.key] || 0;
+                return (
+                  <div
+                    key={d.key}
+                    className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700"
                   >
-                    برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
-                  </button>
-                  {[500, 1000, 2000, 5000].map((note) => (
-                    <button
-                      key={note}
-                      type="button"
-                      onClick={() => {
-                        posSound.playClick();
-                        setTenderedAmount(note);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 active:scale-95 transition-all shadow-xs"
-                    >
-                      {note}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Notes Counter Mode */}
-            {cashInputMode === 'notes' && (
-              <div className="space-y-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                    {lang === 'ur' ? 'پاکستانی نوٹوں کی تعداد درج کریں:' : 'Pakistani Notes Counter:'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      posSound.playClick();
-                      resetDenominations();
-                    }}
-                    className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
-                  >
-                    {lang === 'ur' ? 'تمام نوٹ صفر کریں' : 'Reset All'}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1 text-[11px]">
-                  {[
-                    { key: 'note5000' as const, label: '5000 کا نوٹ' },
-                    { key: 'note1000' as const, label: '1000 کا نوٹ' },
-                    { key: 'note500' as const, label: '500 کا نوٹ' },
-                    { key: 'note100' as const, label: '100 کا نوٹ' },
-                    { key: 'note50' as const, label: '50 کا نوٹ' },
-                    { key: 'note20' as const, label: '20 کا نوٹ' },
-                    { key: 'note10' as const, label: '10 کا نوٹ' },
-                    { key: 'coins' as const, label: 'سکے (Coins)' },
-                  ].map((d) => {
-                    const count = denominations[d.key] || 0;
-                    return (
-                      <div
-                        key={d.key}
-                        className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700"
+                    <span className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">
+                      {d.label}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          posSound.playClick();
+                          updateDenomination(d.key, -1);
+                        }}
+                        className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-bold text-xs"
                       >
-                        <span className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">
-                          {d.label}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              posSound.playClick();
-                              updateDenomination(d.key, -1);
-                            }}
-                            className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-bold text-xs"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            value={count}
-                            onKeyDown={() => posSound.playKeyClick()}
-                            onChange={(e) => setDenominationCount(d.key, parseInt(e.target.value) || 0)}
-                            className="w-8 text-center font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-[11px]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              posSound.playClick();
-                              updateDenomination(d.key, 1);
-                            }}
-                            className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        value={count}
+                        onKeyDown={() => posSound.playKeyClick()}
+                        onChange={(e) => setDenominationCount(d.key, parseInt(e.target.value) || 0)}
+                        className="w-8 text-center font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-[11px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          posSound.playClick();
+                          updateDenomination(d.key, 1);
+                        }}
+                        className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-                <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-emerald-200 dark:border-emerald-800">
-                  <span className="text-slate-600 dark:text-slate-300">
-                    {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
-                  </span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-400 text-base font-black">
-                    {notesCalculatedTotal.toLocaleString()} PKR
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Return Change Banner (Large & Prominent) */}
-            {tenderedAmount > 0 && (
-              <div
-                className={`p-2.5 sm:p-3 rounded-2xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
-                  tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-rose-600 text-white'
-                }`}
-              >
-                <span className="text-xs sm:text-sm font-bold">
-                  {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
-                    ? lang === 'ur'
-                      ? '💵 واپسی بقایا رقم (گاہک کو دیں):'
-                      : 'Change to Return:'
-                    : lang === 'ur'
-                    ? '⚠️ رقم کم ہے (بقایا واجب الادا):'
-                    : 'Short Amount:'}
-                </span>
-                <span className="font-mono text-base sm:text-xl font-black">
-                  {Math.abs(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR
-                </span>
-              </div>
-            )}
+            <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-emerald-200 dark:border-emerald-800">
+              <span className="text-slate-600 dark:text-slate-300">
+                {lang === 'ur' ? 'کل موصولہ نوٹوں کی رقم:' : 'Total Notes Tendered:'}
+              </span>
+              <span className="font-mono text-emerald-700 dark:text-emerald-400 text-base font-black">
+                {notesCalculatedTotal.toLocaleString()} PKR
+              </span>
+            </div>
           </div>
         )}
 
@@ -1206,10 +1092,10 @@ export const PosTerminal: React.FC = () => {
         </div>
         {/* END SCROLLABLE UPPER AREA */}
 
-        {/* PINNED FIXED BOTTOM DOCK (CANDELA & NEBS STYLE - ZERO SCROLLING FOR TOTAL & PRINT) */}
+        {/* PINNED FIXED BOTTOM DOCK (CANDELA & NEBS STYLE - ZERO SCROLLING FOR CASH, TOTAL & PRINT) */}
         <div className="shrink-0 pt-2 border-t-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 space-y-2">
           {/* Totals Summary */}
-          <div className="space-y-1 text-xs">
+          <div className="space-y-0.5 text-xs">
             <div className="flex justify-between text-slate-500 font-bold">
               <span>{t('subtotal')}:</span>
               <span className="font-mono">{cartTotals.subtotal.toLocaleString()} PKR</span>
@@ -1232,13 +1118,96 @@ export const PosTerminal: React.FC = () => {
               </div>
             )}
 
-            <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-1.5 border-t-2 border-slate-300 dark:border-slate-700">
+            <div className="flex justify-between items-center text-lg sm:text-xl font-black text-slate-900 dark:text-white pt-1 border-t-2 border-slate-300 dark:border-slate-700">
               <span>{t('grandTotal')}:</span>
               <span className="font-mono text-emerald-600 dark:text-emerald-400 text-2xl sm:text-3xl font-black">
                 {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
               </span>
             </div>
           </div>
+
+          {/* CASH RECEIVED & CHANGE RETURN (PINNED & VISIBLE AT ALL TIMES - NEVER SCROLLED) */}
+          {paymentMethod === 'CASH' && (
+            <div className="bg-emerald-50/90 dark:bg-emerald-950/40 p-2 sm:p-2.5 rounded-2xl border-2 border-emerald-400 dark:border-emerald-700 space-y-1.5 shadow-sm">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span>{lang === 'ur' ? 'گاہک سے موصول شدہ کیش:' : 'Cash Received:'}</span>
+                <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300 font-black">
+                  بل: {Math.max(0, cartTotals.subtotal - orderDiscount).toLocaleString()} PKR
+                </span>
+              </div>
+
+              {/* Prominent Cash Input Box */}
+              <div className="relative">
+                <input
+                  ref={tenderedInputRef}
+                  type="number"
+                  min="0"
+                  value={tenderedAmount || ''}
+                  onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
+                  onKeyDown={(e) => {
+                    posSound.playKeyClick();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCheckout();
+                    }
+                  }}
+                  placeholder={String(Math.max(0, cartTotals.subtotal - orderDiscount))}
+                  className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-1.5 sm:py-2 text-lg sm:text-xl font-mono font-black text-emerald-700 dark:text-emerald-300 outline-none shadow-sm focus:ring-4 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              {/* Quick Note Pills */}
+              <div className="flex gap-1 flex-wrap text-xs font-mono font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setTenderedAmount(Math.max(0, cartTotals.subtotal - orderDiscount));
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] active:scale-95 shadow-xs"
+                >
+                  برابر ({Math.max(0, cartTotals.subtotal - orderDiscount)})
+                </button>
+                {[500, 1000, 1500, 2000, 5000].map((note) => (
+                  <button
+                    key={note}
+                    type="button"
+                    onClick={() => {
+                      posSound.playClick();
+                      setTenderedAmount(note);
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] active:scale-95 shadow-xs"
+                  >
+                    {note}
+                  </button>
+                ))}
+              </div>
+
+              {/* Return Change Banner (Always Visible!) */}
+              {tenderedAmount > 0 && (
+                <div
+                  className={`p-2 rounded-xl flex items-center justify-between font-bold text-xs shadow-md transition-all ${
+                    tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-rose-600 text-white'
+                  }`}
+                >
+                  <span className="text-xs sm:text-sm font-bold">
+                    {tenderedAmount >= Math.max(0, cartTotals.subtotal - orderDiscount)
+                      ? lang === 'ur'
+                        ? '💵 گاہک کو بقایا واپس دیں:'
+                        : 'Change to Return:'
+                      : lang === 'ur'
+                      ? '⚠️ رقم کم ہے (بقایا واجب الادا):'
+                      : 'Short Amount:'}
+                  </span>
+                  <span className="font-mono text-base sm:text-xl font-black">
+                    {Math.abs(tenderedAmount - Math.max(0, cartTotals.subtotal - orderDiscount)).toLocaleString()} PKR
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Checkout Button with Keyboard Shortcut Badge (Always Visible & Pinned) */}
           <button
