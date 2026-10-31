@@ -143,6 +143,7 @@ interface ShopContextType {
   updateCartItem: (id: string, updates: Partial<CartItem>) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  replaceCart: (newItems: CartItem[]) => void;
   // Transactions
   checkoutInvoice: (params: CheckoutParams) => Invoice;
   processSaleReturn: (params: ProcessReturnParams) => SaleReturn | null;
@@ -1070,6 +1071,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = () => {
     setCart([]);
+  };
+
+  const replaceCart = (newItems: CartItem[]) => {
+    setCart(newItems);
   };
 
   // Cart totals
@@ -2426,6 +2431,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateCartItem,
         removeFromCart,
         clearCart,
+        replaceCart,
         checkoutInvoice,
         processSaleReturn,
         processSaleExchange,

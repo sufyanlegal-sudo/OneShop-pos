@@ -39,6 +39,10 @@ import {
   Eye,
   EyeOff,
   Repeat,
+  Pause,
+  Play,
+  ChevronDown,
+  Zap,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -58,6 +62,7 @@ export const PosTerminal: React.FC = () => {
     updateCartItem,
     removeFromCart,
     clearCart,
+    replaceCart,
     checkoutInvoice,
     customers,
     isMarginUnlocked,
@@ -65,6 +70,7 @@ export const PosTerminal: React.FC = () => {
     lockMargin,
     businessProfile,
     currentRole,
+    switchRole,
     activeCounter,
     activeCashier,
     cashierPermissions,
@@ -172,6 +178,100 @@ export const PosTerminal: React.FC = () => {
   const [saveCustomToCatalog, setSaveCustomToCatalog] = useState<boolean>(true);
   const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
 
+  // Recent Hold Bills State & Handlers
+  interface HeldBill {
+    id: string;
+    heldAt: string;
+    customerName: string;
+    customerPhone?: string;
+    items: any[];
+    subtotal: number;
+    itemCount: number;
+  }
+
+  const [heldBills, setHeldBills] = useState<HeldBill[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('pos_held_bills');
+        return saved ? JSON.parse(saved) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pos_held_bills', JSON.stringify(heldBills));
+    }
+  }, [heldBills]);
+
+  const handleHoldBill = () => {
+    if (cart.length === 0) {
+      alert(lang === 'ur' ? 'کارٹ خالی ہے، ہولڈ کرنے کے لیے کوئی بل نہیں ہے!' : 'Cart is empty, nothing to hold!');
+      return;
+    }
+    posSound.playClick();
+    const newHeld: HeldBill = {
+      id: `held_${Date.now()}`,
+      heldAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      customerName: customerName.trim() || (lang === 'ur' ? 'عام گاہک' : 'Walk-in Customer'),
+      customerPhone: customerPhone.trim() || undefined,
+      items: [...cart],
+      subtotal: cartTotals.subtotal,
+      itemCount: cartTotals.itemCount,
+    };
+    setHeldBills((prev) => [newHeld, ...prev]);
+    clearCart();
+    setCustomerName('');
+    setCustomerPhone('');
+    setSelectedCustomerId('');
+    setTenderedAmount(0);
+  };
+
+  const handleResumeHeldBill = (held: HeldBill) => {
+    posSound.playClick();
+    if (cart.length > 0) {
+      const currentHeld: HeldBill = {
+        id: `held_${Date.now()}`,
+        heldAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        customerName: customerName.trim() || (lang === 'ur' ? 'عام گاہک' : 'Walk-in Customer'),
+        customerPhone: customerPhone.trim() || undefined,
+        items: [...cart],
+        subtotal: cartTotals.subtotal,
+        itemCount: cartTotals.itemCount,
+      };
+      setHeldBills((prev) => [currentHeld, ...prev.filter((b) => b.id !== held.id)]);
+    } else {
+      setHeldBills((prev) => prev.filter((b) => b.id !== held.id));
+    }
+    replaceCart(held.items);
+    setCustomerName(held.customerName === 'عام گاہک' || held.customerName === 'Walk-in Customer' ? '' : held.customerName);
+    setCustomerPhone(held.customerPhone || '');
+    barcodeInputRef.current?.focus();
+  };
+
+  const handleDeleteHeldBill = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    posSound.playClick();
+    setHeldBills((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  // Quick Tools Menu state & click outside
+  const [quickToolsOpen, setQuickToolsOpen] = useState(false);
+  const quickToolsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (quickToolsRef.current && !quickToolsRef.current.contains(e.target as Node)) {
+        setQuickToolsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Auto-scroll refs for active bill list
   const cartEndRef = useRef<HTMLDivElement>(null);
   const cartContainerRef = useRef<HTMLDivElement>(null);
@@ -206,6 +306,13 @@ export const PosTerminal: React.FC = () => {
         e.preventDefault();
         tenderedInputRef.current?.focus();
         tenderedInputRef.current?.select();
+        return;
+      }
+
+      // F6 -> Instant Hold Bill
+      if (e.key === 'F6') {
+        e.preventDefault();
+        handleHoldBill();
         return;
       }
 
@@ -445,6 +552,7 @@ export const PosTerminal: React.FC = () => {
   const handleVerifyPin = () => {
     const success = unlockMargin(enteredPin);
     if (success) {
+      switchRole('MANAGER');
       setPinModalOpen(false);
       setEnteredPin('');
       setPinError(false);
@@ -845,6 +953,86 @@ export const PosTerminal: React.FC = () => {
     );
   };
 
+  // Sub-renderer for Recent Hold Bills (پینڈنگ بلز - بائیں جانب خالی جگہ پر نمایاں)
+  const renderHeldBillsSection = () => {
+    return (
+      <div className="bg-slate-100 dark:bg-slate-800/90 rounded-2xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-black text-xs text-slate-800 dark:text-slate-100">
+            <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span>{lang === 'ur' ? 'ریسنٹ ہولڈ بلز' : 'Recent Hold Bills'}</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-amber-500 text-slate-950 shadow-xs">
+              {heldBills.length}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleHoldBill}
+            disabled={cart.length === 0}
+            className="text-[11px] font-black px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs disabled:opacity-40 disabled:hover:bg-amber-500 active:scale-95 transition-all flex items-center gap-1"
+            title="موجودہ بل ہولڈ کریں (F6)"
+          >
+            <span>+</span>
+            <span>{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold (F6)'}</span>
+          </button>
+        </div>
+
+        {heldBills.length === 0 ? (
+          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-700 text-center">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
+              {lang === 'ur'
+                ? 'کوئی پینڈنگ بل نہیں ہے۔ رش کے دوران گاہک کا بل روکنے کے لیے F6 دبائیں۔'
+                : 'No pending held bills. Press F6 to hold current bill.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5 scroll-smooth">
+            {heldBills.map((hb) => (
+              <div
+                key={hb.id}
+                className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-750 hover:border-amber-400 dark:hover:border-amber-500 flex items-center justify-between gap-2 shadow-xs transition-all"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-black text-xs text-slate-900 dark:text-white truncate">
+                      {hb.customerName || (lang === 'ur' ? 'عام گاہک' : 'Walk-in')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {hb.heldAt}
+                    </span>
+                  </div>
+                  <div className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-black mt-0.5">
+                    {hb.items.length} {lang === 'ur' ? 'اشیاء' : 'items'} • {hb.subtotal.toLocaleString()} PKR
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleResumeHeldBill(hb)}
+                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all border border-emerald-400"
+                    title="بل بحال کریں اور جاری رکھیں"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>{lang === 'ur' ? 'بحال کریں' : 'Resume'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteHeldBill(hb.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all"
+                    title="ہولڈ بل خارج کریں"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Sub-renderer for Customer, Payment, Notes Calculator & Checkout Controls (Candela / Nebs Fixed Dock)
   const renderCheckoutControls = () => {
     const effectiveNetTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
@@ -1007,6 +1195,13 @@ export const PosTerminal: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
+        {/* RECENT HOLD BILLS SECTION (بائیں جانب خالی جگہ کو پر کرنے کیلئے)            */}
+        {/* ========================================================================= */}
+        <div className="my-1 shrink-0">
+          {renderHeldBillsSection()}
+        </div>
+
+        {/* ========================================================================= */}
         {/* CANDELA & NEBS 3-COLUMN FRONT ROW: TOTAL | CASH RECEIVED | CHANGE RETURN */}
         {/* 100% VISIBLE ON THE FRONT - ZERO SCROLLING - NO MOUSE REQUIRED           */}
         {/* ========================================================================= */}
@@ -1118,19 +1313,19 @@ export const PosTerminal: React.FC = () => {
             </div>
           )}
 
-          {/* Full-width Instant Complete & Print Button */}
+          {/* Full-width Instant Complete & Print Button - High Contrast Emerald Green */}
           <button
             type="button"
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-95 transition-all"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-700/30 border-2 border-emerald-400 ring-2 ring-emerald-500/20 active:scale-95 transition-all"
           >
             <span className="bg-white/20 text-white font-black text-[11px] px-2 py-0.5 rounded font-mono">
               Rs.
             </span>
-            <Printer className="w-4 h-4 text-emerald-100" />
+            <Printer className="w-5 h-5 text-white" />
             <span>{t('completeSale')}</span>
-            <span className="px-2 py-0.5 rounded bg-black/30 text-[10px] sm:text-[11px] font-mono text-emerald-200 border border-white/10">
+            <span className="px-2 py-0.5 rounded bg-black/30 text-[10px] sm:text-[11px] font-mono text-emerald-100 border border-white/20">
               (Enter / F12)
             </span>
           </button>
@@ -1144,19 +1339,41 @@ export const PosTerminal: React.FC = () => {
       {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
       <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Active Role & Counter Badge */}
+          {/* Active Role & Counter Badge (Manager vs Cashier Mode Distinction) */}
           <div className="flex items-center gap-2">
             {currentRole === 'MANAGER' ? (
-              <span className="px-3 py-1 rounded-xl font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1.5 shadow-sm">
-                <span>👑</span>
-                <span>{lang === 'ur' ? 'ایڈمن ٹرمینل' : 'Admin Terminal'}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-xl font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs flex items-center gap-1.5 shadow-sm">
+                  <span>👑</span>
+                  <span>{lang === 'ur' ? 'مینجر ٹرمینل (مکمل اختیارات)' : 'Manager Terminal (Full Access)'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => switchRole('CASHIER')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[11px] font-bold border border-slate-700 transition-all flex items-center gap-1"
+                  title="کیشیئر موڈ پر سوئچ کریں"
+                >
+                  <span>🏢</span>
+                  <span>{lang === 'ur' ? 'کیشیئر موڈ' : 'Cashier Mode'}</span>
+                </button>
+              </div>
             ) : (
-              <span className="px-3 py-1 rounded-xl font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 shadow-sm">
-                <span>🏢</span>
-                <span>{lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}</span>
-                <span className="text-slate-400 font-sans">• {activeCashier?.name || 'کیشیئر'}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-xl font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 shadow-sm">
+                  <span>🏢</span>
+                  <span>{lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}</span>
+                  <span className="text-slate-300 font-sans">• {activeCashier?.name || 'کیشیئر'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPinModalOpen(true)}
+                  className="px-2.5 py-1 rounded-xl bg-purple-950/70 hover:bg-purple-900 text-purple-300 text-[11px] font-bold border border-purple-700/60 transition-all flex items-center gap-1"
+                  title="مینجر لاگ ان پن درج کریں"
+                >
+                  <span>👑</span>
+                  <span>{lang === 'ur' ? 'مینجر لاگ ان' : 'Manager Switch'}</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -1338,43 +1555,130 @@ export const PosTerminal: React.FC = () => {
           )}
         </div>
 
-        {/* QR Code / Camera Scanner Button */}
+        {/* Quick Hold Bill Button (Prominent & Instant Rush Hour Access) */}
         <button
           type="button"
-          onClick={() => setQrModalOpen(true)}
-          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
-          title={lang === 'ur' ? 'کیو آر کوڈ یا کیمرہ سے اسکین کریں' : 'Scan QR code / camera'}
+          onClick={handleHoldBill}
+          className="px-3.5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-2xl text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
+          title="موجودہ بل ہولڈ کریں تاکہ اگلا گاہک فارغ ہو سکے (F6)"
         >
-          <QrCode className="w-4 h-4" />
-          <span>{lang === 'ur' ? '📷 کیو آر اسکینر' : 'QR Scan'}</span>
+          <Pause className="w-4 h-4 text-slate-950" />
+          <span>{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold Bill (F6)'}</span>
+          {heldBills.length > 0 && (
+            <span className="bg-slate-950 text-amber-400 px-2 py-0.5 rounded-full text-[10px] font-mono font-black">
+              {heldBills.length}
+            </span>
+          )}
         </button>
 
-        {/* Quick Manual / Custom Item Add Button - STRICTLY FOR MANAGER ONLY! */}
-        {currentRole === 'MANAGER' && (
+        {/* Quick Tools Floating Dropdown Menu (Clean & Clutter-Free) */}
+        <div ref={quickToolsRef} className="relative">
           <button
             type="button"
-            onClick={() => setCustomItemModalOpen(true)}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
-            title={lang === 'ur' ? 'دستی سودا درج کریں (صرف ایڈمن)' : 'Add custom item (Manager Only)'}
+            onClick={() => setQuickToolsOpen(!quickToolsOpen)}
+            className="px-3.5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all border border-slate-700 whitespace-nowrap"
           >
-            <PenTool className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{lang === 'ur' ? '✍️ دستی سودا' : 'Custom Item'}</span>
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span>{lang === 'ur' ? 'فوری ٹولز (Quick Tools)' : 'Quick Tools'}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
-        )}
 
-        {/* Voice Order Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setVoiceMode('order');
-            setVoiceModalOpen(true);
-          }}
-          className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
-          title="Speak Order (Urdu / English)"
-        >
-          <Mic className="w-4 h-4" />
-          <span>{t('voiceOrder')}</span>
-        </button>
+          {quickToolsOpen && (
+            <div className="absolute left-0 right-auto top-full mt-2 z-50 w-64 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1 animate-fadeIn">
+              {/* QR Scanner */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  setQrModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+              >
+                <QrCode className="w-4 h-4 text-indigo-500" />
+                <span>{lang === 'ur' ? 'کیو آر / کیمرہ اسکینر' : 'QR Scan'}</span>
+              </button>
+
+              {/* Voice Order */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  setVoiceMode('order');
+                  setVoiceModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+              >
+                <Mic className="w-4 h-4 text-emerald-500" />
+                <span>{lang === 'ur' ? 'آواز سے بول کر آرڈر (Voice Order)' : 'Voice Order'}</span>
+              </button>
+
+              {/* Toggle Catalog View */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  toggleCatalog();
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+              >
+                <LayoutGrid className="w-4 h-4 text-blue-500" />
+                <span>
+                  {showCatalog
+                    ? (lang === 'ur' ? 'صرف بلنگ موڈ (گرڈ چھپائیں)' : 'Bill Only View')
+                    : (lang === 'ur' ? 'اشیاء ڈیش بورڈ ساتھ کھولیں' : 'Show Items Grid')}
+                </span>
+              </button>
+
+              {/* WhatsApp Orders */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  setIsWhatsAppOrdersModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-600" />
+                <span>{lang === 'ur' ? 'واٹس ایپ آرڈرز مینیجر' : 'WhatsApp Orders'}</span>
+              </button>
+
+              {/* Manager Only Tools Section */}
+              {currentRole === 'MANAGER' && (
+                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 space-y-1">
+                  <div className="px-2 py-0.5 text-[10px] font-black uppercase text-purple-600 dark:text-purple-400">
+                    👑 ایڈمن / مینجر اختیارات
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickToolsOpen(false);
+                      setCustomItemModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-purple-700 dark:text-purple-300 transition-all text-right"
+                  >
+                    <PenTool className="w-4 h-4 text-purple-500" />
+                    <span>{lang === 'ur' ? '✍️ دستی سودا درج کریں' : 'Custom Item'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickToolsOpen(false);
+                      if (isMarginUnlocked) {
+                        lockMargin();
+                      } else {
+                        setPinModalOpen(true);
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+                  >
+                    {isMarginUnlocked ? <Unlock className="w-4 h-4 text-emerald-500" /> : <Lock className="w-4 h-4 text-amber-500" />}
+                    <span>{isMarginUnlocked ? (lang === 'ur' ? 'منافع شفافیت لاک کریں' : 'Lock Margin') : (lang === 'ur' ? 'لائیو منافع ان لاک کریں' : 'Unlock Margin')}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 3. MAIN WORKSPACE */}
@@ -1404,10 +1708,10 @@ export const PosTerminal: React.FC = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all ${
+                  className={`px-3.5 py-2 rounded-xl font-black whitespace-nowrap transition-all text-xs ${
                     selectedCategory === cat
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md border-2 border-emerald-400 ring-2 ring-emerald-500/20'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   {cat === 'all'
@@ -1433,41 +1737,42 @@ export const PosTerminal: React.FC = () => {
                       posSound.playScanBeep();
                       addToCart(p, 1);
                     }}
-                    className="group relative bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-600 rounded-xl p-2.5 flex flex-col justify-between cursor-pointer transition-all shadow-2xs hover:shadow-sm"
+                    className="group relative bg-white dark:bg-slate-850 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-3 flex flex-col justify-between cursor-pointer transition-all shadow-xs hover:shadow-md"
                   >
                     {isLowStock && (
-                      <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">
                         {lang === 'ur' ? 'کم اسٹاک' : 'Low Stock'}
                       </span>
                     )}
 
                     <div>
-                      <div className="text-[10px] text-slate-400 font-mono">{p.sku}</div>
-                      <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-0.5 line-clamp-1">
+                      <div className="text-[10px] text-slate-400 font-mono font-bold tracking-wider">{p.sku}</div>
+                      <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-1 line-clamp-2">
                         {lang === 'ur' ? p.nameUr : p.nameEn}
                       </h4>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
                         {lang === 'ur' ? p.nameEn : p.nameUr}
                       </p>
                     </div>
 
                     <div>
-                      <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
+                      <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
                         <div>
-                          <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                            {p.salePrice.toLocaleString()} <span className="text-[9px]">PKR</span>
+                          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight flex items-baseline gap-1">
+                            <span>{p.salePrice.toLocaleString()}</span>
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">PKR</span>
                           </div>
-                          <div className="text-[9.5px] text-slate-500">
+                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
                             {lang === 'ur' ? `فی ${p.unit}` : `per ${p.unit}`}
                           </div>
                         </div>
 
                         {isMarginUnlocked ? (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-mono text-[9.5px] font-bold">
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-black shadow-xs">
                             +{profitPerUnit} PKR
                           </span>
                         ) : (
-                          <span className="text-[9.5px] text-slate-400 font-mono">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                             {p.stock} {p.unit}
                           </span>
                         )}
