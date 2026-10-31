@@ -32,6 +32,7 @@ import {
   QrCode,
   Clock,
   LogOut,
+  Bot,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -102,6 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'inventory', label: t('inventory'), icon: Boxes },
     { id: 'staff', label: t('staffTitle'), icon: UserPlus },
     { id: 'reports', label: t('reports'), icon: BarChart3 },
+    { id: 'aiChatboard', label: lang === 'ur' ? 'AI رپورٹ چیٹ' : 'AI Chatboard', icon: Bot },
     { id: 'audit', label: t('auditLogs'), icon: ShieldCheck },
     { id: 'whatsapp', label: t('whatsappBot'), icon: MessageSquare },
     { id: 'settings', label: t('settings'), icon: Settings },

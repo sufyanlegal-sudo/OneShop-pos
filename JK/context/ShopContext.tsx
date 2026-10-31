@@ -733,6 +733,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check granular access for active cashier
   const hasAccess = (moduleKey: string): boolean => {
     if (currentRole === 'MANAGER') return true;
+    if (moduleKey === 'aiChatboard') return true;
     if (activeCashier?.permissions && (activeCashier.permissions as any)[moduleKey] !== undefined) {
       return Boolean((activeCashier.permissions as any)[moduleKey]);
     }

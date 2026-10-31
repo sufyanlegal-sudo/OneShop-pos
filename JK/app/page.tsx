@@ -18,6 +18,8 @@ import { AuthLicenseGate } from '@/components/auth/AuthLicenseGate';
 import { SuperAdminModal } from '@/components/auth/SuperAdminModal';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { SupportModal } from '@/components/support/SupportModal';
+import { AiChatboardView } from '@/components/ai/AiChatboardView';
+import { AiChatboardFloatingButton } from '@/components/ai/AiChatboardFloatingButton';
 import { Phone, Headphones } from 'lucide-react';
 
 export default function Home() {
@@ -42,11 +44,15 @@ export default function Home() {
           {activeTab === 'staff' && <StaffView />}
           {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'audit' && <AuditView />}
+          {activeTab === 'aiChatboard' && <AiChatboardView />}
           {activeTab === 'whatsapp' && (
             <WhatsAppBotView onPushToPos={() => setActiveTab('pos')} />
           )}
           {activeTab === 'settings' && <SettingsView />}
         </main>
+
+        {/* Floating AI Business & Report Assistant Trigger */}
+        <AiChatboardFloatingButton />
 
         {/* Persistent Developer Bottom Bar with Support Phone */}
         <footer className="no-print bg-slate-900 text-slate-400 py-2.5 px-4 border-t border-slate-800 text-center text-xs flex flex-wrap items-center justify-between gap-3">

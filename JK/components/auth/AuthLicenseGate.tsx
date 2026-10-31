@@ -476,10 +476,19 @@ ${u?.name || 'Store Owner'}`
       </div>
 
       {/* ========================================================================= */}
-      {/* RIGHT COLUMN: FULL-HEIGHT DOCKED AUTH PANEL (ZERO WASTED EMPTY MARGINS)    */}
+      {/* RIGHT COLUMN: FULL-HEIGHT AUTH PANEL WITH SHOP SHELVES BACKGROUND         */}
       {/* ========================================================================= */}
-      <div className="w-full lg:w-[480px] xl:w-[520px] lg:min-h-screen flex flex-col justify-between p-6 sm:p-8 lg:p-10 bg-[#0a1a24]/95 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-cyan-500/20 shadow-2xl relative z-10">
-        <div className="my-auto w-full max-w-sm mx-auto">
+      <div className="w-full lg:w-[480px] xl:w-[520px] lg:min-h-screen flex flex-col justify-between p-6 sm:p-8 lg:p-10 border-t lg:border-t-0 lg:border-l border-cyan-500/20 shadow-2xl relative z-10 overflow-hidden">
+        {/* Real Supermarket Shop Shelves Background Image */}
+        <img
+          src="/images/supermarket-shelves.jpg"
+          alt="Supermarket Store Shelves - OneShop POS"
+          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none transform scale-105 filter brightness-70 contrast-105"
+        />
+        {/* Soft Glassmorphic Dark Overlay to keep inputs and text 100% legible & beautiful */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#07141d]/90 via-[#0a1c26]/92 to-[#061017]/95 backdrop-blur-[5px] pointer-events-none" />
+
+        <div className="my-auto w-full max-w-sm mx-auto relative z-10">
           {/* Top Brand Header matching mockup */}
           <div className="text-center space-y-1 mb-6">
             <div className="w-14 h-14 mx-auto mb-2.5 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 text-2xl shadow-lg shadow-amber-500/25 border border-amber-300/40">
@@ -1005,7 +1014,7 @@ ${u?.name || 'Store Owner'}`
         {/* ========================================================================= */}
         {/* BOTTOM FOOTER BAR (PURE ENGLISH - ZERO URDU AS REQUESTED)                 */}
         {/* ========================================================================= */}
-        <footer className="mt-8 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400 space-y-1 w-full">
+        <footer className="mt-8 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400 space-y-1 w-full relative z-10">
           <p className="font-medium text-slate-300">
             Developed & Licensed by <span className="text-white font-bold">JK Developers Pakistan</span>
           </p>
