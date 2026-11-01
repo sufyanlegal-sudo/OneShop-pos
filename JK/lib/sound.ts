@@ -2,6 +2,7 @@
 // WEBAUDIO SOUND ENGINE FOR ONESHOP POS
 // Mechanical Keypress, Barcode Scan Beep, Button Click, Checkout Chime
 // Zero external audio files required - 100% bug-free, offline, 0ms latency
+// Optimized for Mobile: Asynchronous non-blocking dispatch
 // =========================================================================
 
 class SoundEngine {
@@ -29,6 +30,21 @@ class SoundEngine {
     return this.ctx;
   }
 
+  private runAsync(fn: (ctx: AudioContext) => void) {
+    if (!this.soundEnabled || typeof window === 'undefined') return;
+    // Detach from main click thread so mobile touches stay 0ms responsive
+    setTimeout(() => {
+      try {
+        const ctx = this.initContext();
+        if (ctx) {
+          fn(ctx);
+        }
+      } catch (e) {
+        // Safe fallback
+      }
+    }, 0);
+  }
+
   public isEnabled(): boolean {
     return this.soundEnabled;
   }
@@ -46,15 +62,10 @@ class SoundEngine {
 
   // 1. Mechanical Keyboard Typing Sound (Crisp Key Click)
   public playKeyClick() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
-
+    this.runAsync((ctx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      // Pitch variation for natural typing feel
       const randomPitch = 900 + Math.random() * 300;
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(randomPitch, ctx.currentTime);
@@ -68,18 +79,12 @@ class SoundEngine {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.02);
-    } catch (e) {
-      // Audio autoplay policy fallback
-    }
+    });
   }
 
   // 2. Modern UI Button Click Sound
   public playClick() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
-
+    this.runAsync((ctx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -95,16 +100,12 @@ class SoundEngine {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.04);
-    } catch (e) {}
+    });
   }
 
   // 3. POS Barcode Laser Scanner Beep
   public playScanBeep() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
-
+    this.runAsync((ctx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -119,16 +120,12 @@ class SoundEngine {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.07);
-    } catch (e) {}
+    });
   }
 
   // 4. Cash Register Success Chime (Double Ding on Invoice Print)
   public playSuccessChime() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
-
+    this.runAsync((ctx) => {
       const playNote = (freq: number, delay: number, dur: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -146,19 +143,14 @@ class SoundEngine {
         osc.stop(ctx.currentTime + delay + dur);
       };
 
-      // C6 (1046Hz) followed by E6 (1318Hz)
       playNote(1046, 0.0, 0.15);
       playNote(1318, 0.1, 0.25);
-    } catch (e) {}
+    });
   }
 
   // 5. Error Alert Tone
   public playErrorBuzz() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
-
+    this.runAsync((ctx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -173,7 +165,7 @@ class SoundEngine {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.18);
-    } catch (e) {}
+    });
   }
 
   public playError() {

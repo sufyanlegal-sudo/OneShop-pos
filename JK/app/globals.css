@@ -1,8 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Instant 0ms touch response for Mobile Devices (no 300ms double-tap delay) */
+html, body, button, input, select, textarea, a, div {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
 :root {
   --foreground-rgb: 15, 23, 42;
