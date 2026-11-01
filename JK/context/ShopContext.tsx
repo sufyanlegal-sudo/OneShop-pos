@@ -750,6 +750,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentRole === 'ADMIN' || currentRole === 'MANAGER') return true;
     if (moduleKey === 'aiChatboard') return true;
     if (moduleKey === 'billsHistory') return true; // Cashier can always view bill history & reprint
+    if (moduleKey === 'audit') return true; // Cashier & Staff can always access Stock & System Audit!
     if (activeCashier?.permissions && (activeCashier.permissions as any)[moduleKey] !== undefined) {
       return Boolean((activeCashier.permissions as any)[moduleKey]);
     }

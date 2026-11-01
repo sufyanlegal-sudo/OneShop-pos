@@ -34,7 +34,7 @@ export default function Home() {
 
         {/* Main Tab View Content */}
         <main className="flex-1">
-          {activeTab === 'pos' && <PosTerminal />}
+          {activeTab === 'pos' && <PosTerminal onNavigate={setActiveTab} />}
           {activeTab === 'billsHistory' && <BillsHistoryView />}
           {activeTab === 'grn' && <GRNView />}
           {activeTab === 'vendors' && <VendorsView />}

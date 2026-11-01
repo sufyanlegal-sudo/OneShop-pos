@@ -98,7 +98,7 @@ export const storage = {
 
   checkAndApplyCleanSlate(): void {
     if (typeof window === 'undefined') return;
-    const CLEAN_KEY = 'jk_clean_slate_zero_v5';
+    const CLEAN_KEY = 'jk_clean_slate_zero_v6';
     if (!localStorage.getItem(CLEAN_KEY)) {
       // 1. Reset customers to completely empty [] (No dummy khatedars)
       localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify([]));
@@ -108,16 +108,9 @@ export const storage = {
       localStorage.setItem(KEYS.INVOICES, JSON.stringify([]));
       // 4. Reset vendors to empty []
       localStorage.setItem(KEYS.VENDORS, JSON.stringify([]));
-      // 5. Enforce 0 stock for all inventory items
-      try {
-        const prodRaw = localStorage.getItem(KEYS.PRODUCTS);
-        let prods: Product[] = prodRaw ? JSON.parse(prodRaw) : seedProducts;
-        const zeroProds = prods.map((p) => ({ ...p, stock: 0 }));
-        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroProds));
-      } catch (e) {
-        const zeroSeed = seedProducts.map((p) => ({ ...p, stock: 0 }));
-        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroSeed));
-      }
+      // 5. Enforce 0 stock for the expanded 9000+ item catalog
+      const zeroSeed = seedProducts.map((p) => ({ ...p, stock: 0 }));
+      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroSeed));
       localStorage.setItem(CLEAN_KEY, 'true');
     }
   },
@@ -126,7 +119,7 @@ export const storage = {
     if (typeof window === 'undefined') return seedProducts.map((p) => ({ ...p, stock: 0 }));
     this.checkAndApplyCleanSlate();
     const raw = localStorage.getItem(KEYS.PRODUCTS);
-    const ZERO_STOCK_APPLIED_KEY = 'jk_inventory_zero_stock_v5';
+    const ZERO_STOCK_APPLIED_KEY = 'jk_inventory_zero_stock_v6';
     const isZeroStockApplied = localStorage.getItem(ZERO_STOCK_APPLIED_KEY);
 
     const zeroSeed = seedProducts.map((p) => ({ ...p, stock: 0 }));

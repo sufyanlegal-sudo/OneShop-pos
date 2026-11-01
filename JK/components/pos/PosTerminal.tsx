@@ -45,6 +45,7 @@ import {
   ChevronDown,
   Zap,
   Edit2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -54,7 +55,11 @@ import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
 import { ExchangeModal } from '@/components/pos/ExchangeModal';
 import { posSound } from '@/lib/sound';
 
-export const PosTerminal: React.FC = () => {
+interface PosTerminalProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const { lang, t } = useLanguage();
   const {
     products,
@@ -1479,6 +1484,17 @@ export const PosTerminal: React.FC = () => {
           >
             <Repeat className="w-3.5 h-3.5 text-blue-400" />
             <span>{lang === 'ur' ? '🔁 مال کا تبادلہ' : 'Exchange'}</span>
+          </button>
+
+          {/* Quick Stock & System Audit Button */}
+          <button
+            type="button"
+            onClick={() => onNavigate?.('audit')}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-sm active:scale-95"
+            title={lang === 'ur' ? 'اسٹاک فزیکل آڈٹ اور سسٹم لاگز دیکھیں' : 'Stock & System Audit'}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-100" />
+            <span>{lang === 'ur' ? '📋 اسٹاک و سسٹم آڈٹ' : 'Audit'}</span>
           </button>
 
           {/* LAYOUT TOGGLE BUTTON: Show Items Dashboard vs Bill Only View */}
