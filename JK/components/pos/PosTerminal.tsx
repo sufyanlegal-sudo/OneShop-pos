@@ -527,6 +527,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     });
   }, [products, selectedCategory, searchQuery, lang]);
 
+  // Mobile & Desktop high-performance batch rendering (prevents rendering 9000 DOM nodes at once)
+  const [visibleProductCount, setVisibleProductCount] = useState<number>(48);
+
+  useEffect(() => {
+    setVisibleProductCount(48);
+  }, [selectedCategory, searchQuery]);
+
+  const displayedProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleProductCount);
+  }, [filteredProducts, visibleProductCount]);
+
   // Global search suggestions (across all categories for fast billing input)
   const searchResults = useMemo(() => {
     const q = (searchQuery || '').toLowerCase().trim();
@@ -1908,7 +1919,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
             {/* Products Grid */}
             <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {filteredProducts.map((p) => {
+              {displayedProducts.map((p) => {
                 const isLowStock = p.stock <= p.minStockAlert;
                 const profitPerUnit = p.salePrice - p.costPrice;
                 const isWeight = isWeightEligibleProduct(p);
@@ -2119,6 +2130,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   </div>
                 );
               })}
+
+              {/* High-Performance Mobile & Desktop Load More Button */}
+              {filteredProducts.length > visibleProductCount && (
+                <div className="col-span-2 sm:col-span-3 py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleProductCount((prev) => prev + 48)}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2"
+                  >
+                    <span>⚡ {lang === 'ur' ? 'مزید اشیاء لوڈ کریں (+48 مزید)' : 'Load More Products (+48)'}</span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-[11px] font-mono">
+                      {displayedProducts.length} / {filteredProducts.length}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

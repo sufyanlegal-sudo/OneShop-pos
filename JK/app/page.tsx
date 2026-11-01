@@ -20,39 +20,44 @@ import { SettingsView } from '@/components/settings/SettingsView';
 import { SupportModal } from '@/components/support/SupportModal';
 import { AiChatboardView } from '@/components/ai/AiChatboardView';
 import { AiChatboardFloatingButton } from '@/components/ai/AiChatboardFloatingButton';
+import { useShop } from '@/context/ShopContext';
 import { Phone, Headphones } from 'lucide-react';
 
 export default function Home() {
+  const { currentRole } = useShop();
   const [activeTab, setActiveTab] = useState<string>('pos');
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // If cashier tries to view AI chatboard tab, route back to pos terminal
+  const effectiveTab = (activeTab === 'aiChatboard' && currentRole !== 'ADMIN') ? 'pos' : activeTab;
 
   return (
     <AuthLicenseGate>
       <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
         {/* Dynamic Header & Navigation */}
-        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Navbar activeTab={effectiveTab} setActiveTab={setActiveTab} />
 
         {/* Main Tab View Content */}
         <main className="flex-1">
-          {activeTab === 'pos' && <PosTerminal onNavigate={setActiveTab} />}
-          {activeTab === 'billsHistory' && <BillsHistoryView />}
-          {activeTab === 'grn' && <GRNView />}
-          {activeTab === 'vendors' && <VendorsView />}
-          {activeTab === 'roznamcha' && <RoznamchaView />}
-          {activeTab === 'khata' && <KhataView />}
-          {activeTab === 'inventory' && <InventoryView />}
-          {activeTab === 'staff' && <StaffView />}
-          {activeTab === 'reports' && <ReportsView />}
-          {activeTab === 'audit' && <AuditView />}
-          {activeTab === 'aiChatboard' && <AiChatboardView />}
-          {activeTab === 'whatsapp' && (
+          {effectiveTab === 'pos' && <PosTerminal onNavigate={setActiveTab} />}
+          {effectiveTab === 'billsHistory' && <BillsHistoryView />}
+          {effectiveTab === 'grn' && <GRNView />}
+          {effectiveTab === 'vendors' && <VendorsView />}
+          {effectiveTab === 'roznamcha' && <RoznamchaView />}
+          {effectiveTab === 'khata' && <KhataView />}
+          {effectiveTab === 'inventory' && <InventoryView />}
+          {effectiveTab === 'staff' && <StaffView />}
+          {effectiveTab === 'reports' && <ReportsView />}
+          {effectiveTab === 'audit' && <AuditView />}
+          {effectiveTab === 'aiChatboard' && currentRole === 'ADMIN' && <AiChatboardView />}
+          {effectiveTab === 'whatsapp' && (
             <WhatsAppBotView onPushToPos={() => setActiveTab('pos')} />
           )}
-          {activeTab === 'settings' && <SettingsView />}
+          {effectiveTab === 'settings' && <SettingsView />}
         </main>
 
-        {/* Floating AI Business & Report Assistant Trigger */}
-        <AiChatboardFloatingButton />
+        {/* Floating AI Business & Report Assistant Trigger (ONLY for ADMIN) */}
+        {currentRole === 'ADMIN' && <AiChatboardFloatingButton />}
 
         {/* Persistent Developer Bottom Bar with Support Phone */}
         <footer className="no-print bg-slate-900 text-slate-400 py-2.5 px-4 border-t border-slate-800 text-center text-xs flex flex-wrap items-center justify-between gap-3">

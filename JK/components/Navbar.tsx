@@ -586,7 +586,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth no-scrollbar flex-1"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {navItems.map((item) => {
+                {navItems
+                  .filter((item) => item.id !== 'aiChatboard' || currentRole === 'ADMIN')
+                  .map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
                   const isLocked = !hasAccess(item.id);

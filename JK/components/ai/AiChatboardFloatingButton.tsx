@@ -3,9 +3,16 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles, X, MessageSquare } from 'lucide-react';
 import { AiChatboardView } from './AiChatboardView';
+import { useShop } from '@/context/ShopContext';
 
 export const AiChatboardFloatingButton: React.FC = () => {
+  const { currentRole } = useShop();
   const [isOpen, setIsOpen] = useState(false);
+
+  // STRICTLY HIDE on Cashier Counter! Only show in Admin Login!
+  if (currentRole !== 'ADMIN') {
+    return null;
+  }
 
   return (
     <>
