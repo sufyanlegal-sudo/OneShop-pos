@@ -26,6 +26,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   CheckCircle2,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -34,7 +36,10 @@ import { posSound } from '@/lib/sound';
 
 export const InventoryView: React.FC = () => {
   const { lang, t } = useLanguage();
-  const { products, saveProduct, deleteProduct, activePreset } = useShop();
+  const { products, saveProduct, deleteProduct, activePreset, currentRole, switchRole } = useShop();
+
+  const [adminPinInput, setAdminPinInput] = useState('');
+  const [adminPinError, setAdminPinError] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -329,6 +334,75 @@ export const InventoryView: React.FC = () => {
     return products.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.salePrice) || 0), 0);
   }, [products]);
 
+  const handleAdminPinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = switchRole('ADMIN', adminPinInput);
+    if (success) {
+      posSound.playSuccessChime();
+      setAdminPinInput('');
+      setAdminPinError('');
+    } else {
+      posSound.playErrorBuzz();
+      setAdminPinError(lang === 'ur' ? 'غلط ایڈمن پن کوڈ درج کیا گیا ہے!' : 'Incorrect Admin PIN!');
+    }
+  };
+
+  // STRICT ACCESS CONTROL: Only ADMIN can access Barcode/QR Inventory Stock Intake!
+  if (currentRole !== 'ADMIN') {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-5 animate-in fade-in">
+          <div className="w-16 h-16 rounded-3xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto border-2 border-amber-300 dark:border-amber-700 shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white">
+              {lang === 'ur' ? '🔒 ایڈمن سیکیورٹی لاک' : '🔒 Admin Security Lock'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-medium">
+              {lang === 'ur'
+                ? 'پروڈکٹ کے اوپر موجود بارکوڈ یا کیو آر کوڈ سے اسکین کر کے اسٹاک انٹری کرنے اور انوینٹری میں ترمیم کی مکمل اجازت صرف ایڈمن کے پاس ہے۔'
+                : 'Scanning barcodes/QR codes for inventory intake and stock adjustments is strictly restricted to Admin.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAdminPinSubmit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5 text-center">
+                {lang === 'ur' ? 'ایڈمن پن کوڈ درج کریں:' : 'Enter Admin PIN:'}
+              </label>
+              <input
+                type="password"
+                maxLength={6}
+                value={adminPinInput}
+                onChange={(e) => {
+                  setAdminPinInput(e.target.value);
+                  setAdminPinError('');
+                }}
+                placeholder="••••"
+                className="w-48 mx-auto text-center font-mono text-2xl font-black tracking-widest py-2.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl outline-none"
+                autoFocus
+              />
+              {adminPinError && (
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-2">
+                  {adminPinError}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl font-black text-xs sm:text-sm shadow-lg shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-5 h-5" />
+              <span>{lang === 'ur' ? 'ایڈمن تصدیق اور انوینٹری اسکینر کھولیں' : 'Verify Admin & Unlock Inventory'}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-3 sm:p-4 max-w-7xl mx-auto space-y-4">
       {/* Top Header Card */}
@@ -380,13 +454,19 @@ export const InventoryView: React.FC = () => {
               <Scan className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-sm sm:text-base text-emerald-300">
-                {lang === 'ur' ? 'بارکوڈ و کیو آر کوڈ اسکینر برائے انوینٹری' : 'Barcode & QR Scanner for Inventory'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-sm sm:text-base text-emerald-300">
+                  {lang === 'ur' ? 'پروڈکٹ بارکوڈ و کیو آر کوڈ اسکیننگ انٹری' : 'Product Barcode & QR Code Stock Intake'}
+                </h3>
+                <span className="bg-emerald-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>{lang === 'ur' ? 'ایڈمن ایکسس فعال' : 'Admin Access Active'}</span>
+                </span>
+              </div>
               <p className="text-[11px] text-slate-300 font-medium">
                 {lang === 'ur'
-                  ? 'ہینڈ ہیلڈ لیزر گن یا کیمرہ سے اسکین کریں اور فوری اسٹاک انٹری کریں'
-                  : 'Scan with handheld laser scanner or camera for instant stock intake'}
+                  ? 'پروڈکٹ کے ڈبے پر موجود بارکوڈ یا کیو آر کوڈ اسکین کریں اور فوری اسٹاک انٹری کریں'
+                  : 'Scan the barcode or QR code on product packaging for instant stock intake'}
               </p>
             </div>
           </div>
