@@ -120,6 +120,7 @@ interface ShopContextType {
   updateCashierPermissions: (perms: Partial<CashierModulePermissions>) => void;
   switchCashierCounter: (counterNumber: number, pin: string) => { success: boolean; message: string };
   hasAccess: (moduleKey: string) => boolean;
+  canSellOutOfStock: () => boolean;
   isMarginUnlocked: boolean;
   unlockMargin: (pin: string) => boolean;
   lockMargin: () => void;
@@ -755,6 +756,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return Boolean((activeCashier.permissions as any)[moduleKey]);
     }
     return Boolean((cashierPermissions as any)[moduleKey]);
+  };
+
+  const canSellOutOfStock = (): boolean => {
+    if (currentRole === 'ADMIN' || currentRole === 'MANAGER') return true;
+    if (activeCashier?.permissions && activeCashier.permissions.canNegativeStock !== undefined) {
+      return Boolean(activeCashier.permissions.canNegativeStock);
+    }
+    return Boolean(cashierPermissions.canNegativeStock);
   };
 
   const saveCashiers = (accounts: CashierAccount[]) => {
@@ -2440,6 +2449,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateCashierPermissions,
         switchCashierCounter,
         hasAccess,
+        canSellOutOfStock,
         isMarginUnlocked,
         unlockMargin,
         lockMargin,

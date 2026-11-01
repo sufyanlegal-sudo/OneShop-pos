@@ -175,6 +175,10 @@ class SoundEngine {
       osc.stop(ctx.currentTime + 0.18);
     } catch (e) {}
   }
+
+  public playError() {
+    this.playErrorBuzz();
+  }
 }
 
 export const posSound = new SoundEngine();

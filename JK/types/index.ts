@@ -23,6 +23,7 @@ export interface CashierModulePermissions {
   maxDiscountAmount: number;
   canReturn: boolean;
   canViewCostMargin: boolean;
+  canNegativeStock?: boolean; // Negative stock billing permission (Default: false, only Admin has access)
   billsHistory: boolean;
   grn: boolean;
   vendors: boolean;

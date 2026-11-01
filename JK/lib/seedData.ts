@@ -6,6 +6,7 @@ export const defaultCashierPermissions: CashierModulePermissions = {
   maxDiscountAmount: 200,
   canReturn: false,
   canViewCostMargin: false,
+  canNegativeStock: false, // strictly false for cashier
   billsHistory: true,
   grn: false,
   vendors: false,

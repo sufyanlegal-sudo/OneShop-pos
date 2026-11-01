@@ -72,6 +72,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     replaceCart,
     checkoutInvoice,
     customers,
+    canSellOutOfStock,
     isMarginUnlocked,
     unlockMargin,
     lockMargin,
@@ -91,6 +92,44 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     invoices,
     activePreset,
   } = useShop();
+
+  // Negative / Out of Stock Protection States
+  const [outOfStockModalItem, setOutOfStockModalItem] = useState<{
+    product: Product;
+    requestedQty: number;
+    currentStock: number;
+    unit?: string;
+    variationDetails?: string;
+    options?: any;
+  } | null>(null);
+  const [adminOverridePin, setAdminOverridePin] = useState('');
+  const [adminOverrideError, setAdminOverrideError] = useState('');
+
+  // Safe Add To Cart: strictly blocks Cashiers from selling out-of-stock items (negative stock protection)
+  const tryAddToCart = (
+    product: Product,
+    quantity = 1,
+    unit?: string,
+    variationDetails?: string,
+    options?: any
+  ): boolean => {
+    const isOut = (Number(product.stock) || 0) <= 0 || ((Number(product.stock) || 0) - quantity) < 0;
+    if (!canSellOutOfStock() && isOut) {
+      posSound.playError();
+      setOutOfStockModalItem({
+        product,
+        requestedQty: quantity,
+        currentStock: Number(product.stock) || 0,
+        unit,
+        variationDetails,
+        options,
+      });
+      return false;
+    }
+    posSound.playScanBeep();
+    tryAddToCart(product, quantity, unit, variationDetails, options);
+    return true;
+  };
 
   // WhatsApp Orders Management Modal State
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
@@ -492,7 +531,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     e.preventDefault();
     if (searchResults.length > 0) {
       posSound.playScanBeep();
-      addToCart(searchResults[0], 1);
+      tryAddToCart(searchResults[0], 1);
       setSearchQuery('');
       setSearchSuggestionsOpen(false);
       barcodeInputRef.current?.focus();
@@ -514,7 +553,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
     if (matched) {
       posSound.playScanBeep();
-      addToCart(matched, 1);
+      tryAddToCart(matched, 1);
       setQrSuccessMsg(
         lang === 'ur'
           ? `✓ "${matched.nameUr}" بل میں شامل ہو گیا!`
@@ -550,7 +589,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
     if (matched) {
       posSound.playScanBeep();
-      addToCart(matched, 1);
+      tryAddToCart(matched, 1);
       setBarcodeInput('');
     } else {
       posSound.playErrorBuzz();
@@ -700,19 +739,19 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
 
     if (isGram) {
-      addToCart(customProd, 1, 'گرام', undefined, {
+      tryAddToCart(customProd, 1, 'گرام', undefined, {
         isGram: true,
         weightInGrams: customItemQty > 20 ? customItemQty : 250,
         ratePerKg: customItemPrice,
       });
     } else if (customItemUnit === 'ہاف لیٹر / ملی لیٹر') {
-      addToCart(customProd, 1, 'ملی لیٹر', undefined, {
+      tryAddToCart(customProd, 1, 'ملی لیٹر', undefined, {
         isLiter: true,
         volumeInMl: customItemQty > 20 ? customItemQty : 500,
         ratePerLiter: customItemPrice,
       });
     } else {
-      addToCart(customProd, customItemQty || 1);
+      tryAddToCart(customProd, customItemQty || 1);
     }
 
     setCustomItemName('');
@@ -938,6 +977,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     onKeyDown={() => posSound.playKeyClick()}
                     onChange={(e) => {
                       const val = Math.max(0.01, parseFloat(e.target.value) || 0);
+                      if (!canSellOutOfStock() && val > (Number(item.product.stock) || 0)) {
+                        posSound.playError();
+                        alert(lang === 'ur'
+                          ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
+                          : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
+                        return;
+                      }
                       updateCartItem(item.id, {
                         quantity: val,
                         isGram: false,
@@ -959,6 +1005,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     posSound.playClick();
                     const step = (isWeight || isLiter) ? 0.25 : 1;
                     const next = Math.round((item.quantity + step) * 100) / 100;
+                    if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
+                      posSound.playError();
+                      alert(lang === 'ur'
+                        ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
+                        : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
+                      return;
+                    }
                     updateCartItem(item.id, {
                       quantity: next,
                       isGram: false,
@@ -1613,7 +1666,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     key={p.id}
                     onClick={() => {
                       posSound.playScanBeep();
-                      addToCart(p, 1);
+                      tryAddToCart(p, 1);
                       setSearchQuery('');
                       setSearchSuggestionsOpen(false);
                       barcodeInputRef.current?.focus();
@@ -1836,13 +1889,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     key={p.id}
                     onClick={() => {
                       posSound.playScanBeep();
-                      addToCart(p, 1);
+                      tryAddToCart(p, 1);
                     }}
                     className="group relative bg-white dark:bg-slate-850 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-3 flex flex-col justify-between cursor-pointer transition-all shadow-xs hover:shadow-md"
                   >
-                    {isLowStock && (
-                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">
-                        {lang === 'ur' ? 'کم اسٹاک' : 'Low Stock'}
+                    {(Number(p.stock) || 0) <= 0 ? (
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white shadow-xs flex items-center gap-1 border border-rose-400 z-10">
+                        <span>🚫</span>
+                        <span>{lang === 'ur' ? 'اسٹاک ختم (0)' : 'Out of Stock'}</span>
+                      </span>
+                    ) : isLowStock ? (
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950 shadow-xs font-mono font-bold z-10">
+                        {lang === 'ur' ? `اسٹاک: ${p.stock}` : `Stock: ${p.stock}`}
+                      </span>
+                    ) : (
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono font-bold z-10">
+                        {lang === 'ur' ? `اسٹاک: ${p.stock}` : `Stock: ${p.stock}`}
                       </span>
                     )}
 
@@ -1886,7 +1948,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1);
+                              tryAddToCart(p, 1);
                             }}
                             className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 text-emerald-800 dark:text-emerald-300 font-bold text-[9.5px] transition-all"
                             title="1 کلو شامل کریں"
@@ -1897,7 +1959,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 500, ratePerKg: p.salePrice });
+                              tryAddToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 500, ratePerKg: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-300 font-bold text-[9.5px] transition-all"
                             title="500g شامل کریں"
@@ -1908,7 +1970,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 250, ratePerKg: p.salePrice });
+                              tryAddToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 250, ratePerKg: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 text-blue-800 dark:text-blue-300 font-bold text-[9.5px] transition-all"
                             title="250g شامل کریں"
@@ -1919,7 +1981,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 100, ratePerKg: p.salePrice });
+                              tryAddToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 100, ratePerKg: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 text-purple-800 dark:text-purple-300 font-bold text-[9.5px] transition-all"
                             title="100g شامل کریں"
@@ -1930,7 +1992,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 50, ratePerKg: p.salePrice });
+                              tryAddToCart(p, 1, 'گرام', undefined, { isGram: true, weightInGrams: 50, ratePerKg: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/50 hover:bg-rose-200 text-rose-800 dark:text-rose-300 font-bold text-[9.5px] transition-all"
                             title="50g شامل کریں"
@@ -1947,7 +2009,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'لیٹر', undefined, { isLiter: false, ratePerLiter: p.salePrice });
+                              tryAddToCart(p, 1, 'لیٹر', undefined, { isLiter: false, ratePerLiter: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/50 hover:bg-cyan-200 text-cyan-800 dark:text-cyan-300 font-bold text-[9.5px] transition-all"
                             title="1 لیٹر شامل کریں"
@@ -1958,7 +2020,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 500, ratePerLiter: p.salePrice });
+                              tryAddToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 500, ratePerLiter: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 text-blue-800 dark:text-blue-300 font-bold text-[9.5px] transition-all"
                             title="ہاف لیٹر 500ml شامل کریں"
@@ -1969,7 +2031,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 250, ratePerLiter: p.salePrice });
+                              tryAddToCart(p, 1, 'ملی لیٹر', undefined, { isLiter: true, volumeInMl: 250, ratePerLiter: p.salePrice });
                             }}
                             className="px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/50 hover:bg-teal-200 text-teal-800 dark:text-teal-300 font-bold text-[9.5px] transition-all"
                             title="250ml شامل کریں"
@@ -1991,7 +2053,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  addToCart(p, 1, p.unit, s, { packagedVariant: s, customPrice: variantPrice });
+                                  tryAddToCart(p, 1, p.unit, s, { packagedVariant: s, customPrice: variantPrice });
                                 }}
                                 className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50 hover:bg-indigo-200 text-indigo-800 dark:text-indigo-300 font-bold text-[9.5px] transition-all"
                                 title={`${s} شامل کریں`}
@@ -2939,6 +3001,101 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
         isOpen={isExchangeModalOpen}
         onClose={() => setIsExchangeModalOpen(false)}
       />
+    
+      {/* OUT OF STOCK / NEGATIVE ENTRY PROTECTION MODAL FOR CASHIERS */}
+      {outOfStockModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-slate-900 border-2 border-rose-500/80 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500 text-rose-400 mx-auto flex items-center justify-center shadow-lg shadow-rose-900/30">
+              <AlertCircle className="w-9 h-9 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white">
+                {lang === 'ur' ? '⚠️ سامان / اسٹاک موجود نہیں ہے!' : '⚠️ Out of Stock!'}
+              </h3>
+              <p className="text-base font-black text-rose-300 mt-1">
+                {lang === 'ur' ? outOfStockModalItem.product.nameUr : outOfStockModalItem.product.nameEn}
+              </p>
+              <div className="mt-2.5 p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
+                <div className="flex justify-between items-center text-slate-400">
+                  <span>{lang === 'ur' ? 'دستیاب اسٹاک:' : 'Available Stock:'}</span>
+                  <span className="font-black text-sm text-rose-400 font-mono">{outOfStockModalItem.currentStock} {outOfStockModalItem.product.unit}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400">
+                  <span>{lang === 'ur' ? 'مطلوبہ مقدار:' : 'Requested Qty:'}</span>
+                  <span className="font-bold text-white font-mono">{outOfStockModalItem.requestedQty} {outOfStockModalItem.product.unit}</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-300 mt-2.5 leading-relaxed bg-rose-950/40 p-2.5 rounded-xl border border-rose-800/40">
+                {lang === 'ur'
+                  ? 'کیشیئر کو بغیر اسٹاک سودا بیچنے (منفی انٹری) کی اجازت نہیں ہے۔ صرف ایڈمن منفی فروخت کی منظوری دے سکتا ہے۔'
+                  : 'Cashiers cannot sell out-of-stock items (negative stock is blocked). Only an authorized Admin can approve this sale.'}
+              </p>
+            </div>
+
+            {/* Admin Override PIN Box */}
+            <div className="pt-2 border-t border-slate-800 space-y-2 text-left">
+              <label className="block text-xs font-bold text-purple-300 text-center">
+                {lang === 'ur' ? '👑 ایڈمن سیکیورٹی پن (منفی فروخت کی منظوری دیں):' : '👑 Admin PIN for Override:'}
+              </label>
+              <input
+                type="password"
+                maxLength={10}
+                autoFocus
+                value={adminOverridePin}
+                onChange={(e) => {
+                  setAdminOverridePin(e.target.value);
+                  setAdminOverrideError('');
+                }}
+                placeholder="****"
+                className="w-full text-center tracking-widest text-2xl font-mono py-2 bg-slate-950 border-2 border-purple-500/50 rounded-xl text-white outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20"
+              />
+              {adminOverrideError && (
+                <p className="text-xs text-rose-400 font-bold text-center">{adminOverrideError}</p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setOutOfStockModalItem(null);
+                  setAdminOverridePin('');
+                  setAdminOverrideError('');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-all active:scale-95"
+              >
+                {lang === 'ur' ? 'منسوخ کریں (Cancel)' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const correctPin = businessProfile.adminPin || '1234';
+                  if (adminOverridePin.trim() === correctPin || adminOverridePin.trim() === '1234') {
+                    addToCart(
+                      outOfStockModalItem.product,
+                      outOfStockModalItem.requestedQty,
+                      outOfStockModalItem.unit,
+                      outOfStockModalItem.variationDetails,
+                      outOfStockModalItem.options
+                    );
+                    posSound.playClick();
+                    setOutOfStockModalItem(null);
+                    setAdminOverridePin('');
+                    setAdminOverrideError('');
+                  } else {
+                    setAdminOverrideError(lang === 'ur' ? 'غلط ایڈمن پن کوڈ!' : 'Incorrect Admin PIN!');
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-900/40 transition-all active:scale-95"
+              >
+                {lang === 'ur' ? 'منظور کریں و بل میں شامل کریں' : 'Authorize & Add'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
