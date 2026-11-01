@@ -39,10 +39,12 @@ import {
   Eye,
   EyeOff,
   Repeat,
+  History,
   Pause,
   Play,
   ChevronDown,
   Zap,
+  Edit2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -81,12 +83,31 @@ export const PosTerminal: React.FC = () => {
     updateWhatsAppOrderStatus,
     loadWhatsAppOrderIntoCart,
     saveProduct,
+    invoices,
     activePreset,
   } = useShop();
 
   // WhatsApp Orders Management Modal State
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
   const [waFilter, setWaFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('PENDING');
+
+  const totalStockCount = useMemo(() => {
+    return products.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
+  }, [products]);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayInvoices = useMemo(() => {
+    return (invoices || []).filter((inv) => (inv.date || '').startsWith(todayStr));
+  }, [invoices, todayStr]);
+
+  const todaySalesTotal = useMemo(() => {
+    return todayInvoices.reduce((sum, inv) => sum + (Number(inv.grandTotal) || 0), 0);
+  }, [todayInvoices]);
+
+  // Quick Bill History & Fast Reprint Modal for Cashier
+  const [isRecentBillsModalOpen, setIsRecentBillsModalOpen] = useState(false);
+  const [recentBillsSearch, setRecentBillsSearch] = useState('');
+  const [selectedReprintInvoice, setSelectedReprintInvoice] = useState<Invoice | null>(null);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -552,7 +573,7 @@ export const PosTerminal: React.FC = () => {
   const handleVerifyPin = () => {
     const success = unlockMargin(enteredPin);
     if (success) {
-      switchRole('MANAGER');
+      switchRole('ADMIN');
       setPinModalOpen(false);
       setEnteredPin('');
       setPinError(false);
@@ -628,10 +649,10 @@ export const PosTerminal: React.FC = () => {
     );
   };
 
-  // Add manual unlisted custom item directly to cart (MANAGER ONLY)
+  // Add manual unlisted custom item directly to cart (ADMIN ONLY)
   const handleAddCustomItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentRole !== 'MANAGER') {
+    if (currentRole !== 'ADMIN' && currentRole !== 'MANAGER') {
       alert(lang === 'ur' ? '⛔ غیر مجاز عمل! کیشیئر کو دستی سودا درج کرنے کی اجازت نہیں ہے۔' : 'Unauthorized! Cashiers cannot add custom items.');
       setCustomItemModalOpen(false);
       return;
@@ -791,7 +812,7 @@ export const PosTerminal: React.FC = () => {
               <LayoutGrid className="w-4 h-4 text-amber-600" />
               <span>{lang === 'ur' ? 'اشیاء ڈیش بورڈ لائیں' : 'Show Items Grid'}</span>
             </button>
-            {currentRole === 'MANAGER' && (
+            {(currentRole === 'ADMIN' || currentRole === 'MANAGER') && (
               <button
                 type="button"
                 onClick={() => setCustomItemModalOpen(true)}
@@ -836,8 +857,32 @@ export const PosTerminal: React.FC = () => {
                     )}
                   </div>
                   <div className="text-xs text-slate-500 font-mono flex items-center gap-2 mt-1 flex-wrap">
-                    <span>
-                      ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}
+                    <span className="inline-flex items-center gap-1">
+                      <span>ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newRateStr = prompt(
+                            lang === 'ur'
+                              ? `سیل ریٹ تبدیل کریں (${item.product.nameUr}):`
+                              : `Edit Sale Rate for ${item.product.nameEn}:`,
+                            unitRate.toString()
+                          );
+                          if (newRateStr !== null) {
+                            const parsedRate = parseFloat(newRateStr);
+                            if (!isNaN(parsedRate) && parsedRate >= 0) {
+                              updateCartItem(item.id, {
+                                unitPrice: parsedRate,
+                                total: Math.round(item.quantity * parsedRate),
+                              });
+                            }
+                          }
+                        }}
+                        className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-emerald-600 dark:text-emerald-400 transition ml-1"
+                        title={lang === 'ur' ? 'ریٹ تبدیل کرنے کے لیے کلک کریں' : 'Click to edit price'}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
                     </span>
                     {isWeight && item.quantity < 1 && (
                       <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
@@ -1339,13 +1384,13 @@ export const PosTerminal: React.FC = () => {
       {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
       <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Active Role & Counter Badge (Manager vs Cashier Mode Distinction) */}
+          {/* Active Role & Counter Badge (Admin vs Cashier Mode Distinction) */}
           <div className="flex items-center gap-2">
-            {currentRole === 'MANAGER' ? (
+            {currentRole === 'ADMIN' || currentRole === 'MANAGER' ? (
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-xl font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs flex items-center gap-1.5 shadow-sm">
                   <span>👑</span>
-                  <span>{lang === 'ur' ? 'مینجر ٹرمینل (مکمل اختیارات)' : 'Manager Terminal (Full Access)'}</span>
+                  <span>{lang === 'ur' ? 'ایڈمن ٹرمینل (مکمل اختیارات)' : 'Admin Terminal (Full Access)'}</span>
                 </span>
                 <button
                   type="button"
@@ -1368,13 +1413,29 @@ export const PosTerminal: React.FC = () => {
                   type="button"
                   onClick={() => setPinModalOpen(true)}
                   className="px-2.5 py-1 rounded-xl bg-purple-950/70 hover:bg-purple-900 text-purple-300 text-[11px] font-bold border border-purple-700/60 transition-all flex items-center gap-1"
-                  title="مینجر لاگ ان پن درج کریں"
+                  title="ایڈمن لاگ ان پن درج کریں"
                 >
                   <span>👑</span>
-                  <span>{lang === 'ur' ? 'مینجر لاگ ان' : 'Manager Switch'}</span>
+                  <span>{lang === 'ur' ? 'ایڈمن لاگ ان' : 'Admin Login'}</span>
                 </button>
               </div>
             )}
+          </div>
+
+                    {/* Live Quick Metrics: سیل، فروخت، اسٹاک */}
+          <div className="hidden lg:flex items-center gap-2">
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-slate-800/90 rounded-xl border border-slate-700/60 font-mono text-[11px]" title="آج کی کل سیل / فروخت">
+              <span className="text-slate-400 font-sans font-bold">{lang === 'ur' ? 'سیل:' : 'Sale:'}</span>
+              <span className="font-bold text-emerald-400">Rs. {todaySalesTotal.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-500">({todayInvoices.length} {lang === 'ur' ? 'بل' : 'bills'})</span>
+            </span>
+
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-slate-800/90 rounded-xl border border-slate-700/60 font-mono text-[11px]" title="دکان کا کل فزیکل اسٹاک">
+              <span className="text-slate-400 font-sans font-bold">{lang === 'ur' ? 'اسٹاک:' : 'Stock:'}</span>
+              <span className={`font-bold ${totalStockCount === 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {totalStockCount.toLocaleString()} {lang === 'ur' ? (totalStockCount === 0 ? '(صفر)' : 'یونٹس') : 'Units'}
+              </span>
+            </span>
           </div>
 
           {/* Cloud Sync Pulse Indicator */}
@@ -1397,6 +1458,17 @@ export const PosTerminal: React.FC = () => {
               <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'واٹس ایپ آرڈرز' : 'WhatsApp Orders'}</span>
             </button>
           )}
+
+          {/* Quick Bill History & Fast Reprint Button for Cashier */}
+          <button
+            type="button"
+            onClick={() => setIsRecentBillsModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-sm active:scale-95"
+            title="پچھلے بلز دیکھیں اور ری پرنٹ نکالیں"
+          >
+            <History className="w-3.5 h-3.5 text-blue-100" />
+            <span>{lang === 'ur' ? '🧾 بل ہسٹری و ری پرنٹ' : 'Bills & Reprint'}</span>
+          </button>
 
           {/* Quick Return & Exchange Button */}
           <button
@@ -1598,6 +1670,19 @@ export const PosTerminal: React.FC = () => {
                 <span>{lang === 'ur' ? 'کیو آر / کیمرہ اسکینر' : 'QR Scan'}</span>
               </button>
 
+              {/* Bills History & Fast Reprint for Cashier */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  setIsRecentBillsModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
+              >
+                <History className="w-4 h-4 text-blue-500" />
+                <span>{lang === 'ur' ? '🧾 پچھلے بلز اور ری پرنٹ نکالیں' : 'Bills History & Reprint'}</span>
+              </button>
+
               {/* Voice Order */}
               <button
                 type="button"
@@ -1639,14 +1724,14 @@ export const PosTerminal: React.FC = () => {
                 className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all text-right"
               >
                 <MessageSquare className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'ur' ? 'واٹس ایپ آرڈرز مینیجر' : 'WhatsApp Orders'}</span>
+                <span>{lang === 'ur' ? 'واٹس ایپ آرڈرز و بلنگ' : 'WhatsApp Orders'}</span>
               </button>
 
-              {/* Manager Only Tools Section */}
-              {currentRole === 'MANAGER' && (
+              {/* Admin Only Tools Section */}
+              {(currentRole === 'ADMIN' || currentRole === 'MANAGER') && (
                 <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 space-y-1">
                   <div className="px-2 py-0.5 text-[10px] font-black uppercase text-purple-600 dark:text-purple-400">
-                    👑 ایڈمن / مینجر اختیارات
+                    👑 ایڈمن کنٹرولز
                   </div>
                   <button
                     type="button"
@@ -1773,7 +1858,7 @@ export const PosTerminal: React.FC = () => {
                           </span>
                         ) : (
                           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                            {p.stock} {p.unit}
+                            {p.stock} {p.unit} {p.stock === 0 ? (lang === 'ur' ? '(صفر)' : '(0)') : ''}
                           </span>
                         )}
                       </div>
@@ -2078,7 +2163,7 @@ export const PosTerminal: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-black tracking-tight">
-                      {lang === 'ur' ? 'واٹس ایپ آرڈرز و بلنگ مینیجر' : 'WhatsApp Orders & Auto-Billing Manager'}
+                      {lang === 'ur' ? 'واٹس ایپ آرڈرز و بلنگ کنٹرول' : 'WhatsApp Orders & Auto-Billing Manager'}
                     </h2>
                     {pendingWhatsAppOrdersCount > 0 && (
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs animate-pulse">

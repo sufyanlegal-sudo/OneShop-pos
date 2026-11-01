@@ -160,8 +160,8 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     return <>{children}</>;
   }
 
-  // 1. Handle Client Login
-  const handleClientLogin = (e: React.FormEvent) => {
+  // 1. Handle Client Login (With Auto Stolen Device Recovery)
+  const handleClientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
@@ -207,6 +207,24 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     if (res.status === 'DENIED') {
       setLoginError(res.message || 'Access has been denied by administrator.');
       return;
+    }
+
+    if (res.status === 'APPROVED') {
+      // Auto-Restore for Stolen Device / New PC: If this device is clean/empty, check if cloud backup exists
+      const { storage } = await import('@/lib/storage');
+      const invoices = storage.getInvoices();
+      if (invoices.length === 0) {
+        try {
+          const fetchRes = await fetchGoogleBackup(cleanEmail);
+          if (fetchRes.success && fetchRes.backup) {
+            await restoreFromGoogleCloud(cleanEmail);
+            window.location.reload();
+            return;
+          }
+        } catch (err) {
+          console.log('No previous backup to auto-restore', err);
+        }
+      }
     }
   };
 
@@ -922,10 +940,10 @@ ${u?.name || 'Store Owner'}`
                   </div>
                   <div>
                     <h3 className="font-black text-xs text-white">
-                      Google Cloud Restore
+                      کلاؤڈ ریکوری (ڈیوائس چوری یا تبدیلی) / Cloud Recovery
                     </h3>
                     <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
-                      On a new PC, enter your registered Gmail to automatically restore all inventory, ledgers, and sales data from cloud.
+                      اگر ڈیوائس چوری ہو جائے یا نیا کمپیوٹر استعمال کر رہے ہوں، تو اپنی رجسٹرڈ جی میل درج کریں؛ تمام انوینٹری، بل ہسٹری اور کھاتے وہیں سے شروع ہو جائیں گے جہاں آپ نے چھوڑے تھے۔
                     </p>
                   </div>
                 </div>

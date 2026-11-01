@@ -128,7 +128,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const invoiceNoLabel = isUrdu ? 'انوائس نمبر:' : 'Invoice #:';
   const dateLabel = isUrdu ? 'تاریخ و وقت:' : 'Date & Time:';
   const counterLabel = isUrdu
-    ? (invoice.counterNumber !== undefined ? (invoice.counterNumber === 0 ? 'مینجر کاؤنٹر' : `کاؤنٹر #${invoice.counterNumber}`) : 'کاؤنٹر #1')
+    ? (invoice.counterNumber !== undefined ? (invoice.counterNumber === 0 ? 'ایڈمن ٹرمینل' : `کاؤنٹر #${invoice.counterNumber}`) : 'کاؤنٹر #1')
     : (invoice.counterNumber !== undefined ? (invoice.counterNumber === 0 ? 'Admin Counter' : `Counter #${invoice.counterNumber}`) : 'Counter #1');
   const cashierLabel = isUrdu ? (invoice.cashier || 'کیشیئر') : (invoice.cashier || 'Cashier');
   const cashierTitle = isUrdu ? 'کیشیئر:' : 'CASHIER:';

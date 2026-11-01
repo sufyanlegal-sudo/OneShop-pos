@@ -14,6 +14,9 @@ import {
   Check,
   X,
   Copy,
+  Banknote,
+  Package,
+  TrendingUp,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -78,8 +81,8 @@ export const InventoryView: React.FC = () => {
       costPrice: 0,
       salePrice: 0,
       wholesaleRate: 0,
-      stock: 50,
-      minStockAlert: 10,
+      stock: 0,
+      minStockAlert: 5,
     });
     setModalOpen(true);
   };
@@ -110,6 +113,18 @@ export const InventoryView: React.FC = () => {
     setEditingProduct(null);
   };
 
+  const totalStockCount = useMemo(() => {
+    return products.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
+  }, [products]);
+
+  const totalCostValue = useMemo(() => {
+    return products.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0);
+  }, [products]);
+
+  const totalSaleValue = useMemo(() => {
+    return products.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.salePrice) || 0), 0);
+  }, [products]);
+
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-4">
       {/* Top Header Card */}
@@ -137,6 +152,51 @@ export const InventoryView: React.FC = () => {
           <Plus className="w-4 h-4" />
           <span>{lang === 'ur' ? 'نیا پروڈکٹ شامل کریں' : 'Add New Item'}</span>
         </button>
+      </div>
+
+            {/* 4 KPI Summary Boxes */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600">
+            <Package className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 block">{lang === 'ur' ? 'کل ڈیٹا انٹری اشیاء' : 'Total Items'}</span>
+            <span className="text-base md:text-lg font-black font-mono text-slate-900 dark:text-white">{products.length} {lang === 'ur' ? 'اشیاء' : 'Items'}</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600">
+            <Boxes className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 block">{lang === 'ur' ? 'موجودہ کل اسٹاک' : 'Total Stock'}</span>
+            <span className="text-base md:text-lg font-black font-mono text-slate-900 dark:text-white">
+              {totalStockCount.toLocaleString()} {lang === 'ur' ? (totalStockCount === 0 ? '(صفر)' : 'یونٹس') : 'Units'}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600">
+            <Banknote className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 block">{lang === 'ur' ? 'اسٹاک مالیت (خرید)' : 'Stock Cost Value'}</span>
+            <span className="text-base md:text-lg font-black font-mono text-purple-600 dark:text-purple-400">Rs. {totalCostValue.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 block">{lang === 'ur' ? 'متوقع فروخت / سیل' : 'Sale Value'}</span>
+            <span className="text-base md:text-lg font-black font-mono text-amber-600 dark:text-amber-400">Rs. {totalSaleValue.toLocaleString()}</span>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -226,10 +286,52 @@ export const InventoryView: React.FC = () => {
                       {lang === 'ur' ? p.categoryUr : p.categoryEn}
                     </td>
                     <td className="p-3 text-right font-mono text-slate-500">
-                      {p.costPrice.toLocaleString()} PKR
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newCost = prompt(
+                            lang === 'ur'
+                              ? `خرید قیمت (Cost Price) تبدیل کریں (${p.nameUr}):`
+                              : `Edit Cost Price for ${p.nameEn}:`,
+                            p.costPrice.toString()
+                          );
+                          if (newCost !== null) {
+                            const val = parseFloat(newCost);
+                            if (!isNaN(val) && val >= 0) {
+                              saveProduct({ ...p, costPrice: val });
+                            }
+                          }
+                        }}
+                        className="hover:text-emerald-600 hover:underline inline-flex items-center justify-end gap-1 font-mono group"
+                        title={lang === 'ur' ? 'خرید قیمت تبدیل کرنے کے لیے کلک کریں' : 'Click to edit Cost Price'}
+                      >
+                        <span>{p.costPrice.toLocaleString()} PKR</span>
+                        <Edit2 className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 opacity-60 group-hover:opacity-100" />
+                      </button>
                     </td>
                     <td className="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {p.salePrice.toLocaleString()} PKR
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSale = prompt(
+                            lang === 'ur'
+                              ? `فروخت قیمت (Sale Price) تبدیل کریں (${p.nameUr}):`
+                              : `Edit Sale Price for ${p.nameEn}:`,
+                            p.salePrice.toString()
+                          );
+                          if (newSale !== null) {
+                            const val = parseFloat(newSale);
+                            if (!isNaN(val) && val >= 0) {
+                              saveProduct({ ...p, salePrice: val });
+                            }
+                          }
+                        }}
+                        className="hover:text-emerald-500 hover:underline inline-flex items-center justify-end gap-1 font-mono font-black group"
+                        title={lang === 'ur' ? 'فروخت قیمت تبدیل کرنے کے لیے کلک کریں' : 'Click to edit Sale Price'}
+                      >
+                        <span>{p.salePrice.toLocaleString()} PKR</span>
+                        <Edit2 className="w-3 h-3 text-emerald-500 opacity-60 group-hover:opacity-100" />
+                      </button>
                     </td>
                     <td className="p-3 text-right font-mono text-slate-600 dark:text-slate-300">
                       {(p.wholesaleRate || p.wholesalePrice || p.salePrice).toLocaleString()} PKR
@@ -247,6 +349,22 @@ export const InventoryView: React.FC = () => {
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
+                                                <button
+                          onClick={() => {
+                            const addQty = prompt(lang === 'ur' ? `نیا اسٹاک درج کریں (${p.nameUr}):` : `Enter stock for ${p.nameEn}:`, '50');
+                            if (addQty !== null) {
+                              const num = parseFloat(addQty);
+                              if (!isNaN(num) && num >= 0) {
+                                saveProduct({ ...p, stock: num });
+                              }
+                            }
+                          }}
+                          className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] rounded-lg border border-emerald-200 dark:border-emerald-800 transition-all flex items-center gap-1"
+                          title={lang === 'ur' ? 'فوری اسٹاک درج کریں' : 'Quick stock entry'}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{lang === 'ur' ? 'اسٹاک' : 'Stock'}</span>
+                        </button>
                         <button
                           onClick={() => handleOpenEdit(p)}
                           className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
@@ -552,7 +670,7 @@ export const InventoryView: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    value={editingProduct.stock || ''}
+                    value={editingProduct.stock !== undefined ? editingProduct.stock : 0}
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, stock: parseFloat(e.target.value) || 0 })
                     }

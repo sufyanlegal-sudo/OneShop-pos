@@ -2,7 +2,7 @@ export type BusinessPresetType = 'karyana' | 'general_store' | 'garments' | 'swe
 
 export type Language = 'ur' | 'en';
 
-export type UserRole = 'MANAGER' | 'CASHIER';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'CASHIER';
 
 export type PaymentMethod = 'CASH' | 'ONLINE' | 'CREDIT' | 'SPLIT';
 
@@ -337,6 +337,7 @@ export interface AuditLog {
     | 'STOCK_UPDATED' 
     | 'STOCK_ADDED' 
     | 'SETTINGS_CHANGED' 
+    | 'LOGIN_ADMIN'
     | 'LOGIN_MANAGER' 
     | 'CASHIER_ACCESS_GRANTED'
     | 'GRN_CREATED'

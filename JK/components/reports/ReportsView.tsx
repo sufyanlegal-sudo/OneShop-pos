@@ -547,7 +547,7 @@ export const ReportsView: React.FC = () => {
                   </h2>
                   <p className="text-xs text-slate-400">
                     {lang === 'ur'
-                      ? 'مینجر لاگ ان میں تمام 10 کاؤنٹرز کی دراز میں موجود نقد رقم، آن لائن، ادھار اور بلز کا الگ الگ حساب'
+                      ? 'ایڈمن لاگ ان میں تمام 10 کاؤنٹرز کی دراز میں موجود نقد رقم، آن لائن، ادھار اور بلز کا الگ الگ حساب'
                       : 'Audit drawer cash, sales, and shift balance individually for Counter #1 through #10'}
                   </p>
                 </div>
@@ -1246,7 +1246,7 @@ export const ReportsView: React.FC = () => {
               {/* Cash Handover Notice & Signatures */}
               <div className="pt-2 text-[10px] space-y-3">
                 <div className="text-center italic text-gray-700">
-                  Please verify drawer cash and hand over exact cash to store manager.
+                  Please verify drawer cash and hand over exact cash to store admin.
                 </div>
 
                 <div className="pt-4 flex justify-between text-[10px] font-bold">
@@ -1256,7 +1256,7 @@ export const ReportsView: React.FC = () => {
                   </div>
                   <div className="text-center">
                     <div className="w-24 border-b border-black mb-1"></div>
-                    <span>Manager Sign</span>
+                    <span>Admin Sign</span>
                   </div>
                 </div>
 

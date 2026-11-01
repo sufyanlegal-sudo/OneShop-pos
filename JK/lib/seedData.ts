@@ -153,7 +153,7 @@ export const seedProducts: Product[] = [
     "costPrice": 60,
     "salePrice": 90,
     "wholesaleRate": 75,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -174,7 +174,7 @@ export const seedProducts: Product[] = [
     "costPrice": 280,
     "salePrice": 320,
     "wholesaleRate": 295,
-    "stock": 500,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -195,7 +195,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1250,
     "salePrice": 1350,
     "wholesaleRate": 1290,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -211,7 +211,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 280,
     "wholesaleRate": 255,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -227,7 +227,7 @@ export const seedProducts: Product[] = [
     "costPrice": 110,
     "salePrice": 130,
     "wholesaleRate": 118,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -243,7 +243,7 @@ export const seedProducts: Product[] = [
     "costPrice": 180,
     "salePrice": 240,
     "wholesaleRate": 200,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -264,7 +264,7 @@ export const seedProducts: Product[] = [
     "costPrice": 190,
     "salePrice": 220,
     "wholesaleRate": 200,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -280,7 +280,7 @@ export const seedProducts: Product[] = [
     "costPrice": 400,
     "salePrice": 520,
     "wholesaleRate": 440,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -296,7 +296,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 270,
     "wholesaleRate": 250,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -312,7 +312,7 @@ export const seedProducts: Product[] = [
     "costPrice": 340,
     "salePrice": 390,
     "wholesaleRate": 360,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -328,7 +328,7 @@ export const seedProducts: Product[] = [
     "costPrice": 700,
     "salePrice": 850,
     "wholesaleRate": 750,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -344,7 +344,7 @@ export const seedProducts: Product[] = [
     "costPrice": 500,
     "salePrice": 620,
     "wholesaleRate": 540,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -360,7 +360,7 @@ export const seedProducts: Product[] = [
     "costPrice": 250,
     "salePrice": 340,
     "wholesaleRate": 280,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -376,7 +376,7 @@ export const seedProducts: Product[] = [
     "costPrice": 460,
     "salePrice": 520,
     "wholesaleRate": 485,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -392,7 +392,7 @@ export const seedProducts: Product[] = [
     "costPrice": 280,
     "salePrice": 320,
     "wholesaleRate": 295,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -408,7 +408,7 @@ export const seedProducts: Product[] = [
     "costPrice": 260,
     "salePrice": 300,
     "wholesaleRate": 275,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -429,7 +429,7 @@ export const seedProducts: Product[] = [
     "costPrice": 480,
     "salePrice": 520,
     "wholesaleRate": 495,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -450,7 +450,7 @@ export const seedProducts: Product[] = [
     "costPrice": 495,
     "salePrice": 540,
     "wholesaleRate": 510,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -466,7 +466,7 @@ export const seedProducts: Product[] = [
     "costPrice": 2200,
     "salePrice": 2600,
     "wholesaleRate": 2350,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -482,7 +482,7 @@ export const seedProducts: Product[] = [
     "costPrice": 160,
     "salePrice": 200,
     "wholesaleRate": 175,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -503,7 +503,7 @@ export const seedProducts: Product[] = [
     "costPrice": 560,
     "salePrice": 620,
     "wholesaleRate": 580,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -519,7 +519,7 @@ export const seedProducts: Product[] = [
     "costPrice": 500,
     "salePrice": 540,
     "wholesaleRate": 515,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -535,7 +535,7 @@ export const seedProducts: Product[] = [
     "costPrice": 550,
     "salePrice": 680,
     "wholesaleRate": 590,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -556,7 +556,7 @@ export const seedProducts: Product[] = [
     "costPrice": 295,
     "salePrice": 340,
     "wholesaleRate": 310,
-    "stock": 400,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -577,7 +577,7 @@ export const seedProducts: Product[] = [
     "costPrice": 510,
     "salePrice": 560,
     "wholesaleRate": 525,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -593,7 +593,7 @@ export const seedProducts: Product[] = [
     "costPrice": 130,
     "salePrice": 160,
     "wholesaleRate": 140,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -609,7 +609,7 @@ export const seedProducts: Product[] = [
     "costPrice": 510,
     "salePrice": 550,
     "wholesaleRate": 525,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -630,7 +630,7 @@ export const seedProducts: Product[] = [
     "costPrice": 265,
     "salePrice": 290,
     "wholesaleRate": 275,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -646,7 +646,7 @@ export const seedProducts: Product[] = [
     "costPrice": 420,
     "salePrice": 500,
     "wholesaleRate": 450,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -662,7 +662,7 @@ export const seedProducts: Product[] = [
     "costPrice": 50,
     "salePrice": 60,
     "wholesaleRate": 53,
-    "stock": 400,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -683,7 +683,7 @@ export const seedProducts: Product[] = [
     "costPrice": 265,
     "salePrice": 290,
     "wholesaleRate": 275,
-    "stock": 280,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -699,7 +699,7 @@ export const seedProducts: Product[] = [
     "costPrice": 380,
     "salePrice": 440,
     "wholesaleRate": 400,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -715,7 +715,7 @@ export const seedProducts: Product[] = [
     "costPrice": 170,
     "salePrice": 210,
     "wholesaleRate": 185,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -731,7 +731,7 @@ export const seedProducts: Product[] = [
     "costPrice": 138,
     "salePrice": 150,
     "wholesaleRate": 142,
-    "stock": 1200,
+    "stock": 0,
     "minStockAlert": 100
   },
   {
@@ -747,7 +747,7 @@ export const seedProducts: Product[] = [
     "costPrice": 140,
     "salePrice": 170,
     "wholesaleRate": 150,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -770,7 +770,7 @@ export const seedProducts: Product[] = [
     "costPrice": 530,
     "salePrice": 590,
     "wholesaleRate": 550,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -786,7 +786,7 @@ export const seedProducts: Product[] = [
     "costPrice": 520,
     "salePrice": 580,
     "wholesaleRate": 540,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -802,7 +802,7 @@ export const seedProducts: Product[] = [
     "costPrice": 280,
     "salePrice": 340,
     "wholesaleRate": 300,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -823,7 +823,7 @@ export const seedProducts: Product[] = [
     "costPrice": 540,
     "salePrice": 610,
     "wholesaleRate": 565,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -844,7 +844,7 @@ export const seedProducts: Product[] = [
     "costPrice": 330,
     "salePrice": 380,
     "wholesaleRate": 350,
-    "stock": 220,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -860,7 +860,7 @@ export const seedProducts: Product[] = [
     "costPrice": 340,
     "salePrice": 390,
     "wholesaleRate": 360,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -876,7 +876,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1250,
     "salePrice": 1450,
     "wholesaleRate": 1320,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -892,7 +892,7 @@ export const seedProducts: Product[] = [
     "costPrice": 370,
     "salePrice": 440,
     "wholesaleRate": 395,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -908,7 +908,7 @@ export const seedProducts: Product[] = [
     "costPrice": 190,
     "salePrice": 230,
     "wholesaleRate": 205,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -924,7 +924,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 290,
     "wholesaleRate": 260,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -940,7 +940,7 @@ export const seedProducts: Product[] = [
     "costPrice": 380,
     "salePrice": 450,
     "wholesaleRate": 405,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -956,7 +956,7 @@ export const seedProducts: Product[] = [
     "costPrice": 120,
     "salePrice": 145,
     "wholesaleRate": 130,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -972,7 +972,7 @@ export const seedProducts: Product[] = [
     "costPrice": 190,
     "salePrice": 230,
     "wholesaleRate": 205,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -988,7 +988,7 @@ export const seedProducts: Product[] = [
     "costPrice": 380,
     "salePrice": 480,
     "wholesaleRate": 410,
-    "stock": 75,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -1004,7 +1004,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 270,
     "wholesaleRate": 240,
-    "stock": 130,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1020,7 +1020,7 @@ export const seedProducts: Product[] = [
     "costPrice": 150,
     "salePrice": 190,
     "wholesaleRate": 165,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1036,7 +1036,7 @@ export const seedProducts: Product[] = [
     "costPrice": 650,
     "salePrice": 790,
     "wholesaleRate": 700,
-    "stock": 50,
+    "stock": 0,
     "minStockAlert": 8
   },
   {
@@ -1057,7 +1057,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 260,
     "wholesaleRate": 235,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1078,7 +1078,7 @@ export const seedProducts: Product[] = [
     "costPrice": 330,
     "salePrice": 390,
     "wholesaleRate": 355,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1094,7 +1094,7 @@ export const seedProducts: Product[] = [
     "costPrice": 360,
     "salePrice": 440,
     "wholesaleRate": 390,
-    "stock": 70,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -1110,7 +1110,7 @@ export const seedProducts: Product[] = [
     "costPrice": 380,
     "salePrice": 470,
     "wholesaleRate": 410,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1126,7 +1126,7 @@ export const seedProducts: Product[] = [
     "costPrice": 75,
     "salePrice": 95,
     "wholesaleRate": 82,
-    "stock": 400,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -1142,7 +1142,7 @@ export const seedProducts: Product[] = [
     "costPrice": 95,
     "salePrice": 120,
     "wholesaleRate": 105,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1158,7 +1158,7 @@ export const seedProducts: Product[] = [
     "costPrice": 135,
     "salePrice": 165,
     "wholesaleRate": 145,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -1174,7 +1174,7 @@ export const seedProducts: Product[] = [
     "costPrice": 160,
     "salePrice": 200,
     "wholesaleRate": 175,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1190,7 +1190,7 @@ export const seedProducts: Product[] = [
     "costPrice": 420,
     "salePrice": 510,
     "wholesaleRate": 450,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1206,7 +1206,7 @@ export const seedProducts: Product[] = [
     "costPrice": 270,
     "salePrice": 330,
     "wholesaleRate": 290,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1222,7 +1222,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1950,
     "salePrice": 2250,
     "wholesaleRate": 2050,
-    "stock": 70,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -1238,7 +1238,7 @@ export const seedProducts: Product[] = [
     "costPrice": 110,
     "salePrice": 150,
     "wholesaleRate": 125,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1254,7 +1254,7 @@ export const seedProducts: Product[] = [
     "costPrice": 85,
     "salePrice": 110,
     "wholesaleRate": 95,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1270,7 +1270,7 @@ export const seedProducts: Product[] = [
     "costPrice": 210,
     "salePrice": 260,
     "wholesaleRate": 225,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -1286,7 +1286,7 @@ export const seedProducts: Product[] = [
     "costPrice": 115,
     "salePrice": 140,
     "wholesaleRate": 125,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1302,7 +1302,7 @@ export const seedProducts: Product[] = [
     "costPrice": 340,
     "salePrice": 410,
     "wholesaleRate": 365,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1318,7 +1318,7 @@ export const seedProducts: Product[] = [
     "costPrice": 270,
     "salePrice": 330,
     "wholesaleRate": 290,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1339,7 +1339,7 @@ export const seedProducts: Product[] = [
     "costPrice": 560,
     "salePrice": 640,
     "wholesaleRate": 590,
-    "stock": 220,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -1355,7 +1355,7 @@ export const seedProducts: Product[] = [
     "costPrice": 140,
     "salePrice": 180,
     "wholesaleRate": 155,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1371,7 +1371,7 @@ export const seedProducts: Product[] = [
     "costPrice": 420,
     "salePrice": 510,
     "wholesaleRate": 450,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -1387,7 +1387,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 290,
     "wholesaleRate": 260,
-    "stock": 130,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1409,7 +1409,7 @@ export const seedProducts: Product[] = [
     "costPrice": 42,
     "salePrice": 50,
     "wholesaleRate": 45,
-    "stock": 400,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1425,7 +1425,7 @@ export const seedProducts: Product[] = [
     "costPrice": 3.8,
     "salePrice": 5,
     "wholesaleRate": 4.2,
-    "stock": 1000,
+    "stock": 0,
     "minStockAlert": 100
   },
   {
@@ -1448,7 +1448,7 @@ export const seedProducts: Product[] = [
     "costPrice": 85,
     "salePrice": 100,
     "wholesaleRate": 90,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1464,7 +1464,7 @@ export const seedProducts: Product[] = [
     "costPrice": 16,
     "salePrice": 20,
     "wholesaleRate": 17.5,
-    "stock": 500,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -1485,7 +1485,7 @@ export const seedProducts: Product[] = [
     "costPrice": 21,
     "salePrice": 25,
     "wholesaleRate": 22.5,
-    "stock": 600,
+    "stock": 0,
     "minStockAlert": 60
   },
   {
@@ -1501,7 +1501,7 @@ export const seedProducts: Product[] = [
     "costPrice": 180,
     "salePrice": 250,
     "wholesaleRate": 200,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1517,7 +1517,7 @@ export const seedProducts: Product[] = [
     "costPrice": 42,
     "salePrice": 50,
     "wholesaleRate": 45,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -1533,7 +1533,7 @@ export const seedProducts: Product[] = [
     "costPrice": 15,
     "salePrice": 20,
     "wholesaleRate": 16.5,
-    "stock": 450,
+    "stock": 0,
     "minStockAlert": 50
   },
   {
@@ -1549,7 +1549,7 @@ export const seedProducts: Product[] = [
     "costPrice": 3.8,
     "salePrice": 5,
     "wholesaleRate": 4.1,
-    "stock": 1500,
+    "stock": 0,
     "minStockAlert": 150
   },
   {
@@ -1565,7 +1565,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 280,
     "wholesaleRate": 240,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1581,7 +1581,7 @@ export const seedProducts: Product[] = [
     "costPrice": 24,
     "salePrice": 30,
     "wholesaleRate": 26,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -1597,7 +1597,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 320,
     "wholesaleRate": 270,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1613,7 +1613,7 @@ export const seedProducts: Product[] = [
     "costPrice": 125,
     "salePrice": 150,
     "wholesaleRate": 135,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -1634,7 +1634,7 @@ export const seedProducts: Product[] = [
     "costPrice": 25,
     "salePrice": 30,
     "wholesaleRate": 27,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1655,7 +1655,7 @@ export const seedProducts: Product[] = [
     "costPrice": 42,
     "salePrice": 50,
     "wholesaleRate": 45,
-    "stock": 320,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -1676,7 +1676,7 @@ export const seedProducts: Product[] = [
     "costPrice": 42,
     "salePrice": 50,
     "wholesaleRate": 45,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -1697,7 +1697,7 @@ export const seedProducts: Product[] = [
     "costPrice": 42,
     "salePrice": 50,
     "wholesaleRate": 45,
-    "stock": 280,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -1713,7 +1713,7 @@ export const seedProducts: Product[] = [
     "costPrice": 24,
     "salePrice": 30,
     "wholesaleRate": 26,
-    "stock": 240,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -1729,7 +1729,7 @@ export const seedProducts: Product[] = [
     "costPrice": 20,
     "salePrice": 25,
     "wholesaleRate": 21.5,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40
   },
   {
@@ -1745,7 +1745,7 @@ export const seedProducts: Product[] = [
     "costPrice": 75,
     "salePrice": 100,
     "wholesaleRate": 85,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1761,7 +1761,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 300,
     "wholesaleRate": 250,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1777,7 +1777,7 @@ export const seedProducts: Product[] = [
     "costPrice": 60,
     "salePrice": 90,
     "wholesaleRate": 72,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1793,7 +1793,7 @@ export const seedProducts: Product[] = [
     "costPrice": 24,
     "salePrice": 30,
     "wholesaleRate": 26,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 35
   },
   {
@@ -1809,7 +1809,7 @@ export const seedProducts: Product[] = [
     "costPrice": 200,
     "salePrice": 280,
     "wholesaleRate": 230,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -1825,7 +1825,7 @@ export const seedProducts: Product[] = [
     "costPrice": 24,
     "salePrice": 30,
     "wholesaleRate": 26,
-    "stock": 220,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -1841,7 +1841,7 @@ export const seedProducts: Product[] = [
     "costPrice": 150,
     "salePrice": 180,
     "wholesaleRate": 160,
-    "stock": 130,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -1862,7 +1862,7 @@ export const seedProducts: Product[] = [
     "costPrice": 45,
     "salePrice": 60,
     "wholesaleRate": 50,
-    "stock": 350,
+    "stock": 0,
     "minStockAlert": 40,
     "isKotItem": false
   },
@@ -1879,7 +1879,7 @@ export const seedProducts: Product[] = [
     "costPrice": 320,
     "salePrice": 480,
     "wholesaleRate": 400,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -1896,7 +1896,7 @@ export const seedProducts: Product[] = [
     "costPrice": 450,
     "salePrice": 690,
     "wholesaleRate": 560,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -1913,7 +1913,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 340,
     "wholesaleRate": 280,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15,
     "isKotItem": true
   },
@@ -1935,7 +1935,7 @@ export const seedProducts: Product[] = [
     "costPrice": 580,
     "salePrice": 850,
     "wholesaleRate": 700,
-    "stock": 50,
+    "stock": 0,
     "minStockAlert": 8,
     "isKotItem": true
   },
@@ -1957,7 +1957,7 @@ export const seedProducts: Product[] = [
     "costPrice": 520,
     "salePrice": 750,
     "wholesaleRate": 630,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -1974,7 +1974,7 @@ export const seedProducts: Product[] = [
     "costPrice": 350,
     "salePrice": 520,
     "wholesaleRate": 430,
-    "stock": 70,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -1991,7 +1991,7 @@ export const seedProducts: Product[] = [
     "costPrice": 160,
     "salePrice": 250,
     "wholesaleRate": 200,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20,
     "isKotItem": true
   },
@@ -2008,7 +2008,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 320,
     "wholesaleRate": 270,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12,
     "isKotItem": true
   },
@@ -2030,7 +2030,7 @@ export const seedProducts: Product[] = [
     "costPrice": 560,
     "salePrice": 820,
     "wholesaleRate": 680,
-    "stock": 45,
+    "stock": 0,
     "minStockAlert": 8,
     "isKotItem": true
   },
@@ -2047,7 +2047,7 @@ export const seedProducts: Product[] = [
     "costPrice": 290,
     "salePrice": 450,
     "wholesaleRate": 360,
-    "stock": 65,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -2064,7 +2064,7 @@ export const seedProducts: Product[] = [
     "costPrice": 55,
     "salePrice": 70,
     "wholesaleRate": 60,
-    "stock": 400,
+    "stock": 0,
     "minStockAlert": 50,
     "isKotItem": false
   },
@@ -2081,7 +2081,7 @@ export const seedProducts: Product[] = [
     "costPrice": 40,
     "salePrice": 70,
     "wholesaleRate": 50,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 20,
     "isKotItem": true
   },
@@ -2098,7 +2098,7 @@ export const seedProducts: Product[] = [
     "costPrice": 25,
     "salePrice": 60,
     "wholesaleRate": 40,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 20,
     "isKotItem": true
   },
@@ -2115,7 +2115,7 @@ export const seedProducts: Product[] = [
     "costPrice": 45,
     "salePrice": 80,
     "wholesaleRate": 60,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 30,
     "isKotItem": true
   },
@@ -2132,7 +2132,7 @@ export const seedProducts: Product[] = [
     "costPrice": 220,
     "salePrice": 380,
     "wholesaleRate": 290,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12,
     "isKotItem": true
   },
@@ -2154,7 +2154,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1250,
     "salePrice": 1750,
     "wholesaleRate": 1450,
-    "stock": 30,
+    "stock": 0,
     "minStockAlert": 5,
     "isKotItem": true
   },
@@ -2177,7 +2177,7 @@ export const seedProducts: Product[] = [
     "costPrice": 580,
     "salePrice": 890,
     "wholesaleRate": 720,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10,
     "isKotItem": true
   },
@@ -2194,7 +2194,7 @@ export const seedProducts: Product[] = [
     "costPrice": 30,
     "salePrice": 50,
     "wholesaleRate": 38,
-    "stock": 300,
+    "stock": 0,
     "minStockAlert": 30,
     "isKotItem": true
   },
@@ -2211,7 +2211,7 @@ export const seedProducts: Product[] = [
     "costPrice": 15,
     "salePrice": 25,
     "wholesaleRate": 20,
-    "stock": 500,
+    "stock": 0,
     "minStockAlert": 50,
     "isKotItem": true
   },
@@ -2228,7 +2228,7 @@ export const seedProducts: Product[] = [
     "costPrice": 280,
     "salePrice": 420,
     "wholesaleRate": 340,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15,
     "isKotItem": true
   },
@@ -2250,7 +2250,7 @@ export const seedProducts: Product[] = [
     "costPrice": 680,
     "salePrice": 880,
     "wholesaleRate": 750,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2266,7 +2266,7 @@ export const seedProducts: Product[] = [
     "costPrice": 750,
     "salePrice": 950,
     "wholesaleRate": 820,
-    "stock": 100,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2287,7 +2287,7 @@ export const seedProducts: Product[] = [
     "costPrice": 500,
     "salePrice": 750,
     "wholesaleRate": 600,
-    "stock": 40,
+    "stock": 0,
     "minStockAlert": 6
   },
   {
@@ -2308,7 +2308,7 @@ export const seedProducts: Product[] = [
     "costPrice": 480,
     "salePrice": 620,
     "wholesaleRate": 530,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2324,7 +2324,7 @@ export const seedProducts: Product[] = [
     "costPrice": 700,
     "salePrice": 900,
     "wholesaleRate": 770,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2340,7 +2340,7 @@ export const seedProducts: Product[] = [
     "costPrice": 50,
     "salePrice": 80,
     "wholesaleRate": 62,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -2361,7 +2361,7 @@ export const seedProducts: Product[] = [
     "costPrice": 580,
     "salePrice": 850,
     "wholesaleRate": 680,
-    "stock": 35,
+    "stock": 0,
     "minStockAlert": 5
   },
   {
@@ -2377,7 +2377,7 @@ export const seedProducts: Product[] = [
     "costPrice": 800,
     "salePrice": 1100,
     "wholesaleRate": 900,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2398,7 +2398,7 @@ export const seedProducts: Product[] = [
     "costPrice": 720,
     "salePrice": 950,
     "wholesaleRate": 800,
-    "stock": 120,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2414,7 +2414,7 @@ export const seedProducts: Product[] = [
     "costPrice": 480,
     "salePrice": 650,
     "wholesaleRate": 540,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2430,7 +2430,7 @@ export const seedProducts: Product[] = [
     "costPrice": 850,
     "salePrice": 1150,
     "wholesaleRate": 950,
-    "stock": 75,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2446,7 +2446,7 @@ export const seedProducts: Product[] = [
     "costPrice": 130,
     "salePrice": 170,
     "wholesaleRate": 145,
-    "stock": 180,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -2467,7 +2467,7 @@ export const seedProducts: Product[] = [
     "costPrice": 800,
     "salePrice": 1050,
     "wholesaleRate": 880,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2483,7 +2483,7 @@ export const seedProducts: Product[] = [
     "costPrice": 620,
     "salePrice": 820,
     "wholesaleRate": 690,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2499,7 +2499,7 @@ export const seedProducts: Product[] = [
     "costPrice": 70,
     "salePrice": 120,
     "wholesaleRate": 90,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2515,7 +2515,7 @@ export const seedProducts: Product[] = [
     "costPrice": 650,
     "salePrice": 850,
     "wholesaleRate": 720,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2536,7 +2536,7 @@ export const seedProducts: Product[] = [
     "costPrice": 460,
     "salePrice": 620,
     "wholesaleRate": 510,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2558,7 +2558,7 @@ export const seedProducts: Product[] = [
     "costPrice": 950,
     "salePrice": 1450,
     "wholesaleRate": 1150,
-    "stock": 80,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2580,7 +2580,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1100,
     "salePrice": 1650,
     "wholesaleRate": 1300,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2596,7 +2596,7 @@ export const seedProducts: Product[] = [
     "costPrice": 240,
     "salePrice": 380,
     "wholesaleRate": 290,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2612,7 +2612,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1600,
     "salePrice": 2200,
     "wholesaleRate": 1800,
-    "stock": 150,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2628,7 +2628,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1950,
     "salePrice": 2650,
     "wholesaleRate": 2200,
-    "stock": 85,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2644,7 +2644,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1700,
     "salePrice": 2350,
     "wholesaleRate": 1950,
-    "stock": 95,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2660,7 +2660,7 @@ export const seedProducts: Product[] = [
     "costPrice": 2100,
     "salePrice": 2800,
     "wholesaleRate": 2350,
-    "stock": 60,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2682,7 +2682,7 @@ export const seedProducts: Product[] = [
     "costPrice": 980,
     "salePrice": 1550,
     "wholesaleRate": 1200,
-    "stock": 75,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2704,7 +2704,7 @@ export const seedProducts: Product[] = [
     "costPrice": 190,
     "salePrice": 280,
     "wholesaleRate": 220,
-    "stock": 250,
+    "stock": 0,
     "minStockAlert": 30
   },
   {
@@ -2726,7 +2726,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1800,
     "salePrice": 2650,
     "wholesaleRate": 2100,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2748,7 +2748,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1650,
     "salePrice": 2450,
     "wholesaleRate": 1950,
-    "stock": 110,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2770,7 +2770,7 @@ export const seedProducts: Product[] = [
     "costPrice": 140,
     "salePrice": 220,
     "wholesaleRate": 165,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -2792,7 +2792,7 @@ export const seedProducts: Product[] = [
     "costPrice": 420,
     "salePrice": 650,
     "wholesaleRate": 500,
-    "stock": 160,
+    "stock": 0,
     "minStockAlert": 20
   },
   {
@@ -2814,7 +2814,7 @@ export const seedProducts: Product[] = [
     "costPrice": 620,
     "salePrice": 950,
     "wholesaleRate": 740,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 18
   },
   {
@@ -2830,7 +2830,7 @@ export const seedProducts: Product[] = [
     "costPrice": 80,
     "salePrice": 150,
     "wholesaleRate": 105,
-    "stock": 200,
+    "stock": 0,
     "minStockAlert": 25
   },
   {
@@ -2851,7 +2851,7 @@ export const seedProducts: Product[] = [
     "costPrice": 1450,
     "salePrice": 2150,
     "wholesaleRate": 1700,
-    "stock": 85,
+    "stock": 0,
     "minStockAlert": 12
   },
   {
@@ -2873,7 +2873,7 @@ export const seedProducts: Product[] = [
     "costPrice": 850,
     "salePrice": 1250,
     "wholesaleRate": 980,
-    "stock": 90,
+    "stock": 0,
     "minStockAlert": 15
   },
   {
@@ -2889,7 +2889,7 @@ export const seedProducts: Product[] = [
     "costPrice": 2200,
     "salePrice": 3200,
     "wholesaleRate": 2550,
-    "stock": 70,
+    "stock": 0,
     "minStockAlert": 10
   },
   {
@@ -2905,8 +2905,949 @@ export const seedProducts: Product[] = [
     "costPrice": 250,
     "salePrice": 420,
     "wholesaleRate": 310,
-    "stock": 140,
+    "stock": 0,
     "minStockAlert": 20
+  },
+  {
+    "id": "kar-extra-01",
+    "preset": "karyana",
+    "barcode": "896400010051",
+    "sku": "CHANA-KALA-DESI",
+    "nameEn": "Kala Chana Desi Small (1kg / 500g)",
+    "nameUr": "کالا چنا دیسی باریک دیسی (1 کلو و 500 گرام)",
+    "categoryEn": "Grains & Pulses",
+    "categoryUr": "چاول، غلہ و دالیں",
+    "unit": "Kg",
+    "hasVariations": true,
+    "sizes": [
+      "500 گرام (140 PKR)",
+      "1 کلو (270 PKR)"
+    ],
+    "costPrice": 240,
+    "salePrice": 270,
+    "wholesaleRate": 250,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "kar-extra-02",
+    "preset": "karyana",
+    "barcode": "896400010052",
+    "sku": "LOBIA-SAFED-DESI",
+    "nameEn": "White Lobia Beans Premium (1kg / 500g)",
+    "nameUr": "سفید لوبیا راجما موٹا خالص (1 کلو و 500 گرام)",
+    "categoryEn": "Grains & Pulses",
+    "categoryUr": "چاول، غلہ و دالیں",
+    "unit": "Kg",
+    "hasVariations": true,
+    "sizes": [
+      "500 گرام (160 PKR)",
+      "1 کلو (310 PKR)"
+    ],
+    "costPrice": 280,
+    "salePrice": 310,
+    "wholesaleRate": 290,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "kar-extra-03",
+    "preset": "karyana",
+    "barcode": "896400010053",
+    "sku": "MAKKI-ATTA-DESI",
+    "nameEn": "Corn Flour Makki Atta Desi Yellow (1kg / 5kg)",
+    "nameUr": "مکئی کا آٹا دیسی پیلا چکی پسائی (1 کلو و 5 کلو)",
+    "categoryEn": "Flour & Grains",
+    "categoryUr": "آٹا، میدہ و سوجی",
+    "unit": "Kg",
+    "hasVariations": true,
+    "sizes": [
+      "1 کلو (130 PKR)",
+      "5 کلو (620 PKR)"
+    ],
+    "costPrice": 110,
+    "salePrice": 130,
+    "wholesaleRate": 118,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "kar-extra-04",
+    "preset": "karyana",
+    "barcode": "896400010054",
+    "sku": "SEVIYAN-NATIONAL-VERMIC",
+    "nameEn": "National Roasted Vermicelli Seviyan (150g)",
+    "nameUr": "نیشنل بھنی ہوئی سویاں موٹی و باریک (150 گرام پیکٹ)",
+    "categoryEn": "Flour & Grains",
+    "categoryUr": "آٹا، میدہ و سوجی",
+    "unit": "پیکٹ",
+    "costPrice": 65,
+    "salePrice": 80,
+    "wholesaleRate": 72,
+    "stock": 0,
+    "minStockAlert": 24
+  },
+  {
+    "id": "kar-extra-05",
+    "preset": "karyana",
+    "barcode": "896400010055",
+    "sku": "JAM-E-SHIRIN-800ML",
+    "nameEn": "Qarshi Jam-e-Shirin Sharbat (800ml Bottle)",
+    "nameUr": "جامِ شیریں قرشی شربت خالص خوشبودار (800 ملی لیٹر بوتل)",
+    "categoryEn": "Tea, Milk & Beverages",
+    "categoryUr": "چائے، دودھ و کافی",
+    "unit": "بوتل",
+    "costPrice": 340,
+    "salePrice": 380,
+    "wholesaleRate": 355,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "kar-extra-06",
+    "preset": "karyana",
+    "barcode": "896400010056",
+    "sku": "ROOH-AFZA-800ML",
+    "nameEn": "Hamdard Rooh Afza Sharbat (800ml Bottle)",
+    "nameUr": "ہمدرد روح افزا مشروب مشرق (800 ملی لیٹر بوتل)",
+    "categoryEn": "Tea, Milk & Beverages",
+    "categoryUr": "چائے، دودھ و کافی",
+    "unit": "بوتل",
+    "costPrice": 350,
+    "salePrice": 390,
+    "wholesaleRate": 365,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "kar-extra-07",
+    "preset": "karyana",
+    "barcode": "896400010057",
+    "sku": "HONEY-BERI-PURE-500G",
+    "nameEn": "Pure Natural Sidr / Beri Honey (500g Jar)",
+    "nameUr": "شہد خالص بیری قدرتی چھوٹی مکھی (500 گرام جار)",
+    "categoryEn": "Sugar & Sweeteners",
+    "categoryUr": "چینی، گڑ و شکر",
+    "unit": "جار",
+    "costPrice": 950,
+    "salePrice": 1250,
+    "wholesaleRate": 1050,
+    "stock": 0,
+    "minStockAlert": 6
+  },
+  {
+    "id": "kar-extra-08",
+    "preset": "karyana",
+    "barcode": "896400010058",
+    "sku": "NATIONAL-MIX-PICKLE-1KG",
+    "nameEn": "National Mixed Pickle in Oil (1kg Jar)",
+    "nameUr": "نیشنل مکس اچار روایتی سرسوں کے تیل والا (1 کلو جار)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "جار",
+    "costPrice": 380,
+    "salePrice": 440,
+    "wholesaleRate": 400,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "kar-extra-09",
+    "preset": "karyana",
+    "barcode": "896400010059",
+    "sku": "TAPAL-DANAH-450G",
+    "nameEn": "Tapal Danedar Strong Tea (450g Pack)",
+    "nameUr": "تپال دانے دار کڑک چائے (450 گرام فیملی پیک)",
+    "categoryEn": "Tea, Milk & Beverages",
+    "categoryUr": "چائے، دودھ و کافی",
+    "unit": "پیکٹ",
+    "costPrice": 620,
+    "salePrice": 690,
+    "wholesaleRate": 645,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "kar-extra-10",
+    "preset": "karyana",
+    "barcode": "896400010060",
+    "sku": "SHANGRILA-SOYA-CHILLI-SAUCE",
+    "nameEn": "Shangrila Soya & Chilli Sauce Set (300ml)",
+    "nameUr": "شنگریلا سویا ساس و چلی ساس بوتل (300 ملی لیٹر)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "بوتل",
+    "costPrice": 140,
+    "salePrice": 170,
+    "wholesaleRate": 150,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "kar-extra-11",
+    "preset": "karyana",
+    "barcode": "896400010061",
+    "sku": "SHANGRILA-KETCHUP-500G",
+    "nameEn": "Shangrila Tomato Ketchup Pouch (500g)",
+    "nameUr": "شنگریلا ٹماٹو کیچپ اسپیشل پاؤچ (500 گرام)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "پاؤچ",
+    "costPrice": 210,
+    "salePrice": 250,
+    "wholesaleRate": 225,
+    "stock": 0,
+    "minStockAlert": 18
+  },
+  {
+    "id": "kar-extra-12",
+    "preset": "karyana",
+    "barcode": "896400010062",
+    "sku": "SAUNF-DESI-CLEAN",
+    "nameEn": "Saunf Desi Sweet Fennel Seeds (250g / 500g)",
+    "nameUr": "سونف خالص دیسی مٹھیائی و چائے والی (250 گرام و 500 گرام)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "گرام",
+    "costPrice": 150,
+    "salePrice": 200,
+    "wholesaleRate": 170,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "kar-extra-13",
+    "preset": "karyana",
+    "barcode": "896400010063",
+    "sku": "KALONJI-DESI-PURE",
+    "nameEn": "Kalonji Black Seeds Pure (100g / 250g)",
+    "nameUr": "کلونجی خالص دیسی صاف شدہ (100 گرام و 250 گرام)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و جڑی بوٹیاں",
+    "unit": "گرام",
+    "costPrice": 90,
+    "salePrice": 130,
+    "wholesaleRate": 105,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "kar-extra-14",
+    "preset": "karyana",
+    "barcode": "896400010064",
+    "sku": "DALCHINI-CINNAMON-STICKS",
+    "nameEn": "Dalchini Cinnamon Sticks Whole (100g / 250g)",
+    "nameUr": "دار چینی گول چھال خالص گرم مصالحہ (100 گرام و 250 گرام)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "گرام",
+    "costPrice": 120,
+    "salePrice": 170,
+    "wholesaleRate": 135,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "kar-extra-15",
+    "preset": "karyana",
+    "barcode": "896400010065",
+    "sku": "LAUNG-CLOVES-PURE",
+    "nameEn": "Laung Cloves Whole Desi (50g / 100g)",
+    "nameUr": "لونگ ثابت خالص کالی خوشبودار (50 گرام و 100 گرام)",
+    "categoryEn": "Spices & Seasonings",
+    "categoryUr": "مصالحہ جات و نمک",
+    "unit": "گرام",
+    "costPrice": 160,
+    "salePrice": 220,
+    "wholesaleRate": 180,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "gen-extra-01",
+    "preset": "general_store",
+    "barcode": "896400020051",
+    "sku": "HARPIC-TOILET-500ML",
+    "nameEn": "Harpic Power Plus Toilet Cleaner (500ml)",
+    "nameUr": "ہارپک ٹوائلٹ کلینر پاور پلس جراثیم کش (500 ملی لیٹر)",
+    "categoryEn": "Household Cleaners",
+    "categoryUr": "گھریلو صفائی و کلینرز",
+    "unit": "بوتل",
+    "costPrice": 240,
+    "salePrice": 280,
+    "wholesaleRate": 255,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "gen-extra-02",
+    "preset": "general_store",
+    "barcode": "896400020052",
+    "sku": "SURF-EXCEL-1KG",
+    "nameEn": "Surf Excel Quick Wash Washing Powder (1kg)",
+    "nameUr": "سرف ایکسل کوئیک واش سرف پاؤڈر داغ صاف (1 کلو پیکٹ)",
+    "categoryEn": "Detergent & Laundry",
+    "categoryUr": "سرف و لانڈری",
+    "unit": "پیکٹ",
+    "costPrice": 560,
+    "salePrice": 630,
+    "wholesaleRate": 585,
+    "stock": 0,
+    "minStockAlert": 18
+  },
+  {
+    "id": "gen-extra-03",
+    "preset": "general_store",
+    "barcode": "896400020053",
+    "sku": "LUX-BEAUTY-ROSE-140G",
+    "nameEn": "Lux Velvet Glow Rose Beauty Soap (140g)",
+    "nameUr": "لکس بیوٹی صابن گلاب ویلوٹ گلو (140 گرام)",
+    "categoryEn": "Soaps & Body Wash",
+    "categoryUr": "صابن و باڈی واش",
+    "unit": "عدد",
+    "costPrice": 135,
+    "salePrice": 160,
+    "wholesaleRate": 142,
+    "stock": 0,
+    "minStockAlert": 24
+  },
+  {
+    "id": "gen-extra-04",
+    "preset": "general_store",
+    "barcode": "896400020054",
+    "sku": "DETTOL-HANDWASH-250ML",
+    "nameEn": "Dettol Antibacterial Liquid Handwash (250ml)",
+    "nameUr": "ڈیٹول اینٹی بیکٹیریل ہینڈ واش مائع پمپ (250 ملی لیٹر)",
+    "categoryEn": "Soaps & Body Wash",
+    "categoryUr": "صابن و باڈی واش",
+    "unit": "بوتل",
+    "costPrice": 280,
+    "salePrice": 330,
+    "wholesaleRate": 295,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "gen-extra-05",
+    "preset": "general_store",
+    "barcode": "896400020055",
+    "sku": "GLOW-LOVELY-50G",
+    "nameEn": "Glow & Lovely Advanced Multivitamin Cream (50g)",
+    "nameUr": "گلو اینڈ لولی فیس کریم ملٹی وٹامن (50 گرام)",
+    "categoryEn": "Skin & Beauty Care",
+    "categoryUr": "خوبصورتی، لوشن و فیس کریم",
+    "unit": "عدد",
+    "costPrice": 250,
+    "salePrice": 295,
+    "wholesaleRate": 265,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "gen-extra-06",
+    "preset": "general_store",
+    "barcode": "896400020056",
+    "sku": "SENSODYNE-RAPID-100G",
+    "nameEn": "Sensodyne Rapid Relief Toothpaste (100g)",
+    "nameUr": "سنسو ڈائن ریپڈ ریلیف ٹوتھ پیسٹ دانتوں کی ٹھنڈک (100 گرام)",
+    "categoryEn": "Oral & Dental Care",
+    "categoryUr": "دانتوں کی صفائی و ٹوتھ پیسٹ",
+    "unit": "عدد",
+    "costPrice": 340,
+    "salePrice": 395,
+    "wholesaleRate": 360,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "gen-extra-07",
+    "preset": "general_store",
+    "barcode": "896400020057",
+    "sku": "MORTEIN-LIQUID-REFILL",
+    "nameEn": "Mortein PowerGard Mosquito Vaporizer Refill",
+    "nameUr": "مورٹین مچھر مار لکوڈ ری فل رات کی نیند (مشین بوتل)",
+    "categoryEn": "Insect Killers & Coils",
+    "categoryUr": "کیڑے مار اسپرے و کوائل",
+    "unit": "عدد",
+    "costPrice": 260,
+    "salePrice": 310,
+    "wholesaleRate": 275,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "gen-extra-08",
+    "preset": "general_store",
+    "barcode": "896400020058",
+    "sku": "WHITE-PHENYL-1L",
+    "nameEn": "White Phenyl Disinfectant Floor Cleaner (1 Liter)",
+    "nameUr": "سفید فنائل خوشبودار فرش کلینر جراثیم کش (1 لیٹر بوتل)",
+    "categoryEn": "Household Cleaners",
+    "categoryUr": "گھریلو صفائی و کلینرز",
+    "unit": "لیٹر",
+    "costPrice": 110,
+    "salePrice": 150,
+    "wholesaleRate": 125,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "gen-extra-09",
+    "preset": "general_store",
+    "barcode": "896400020059",
+    "sku": "SUFI-LAUNDRY-SOAP-4PK",
+    "nameEn": "Sufi Pure Laundry Soap Bars (Pack of 4)",
+    "nameUr": "صوفی صابن لانڈری خالص پیلا ٹکیاں (4 عدد بنڈل)",
+    "categoryEn": "Detergent & Laundry",
+    "categoryUr": "سرف و لانڈری",
+    "unit": "پیکٹ",
+    "costPrice": 180,
+    "salePrice": 220,
+    "wholesaleRate": 195,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "gen-extra-10",
+    "preset": "general_store",
+    "barcode": "896400020060",
+    "sku": "DURACELL-AA-2PK",
+    "nameEn": "Duracell AA Batteries Heavy Duty (Pack of 2)",
+    "nameUr": "ڈیوراسل ڈبل اے ریموٹ بیٹریاں پنسل سیل (2 عدد پیکٹ)",
+    "categoryEn": "Batteries & Hardware",
+    "categoryUr": "سیل بیٹریاں و ہارڈویئر",
+    "unit": "پیکٹ",
+    "costPrice": 220,
+    "salePrice": 270,
+    "wholesaleRate": 235,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "gen-extra-11",
+    "preset": "general_store",
+    "barcode": "896400020061",
+    "sku": "KIWI-SHOE-POLISH-BLACK",
+    "nameEn": "Kiwi Quality Shoe Polish Black Wax (50ml Tin)",
+    "nameUr": "کیوی جوتا پالش سیاہ واکس شائن (50 ملی لیٹر ڈبی)",
+    "categoryEn": "Household Cleaners",
+    "categoryUr": "گھریلو صفائی و کلینرز",
+    "unit": "عدد",
+    "costPrice": 120,
+    "salePrice": 150,
+    "wholesaleRate": 130,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "gen-extra-12",
+    "preset": "general_store",
+    "barcode": "896400020062",
+    "sku": "VASELINE-PETROLEUM-100G",
+    "nameEn": "Vaseline 100% Pure Petroleum Jelly (100ml)",
+    "nameUr": "ویزلین پیٹرولیم جیلی خالص جلد تحفظ (100 گرام جار)",
+    "categoryEn": "Skin & Beauty Care",
+    "categoryUr": "خوبصورتی، لوشن و فیس کریم",
+    "unit": "عدد",
+    "costPrice": 170,
+    "salePrice": 210,
+    "wholesaleRate": 185,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "gen-extra-13",
+    "preset": "general_store",
+    "barcode": "896400020063",
+    "sku": "ROSE-PETAL-PARTY-NAPKINS",
+    "nameEn": "Rose Petal Party Napkins Soft Tissue (100 Sheets)",
+    "nameUr": "روز پیٹل پارٹی نیپکنز سافٹ ٹشو پیپر (100 شیٹس پیکٹ)",
+    "categoryEn": "Tissues & Disposables",
+    "categoryUr": "ٹشوز و ڈسپوزایبل",
+    "unit": "پیکٹ",
+    "costPrice": 125,
+    "salePrice": 155,
+    "wholesaleRate": 135,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "gen-extra-14",
+    "preset": "general_store",
+    "barcode": "896400020064",
+    "sku": "VIM-BAR-DISHWASH-300G",
+    "nameEn": "Vim Bar Dishwashing Soap Lemon (300g)",
+    "nameUr": "وِم بار برتن دھونے کا صابن لیمن پاور (300 گرام)",
+    "categoryEn": "Dishwashing Supplies",
+    "categoryUr": "برتن دھونے کا صابن و مائع",
+    "unit": "عدد",
+    "costPrice": 65,
+    "salePrice": 80,
+    "wholesaleRate": 70,
+    "stock": 0,
+    "minStockAlert": 24
+  },
+  {
+    "id": "gen-extra-15",
+    "preset": "general_store",
+    "barcode": "896400020065",
+    "sku": "SAFETY-MATCHES-BUNDLE",
+    "nameEn": "Horse Safety Matches Family Bundle (10 Boxes)",
+    "nameUr": "ماچس ڈبہ ہارس برانڈ فیملی بنڈل (10 ڈبیاں پیک)",
+    "categoryEn": "Household Cleaners",
+    "categoryUr": "گھریلو صفائی و کلینرز",
+    "unit": "پیکٹ",
+    "costPrice": 85,
+    "salePrice": 110,
+    "wholesaleRate": 92,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "swt-extra-01",
+    "preset": "sweets",
+    "barcode": "896400050051",
+    "sku": "RASMALAI-SAFFRON-MILK",
+    "nameEn": "Rasmalai Fresh Saffron Milk Delight (Per Cup / 1kg)",
+    "nameUr": "رس ملائی تازہ زعفرانی دودھ ملائی اسپیشل (1 کپ و 1 کلو)",
+    "categoryEn": "Traditional Sweets",
+    "categoryUr": "روایتی مٹھائیاں و حلوہ جات",
+    "unit": "کپ",
+    "costPrice": 90,
+    "salePrice": 130,
+    "wholesaleRate": 110,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "swt-extra-02",
+    "preset": "sweets",
+    "barcode": "896400050052",
+    "sku": "SOHAN-HALWA-MULTANI-1KG",
+    "nameEn": "Multani Sohan Halwa Pure Desi Ghee (1kg Tin)",
+    "nameUr": "ملتانی سوہن حلوہ حافظ برانڈ دیسی گھی اخروٹ والا (1 کلو ڈبہ)",
+    "categoryEn": "Traditional Sweets",
+    "categoryUr": "روایتی مٹھائیاں و حلوہ جات",
+    "unit": "ڈبہ",
+    "costPrice": 900,
+    "salePrice": 1200,
+    "wholesaleRate": 1000,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "swt-extra-03",
+    "preset": "sweets",
+    "barcode": "896400050053",
+    "sku": "PEDA-KHOYA-MATHURA",
+    "nameEn": "Peda Pure Khoya Traditional Sweet (500g / 1kg)",
+    "nameUr": "پیڑا خالص کھویا روایتی مٹھائی (500 گرام و 1 کلو)",
+    "categoryEn": "Traditional Sweets",
+    "categoryUr": "روایتی مٹھائیاں و حلوہ جات",
+    "unit": "Kg",
+    "costPrice": 750,
+    "salePrice": 980,
+    "wholesaleRate": 840,
+    "stock": 0,
+    "minStockAlert": 8
+  },
+  {
+    "id": "swt-extra-04",
+    "preset": "sweets",
+    "barcode": "896400050054",
+    "sku": "KALA-JAMUN-DRY-SWEET",
+    "nameEn": "Kala Jamun Royal Dry Khoya Sweet (500g / 1kg)",
+    "nameUr": "کالے گلاب جامن شاہی خشک کھویا مٹھائی (500 گرام و 1 کلو)",
+    "categoryEn": "Traditional Sweets",
+    "categoryUr": "روایتی مٹھائیاں و حلوہ جات",
+    "unit": "Kg",
+    "costPrice": 700,
+    "salePrice": 920,
+    "wholesaleRate": 790,
+    "stock": 0,
+    "minStockAlert": 8
+  },
+  {
+    "id": "swt-extra-05",
+    "preset": "sweets",
+    "barcode": "896400050055",
+    "sku": "BAKARKHANI-KHASTA-500G",
+    "nameEn": "Bakarkhani Crispy Kashmiri Khasta (500g Pack)",
+    "nameUr": "باقرخانی خستہ کشمیری چائے والی بیکری (500 گرام پیکٹ)",
+    "categoryEn": "Bakery Biscuits & Rusk",
+    "categoryUr": "بیکری بسکٹ، نان خطائی و رس",
+    "unit": "پیکٹ",
+    "costPrice": 200,
+    "salePrice": 260,
+    "wholesaleRate": 220,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "swt-extra-06",
+    "preset": "sweets",
+    "barcode": "896400050056",
+    "sku": "BAKERY-SAMOSA-CRISPY",
+    "nameEn": "Bakery Crispy Potato & Chicken Samosa (1 Pc)",
+    "nameUr": "بیکری سموسہ آلو و قیمہ کرسپی خستہ (1 عدد)",
+    "categoryEn": "Savory Bakery & Patties",
+    "categoryUr": "نمکین بیکری، پیٹیز و سموسہ",
+    "unit": "عدد",
+    "costPrice": 35,
+    "salePrice": 50,
+    "wholesaleRate": 42,
+    "stock": 0,
+    "minStockAlert": 30
+  },
+  {
+    "id": "swt-extra-07",
+    "preset": "sweets",
+    "barcode": "896400050057",
+    "sku": "MINI-PIZZA-TIKKA-SLICE",
+    "nameEn": "Mini Pizza Chicken Tikka Fresh Cheesy (1 Pc)",
+    "nameUr": "منی پیزا چیزی چکن تکہ بیکری تازہ سلائس (1 عدد)",
+    "categoryEn": "Savory Bakery & Patties",
+    "categoryUr": "نمکین بیکری، پیٹیز و سموسہ",
+    "unit": "عدد",
+    "costPrice": 95,
+    "salePrice": 140,
+    "wholesaleRate": 110,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "swt-extra-08",
+    "preset": "sweets",
+    "barcode": "896400050058",
+    "sku": "CHOC-DOUGHNUT-GLAZED",
+    "nameEn": "Chocolate Glazed Cream Doughnut Fresh (1 Pc)",
+    "nameUr": "ڈونٹ چاکلیٹ گلیزڈ ونیلا کریم بھرا (1 عدد)",
+    "categoryEn": "Cakes & Pastries",
+    "categoryUr": "کیکس، پیسٹری و برتھ ڈے",
+    "unit": "عدد",
+    "costPrice": 70,
+    "salePrice": 110,
+    "wholesaleRate": 85,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "swt-extra-09",
+    "preset": "sweets",
+    "barcode": "896400050059",
+    "sku": "CHICKEN-ROLL-BAKERY",
+    "nameEn": "Chicken Spring Roll Bakery Crispy (1 Pc)",
+    "nameUr": "چکن رول بیکری اسپیشل کرسپی تلا ہوا (1 عدد)",
+    "categoryEn": "Savory Bakery & Patties",
+    "categoryUr": "نمکین بیکری، پیٹیز و سموسہ",
+    "unit": "عدد",
+    "costPrice": 45,
+    "salePrice": 70,
+    "wholesaleRate": 55,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "swt-extra-10",
+    "preset": "sweets",
+    "barcode": "896400050060",
+    "sku": "CREAM-ROLL-VANILLA",
+    "nameEn": "Vanilla Cream Roll Crispy Bakery Fresh (1 Pc)",
+    "nameUr": "کریم رول ونیلا ملائی بھرا خستہ تازہ (1 عدد)",
+    "categoryEn": "Bakery Biscuits & Rusk",
+    "categoryUr": "بیکری بسکٹ، نان خطائی و رس",
+    "unit": "عدد",
+    "costPrice": 30,
+    "salePrice": 45,
+    "wholesaleRate": 35,
+    "stock": 0,
+    "minStockAlert": 25
+  },
+  {
+    "id": "swt-extra-11",
+    "preset": "sweets",
+    "barcode": "896400050061",
+    "sku": "FRUIT-BUN-FRESH-1PC",
+    "nameEn": "Sweet Fruit Bun Fresh Raisin & Orange (1 Pc)",
+    "nameUr": "فروٹ بن تازہ کشمش و میٹھا اورنج (1 عدد)",
+    "categoryEn": "Bread & Buns",
+    "categoryUr": "ڈبل روٹی، بن و برگر بن",
+    "unit": "عدد",
+    "costPrice": 35,
+    "salePrice": 50,
+    "wholesaleRate": 40,
+    "stock": 0,
+    "minStockAlert": 20
+  },
+  {
+    "id": "swt-extra-12",
+    "preset": "sweets",
+    "barcode": "896400050062",
+    "sku": "ZEBRA-TEA-CAKE-500G",
+    "nameEn": "Zebra Marble Tea Cake Loaf Fresh (500g)",
+    "nameUr": "زیبرا ماربل ٹی کیک تازہ چائے والا (500 گرام ڈبہ)",
+    "categoryEn": "Cakes & Pastries",
+    "categoryUr": "کیکس، پیسٹری و برتھ ڈے",
+    "unit": "عدد",
+    "costPrice": 180,
+    "salePrice": 240,
+    "wholesaleRate": 200,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "swt-extra-13",
+    "preset": "sweets",
+    "barcode": "896400050063",
+    "sku": "CHICKEN-CHEESE-PATTIES",
+    "nameEn": "Chicken Cheese Patties Fresh Bakery Puff (1 Pc)",
+    "nameUr": "چکن چیز پیٹیز پف پیسٹری تازہ چیزی (1 عدد)",
+    "categoryEn": "Savory Bakery & Patties",
+    "categoryUr": "نمکین بیکری، پیٹیز و سموسہ",
+    "unit": "عدد",
+    "costPrice": 65,
+    "salePrice": 90,
+    "wholesaleRate": 75,
+    "stock": 0,
+    "minStockAlert": 25
+  },
+  {
+    "id": "grm-extra-01",
+    "preset": "garments",
+    "barcode": "896400060051",
+    "sku": "MENS-DRESS-SHIRT-FORMAL",
+    "nameEn": "Men Formal Cotton Dress Shirt Button-Down (S, M, L, XL)",
+    "nameUr": "مردانہ کاٹن فارمل ڈریس شرٹ بٹن ڈاؤن آفس ویئر (S, M, L, XL)",
+    "categoryEn": "Men Apparel & Pants",
+    "categoryUr": "مردانہ ملبوسات و پینٹس",
+    "unit": "عدد",
+    "hasVariations": true,
+    "sizes": [
+      "Small (38)",
+      "Medium (40)",
+      "Large (42)",
+      "XL (44)"
+    ],
+    "colors": [
+      "سفید (White)",
+      "نیلا (Sky Blue)",
+      "گرے (Charcoal)",
+      "کالا (Black)"
+    ],
+    "costPrice": 950,
+    "salePrice": 1450,
+    "wholesaleRate": 1150,
+    "stock": 0,
+    "minStockAlert": 8
+  },
+  {
+    "id": "grm-extra-02",
+    "preset": "garments",
+    "barcode": "896400060052",
+    "sku": "MENS-WAISTCOAT-FANCY",
+    "nameEn": "Men Premium Formal Waistcoat Stitched (Sizes: 38-44)",
+    "nameUr": "مردانہ پریمیم واسکٹ سلی سلائی فینسی کڑھائی (سائز 38 تا 44)",
+    "categoryEn": "Suits, Kurta & Waistcoat",
+    "categoryUr": "روایتی سوٹ، کرتا و واسکٹ",
+    "unit": "عدد",
+    "hasVariations": true,
+    "sizes": [
+      "38",
+      "40",
+      "42",
+      "44"
+    ],
+    "colors": [
+      "بلیک (Black)",
+      "نیوی بلیو (Navy)",
+      "براؤن (Brown)"
+    ],
+    "costPrice": 1400,
+    "salePrice": 2200,
+    "wholesaleRate": 1650,
+    "stock": 0,
+    "minStockAlert": 5
+  },
+  {
+    "id": "grm-extra-03",
+    "preset": "garments",
+    "barcode": "896400060053",
+    "sku": "MENS-LEATHER-BELT-PURE",
+    "nameEn": "Men Pure Leather Belt with Auto Steel Buckle",
+    "nameUr": "مردانہ خالص چمڑے کی بیلٹ پریمیم اسٹیل بکل (فری سائز 30-42)",
+    "categoryEn": "Men Apparel & Pants",
+    "categoryUr": "مردانہ ملبوسات و پینٹس",
+    "unit": "عدد",
+    "costPrice": 420,
+    "salePrice": 750,
+    "wholesaleRate": 520,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "grm-extra-04",
+    "preset": "garments",
+    "barcode": "896400060054",
+    "sku": "KIDS-COTTON-NIGHT-SUIT",
+    "nameEn": "Kids Cotton Night Suit Pyjama 2-Piece (Ages: 2-10)",
+    "nameUr": "کڈز نائٹ سوٹ کاٹن کارٹون پرنٹ پاجامہ و شرٹ 2 پیس (عمر 2 تا 10 سال)",
+    "categoryEn": "Kids Wear & Suits",
+    "categoryUr": "بچوں کے کپڑے و سوٹ",
+    "unit": "سوٹ",
+    "hasVariations": true,
+    "sizes": [
+      "عمر 2-4 سال",
+      "عمر 5-7 سال",
+      "عمر 8-10 سال"
+    ],
+    "costPrice": 480,
+    "salePrice": 790,
+    "wholesaleRate": 580,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "grm-extra-05",
+    "preset": "garments",
+    "barcode": "896400060055",
+    "sku": "BOYS-DENIM-JEANS-PANTS",
+    "nameEn": "Boys Denim Jeans Pants Stretch (Ages: 4-12)",
+    "nameUr": "بچوں کی ڈینم جینز پینٹ اسٹریچ ایبل پائیدار (سائز 22 تا 30)",
+    "categoryEn": "Kids Wear & Suits",
+    "categoryUr": "بچوں کے کپڑے و سوٹ",
+    "unit": "عدد",
+    "hasVariations": true,
+    "sizes": [
+      "سائز 22",
+      "سائز 24",
+      "سائز 26",
+      "سائز 28",
+      "سائز 30"
+    ],
+    "costPrice": 550,
+    "salePrice": 890,
+    "wholesaleRate": 670,
+    "stock": 0,
+    "minStockAlert": 10
+  },
+  {
+    "id": "grm-extra-06",
+    "preset": "garments",
+    "barcode": "896400060056",
+    "sku": "WOMEN-KASHMIRI-SHAWL",
+    "nameEn": "Women Kashmiri Warm Embroidered Woolen Shawl",
+    "nameUr": "خواتین کڑھائی دار کشمیری گرم اونی شال تمام رنگ (بڑا سائز)",
+    "categoryEn": "Women Dresses & Lawn Suits",
+    "categoryUr": "خواتین کے ملبوسات و لان سوٹ",
+    "unit": "عدد",
+    "colors": [
+      "کالا (Black)",
+      "مرون (Maroon)",
+      "نیوی (Navy)",
+      "مسٹرڈ (Mustard)"
+    ],
+    "costPrice": 1100,
+    "salePrice": 1850,
+    "wholesaleRate": 1350,
+    "stock": 0,
+    "minStockAlert": 6
+  },
+  {
+    "id": "grm-extra-07",
+    "preset": "garments",
+    "barcode": "896400060057",
+    "sku": "COTTON-DOUBLE-BEDSHEET",
+    "nameEn": "Pure Cotton Double King Bed Sheet with 2 Pillow Covers",
+    "nameUr": "خالص کاٹن کنگ سائز ڈبل بیڈ شیٹ ہمراہ 2 تکیہ کور خوبصورت پرنٹ",
+    "categoryEn": "Women Dresses & Lawn Suits",
+    "categoryUr": "خواتین کے ملبوسات و لان سوٹ",
+    "unit": "سیٹ",
+    "costPrice": 1200,
+    "salePrice": 1800,
+    "wholesaleRate": 1400,
+    "stock": 0,
+    "minStockAlert": 8
+  },
+  {
+    "id": "grm-extra-08",
+    "preset": "garments",
+    "barcode": "896400060058",
+    "sku": "WOMEN-STITCHED-KURTI",
+    "nameEn": "Women Ready-to-Wear Lawn Stitched Kurti (M, L)",
+    "nameUr": "خواتین کیژول لان کرتی سلائی شدہ ڈیجیٹل پرنٹ (میڈیم و لارج)",
+    "categoryEn": "Women Dresses & Lawn Suits",
+    "categoryUr": "خواتین کے ملبوسات و لان سوٹ",
+    "unit": "عدد",
+    "hasVariations": true,
+    "sizes": [
+      "میڈیم (M)",
+      "لارج (L)"
+    ],
+    "costPrice": 750,
+    "salePrice": 1200,
+    "wholesaleRate": 900,
+    "stock": 0,
+    "minStockAlert": 12
+  },
+  {
+    "id": "grm-extra-09",
+    "preset": "garments",
+    "barcode": "896400060059",
+    "sku": "MEN-COTTON-HANKY-3PK",
+    "nameEn": "Men Pure Cotton Handkerchiefs Soft (Pack of 3)",
+    "nameUr": "مردانہ کاٹن رومال سوتی نرم و جاذب (3 عدد بنڈل پیک)",
+    "categoryEn": "Vests, Underwear & Socks",
+    "categoryUr": "بنیان، انڈرویئر و جرابیں",
+    "unit": "پیکٹ",
+    "costPrice": 160,
+    "salePrice": 240,
+    "wholesaleRate": 185,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "grm-extra-10",
+    "preset": "garments",
+    "barcode": "896400060060",
+    "sku": "GIRLS-COTTON-LEGGINGS",
+    "nameEn": "Girls Soft Stretchable Cotton Leggings / Tights (Ages: 4-12)",
+    "nameUr": "بچیوں کی سافٹ اسٹریچ ایبل کاٹن ٹائٹس و لیگنگز (عمر 4 تا 12 سال)",
+    "categoryEn": "Kids Wear & Suits",
+    "categoryUr": "بچوں کے کپڑے و سوٹ",
+    "unit": "عدد",
+    "colors": [
+      "کالا (Black)",
+      "سفید (White)",
+      "نیوی (Navy)",
+      "ریڈ (Red)"
+    ],
+    "costPrice": 220,
+    "salePrice": 380,
+    "wholesaleRate": 280,
+    "stock": 0,
+    "minStockAlert": 15
+  },
+  {
+    "id": "grm-extra-11",
+    "preset": "garments",
+    "barcode": "896400060061",
+    "sku": "WOMEN-ABAYA-HIJAB-NIDA",
+    "nameEn": "Women Premium Black Abaya with Matching Hijab Scarf",
+    "nameUr": "خواتین پریمیم بلیک عبایہ ہمراہ میچنگ حجاب اسکارف (سائز 52 تا 56)",
+    "categoryEn": "Women Dresses & Lawn Suits",
+    "categoryUr": "خواتین کے ملبوسات و لان سوٹ",
+    "unit": "عدد",
+    "hasVariations": true,
+    "sizes": [
+      "سائز 52",
+      "سائز 54",
+      "سائز 56"
+    ],
+    "costPrice": 1600,
+    "salePrice": 2600,
+    "wholesaleRate": 1950,
+    "stock": 0,
+    "minStockAlert": 5
   }
 ];
 

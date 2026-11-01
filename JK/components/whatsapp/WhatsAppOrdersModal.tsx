@@ -46,7 +46,7 @@ export const WhatsAppOrdersModal: React.FC<WhatsAppOrdersModalProps> = ({ onNavi
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base md:text-lg font-black tracking-tight font-sans">
-                  {lang === 'ur' ? 'واٹس ایپ آرڈرز و بلنگ مینیجر' : 'WhatsApp Orders & Auto-Billing Manager'}
+                  {lang === 'ur' ? 'واٹس ایپ آرڈرز و بلنگ کنٹرول' : 'WhatsApp Orders & Auto-Billing Manager'}
                 </h2>
                 {pendingWhatsAppOrdersCount > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs animate-pulse">

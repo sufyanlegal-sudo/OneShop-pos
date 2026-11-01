@@ -231,7 +231,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [grnList, setGRNList] = useState<GRN[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [currentRole, setCurrentRole] = useState<UserRole>('MANAGER');
+  const [currentRole, setCurrentRole] = useState<UserRole>('ADMIN');
   const [isMarginUnlocked, setIsMarginUnlocked] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
@@ -522,6 +522,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsersDB(updatedDB);
     storage.saveUsersDB(updatedDB);
 
+    // Ensure complete clean-slate zero start for new user:
+    setCustomers([]);
+    storage.saveCustomers([]);
+    setInvoices([]);
+    storage.saveInvoices([]);
+    setRoznamcha([]);
+    storage.saveRoznamcha([]);
+    setVendors([]);
+    storage.saveVendors([]);
+    setCart([]);
+    const zeroProducts = allProducts.map((p) => ({ ...p, stock: 0 }));
+    setAllProducts(zeroProducts);
+    storage.saveProducts(zeroProducts);
+
     // If business name was provided, customize shop profile
     if (params.businessName.trim()) {
       updateBusinessProfile({
@@ -733,8 +747,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check granular access for active cashier
   const hasAccess = (moduleKey: string): boolean => {
-    if (currentRole === 'MANAGER') return true;
+    if (currentRole === 'ADMIN' || currentRole === 'MANAGER') return true;
     if (moduleKey === 'aiChatboard') return true;
+    if (moduleKey === 'billsHistory') return true; // Cashier can always view bill history & reprint
     if (activeCashier?.permissions && (activeCashier.permissions as any)[moduleKey] !== undefined) {
       return Boolean((activeCashier.permissions as any)[moduleKey]);
     }
@@ -820,7 +835,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: 'log-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
       timestamp: new Date().toISOString(),
       action,
-      user: currentRole === 'MANAGER' ? 'مینجر (Admin)' : `${activeCashier?.name || 'کیشیئر'} (کاؤنٹر #${activeCounter})`,
+      user: (currentRole === 'ADMIN' || currentRole === 'MANAGER') ? 'ایڈمن (Admin)' : `${activeCashier?.name || 'کیشیئر'} (کاؤنٹر #${activeCounter})`,
       role: currentRole,
       details,
       amount,
@@ -833,13 +848,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Role switching
   const switchRole = (newRole: UserRole, pin?: string, cashierId?: string): boolean => {
-    if (newRole === 'MANAGER') {
+    if (newRole === 'ADMIN' || newRole === 'MANAGER') {
       const correctPin = businessProfile.adminPin || '1234';
       if (pin === correctPin) {
-        setCurrentRole('MANAGER');
-        storage.setActiveRole('MANAGER');
+        setCurrentRole('ADMIN');
+        storage.setActiveRole('ADMIN');
         setIsMarginUnlocked(true);
-        addAuditLog('LOGIN_MANAGER', 'مینجر موڈ میں کامیابی سے لاگ ان کیا گیا');
+        addAuditLog('LOGIN_ADMIN', 'ایڈمن موڈ میں کامیابی سے لاگ ان کیا گیا');
         return true;
       }
       return false;
@@ -1164,8 +1179,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tenderedAmount: tendered,
       changeDue,
       paymentMethod: params.paymentMethod,
-      cashier: currentRole === 'MANAGER' 
-        ? (activeCashier?.name ? `${activeCashier.name} (مینجر)` : 'مینجر (Admin)')
+      cashier: (currentRole === 'ADMIN' || currentRole === 'MANAGER') 
+        ? (activeCashier?.name ? `${activeCashier.name} (ایڈمن)` : 'ایڈمن (Admin)')
         : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
       cashierId: activeCashier?.id,
       counterNumber: activeCounter || 1,
@@ -1314,8 +1329,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalRefund,
       refundMethod: params.refundMethod,
       reason: params.reason || 'گاہک کی درخواست پر مال واپسی',
-      cashier: currentRole === 'MANAGER' ? 'مینجر (Admin)' : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
-      counterNumber: currentRole === 'MANAGER' ? 0 : activeCounter,
+      cashier: (currentRole === 'ADMIN' || currentRole === 'MANAGER') ? 'ایڈمن (Admin)' : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
+      counterNumber: (currentRole === 'ADMIN' || currentRole === 'MANAGER') ? 0 : activeCounter,
       developerBranding: 'JK Developers Pakistan',
     };
 
@@ -1483,8 +1498,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       differenceAmount,
       paymentMethod,
       reason: params.reason || 'گاہک کی پسند پر مال کا تبادلہ (Exchange)',
-      cashier: currentRole === 'MANAGER' ? 'مینجر (Admin)' : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
-      counterNumber: currentRole === 'MANAGER' ? 0 : activeCounter,
+      cashier: (currentRole === 'ADMIN' || currentRole === 'MANAGER') ? 'ایڈمن (Admin)' : (activeCashier?.name || `کاؤنٹر #${activeCounter}`),
+      counterNumber: (currentRole === 'ADMIN' || currentRole === 'MANAGER') ? 0 : activeCounter,
       developerBranding: 'JK Developers Pakistan',
     };
 

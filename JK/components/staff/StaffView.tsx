@@ -152,7 +152,7 @@ export const StaffView: React.FC = () => {
                       : staff.designation === 'SALESMAN'
                       ? 'سیلزمین'
                       : staff.designation === 'MANAGER'
-                      ? 'سٹور مینیجر'
+                      ? 'سٹور ایڈمن'
                       : 'ہیلپر / ورکر'}
                   </span>
                 </div>
@@ -252,7 +252,7 @@ export const StaffView: React.FC = () => {
                 >
                   <option value="SALESMAN">{lang === 'ur' ? 'سیلزمین (Salesman)' : 'Salesman'}</option>
                   <option value="CASHIER">{lang === 'ur' ? 'کاؤنٹر کیشیئر (Cashier)' : 'Cashier'}</option>
-                  <option value="MANAGER">{lang === 'ur' ? 'سٹور مینیجر (Manager)' : 'Manager'}</option>
+                  <option value="MANAGER">{lang === 'ur' ? 'سٹور ایڈمن / سپروائزر (Admin)' : 'Manager'}</option>
                   <option value="HELPER">{lang === 'ur' ? 'ہیلپر / لیبر (Helper)' : 'Helper'}</option>
                   <option value="OTHER">{lang === 'ur' ? 'دیگر (Other)' : 'Other'}</option>
                 </select>

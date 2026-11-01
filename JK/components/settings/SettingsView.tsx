@@ -280,10 +280,10 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Preset & Manager Badge */}
+        {/* Preset & Admin Badge */}
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono font-bold px-3 py-1 bg-purple-100 dark:bg-purple-950/70 border border-purple-300 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300">
-            👑 Admin / Manager Control
+            👑 Admin Control
           </span>
           <span className="text-xs font-mono font-bold px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300">
             {activePreset.toUpperCase()}
@@ -567,17 +567,17 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Manager Admin PIN Setting */}
+          {/* Admin PIN Setting */}
           <div className="bg-purple-50/60 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Lock className="w-4 h-4 text-purple-600" />
-                <span>خفیہ مینجر لاگ ان پن کوڈ (Manager Admin PIN)</span>
+                <span>خفیہ ایڈمن لاگ ان پن کوڈ (Admin PIN)</span>
               </h4>
               <p className="text-[11px] text-slate-500">
                 {lang === 'ur'
-                  ? 'مینجر موڈ کو ان لاک کرنے، حساس ماڈیولز دیکھنے اور نفع چیک کرنے کا کوڈ (ڈیفالٹ: 1234)'
-                  : 'PIN required to unlock manager mode, modify sensitive settings, and view profit'}
+                  ? 'ایڈمن موڈ کو ان لاک کرنے، حساس ماڈیولز دیکھنے اور نفع چیک کرنے کا کوڈ (ڈیفالٹ: 1234)'
+                  : 'PIN required to unlock admin mode, modify sensitive settings, and view profit'}
               </p>
             </div>
 
@@ -626,8 +626,8 @@ export const SettingsView: React.FC = () => {
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               {lang === 'ur'
-                ? 'مین لاگ ان ہمیشہ مینجر کے پاس ہوگا۔ یہاں منتخب کریں کہ کیشیئر کو کون کون سی چیزوں کی ایکسس دینی ہے اور کون سی لاک رکھنی ہیں۔'
-                : 'Manager holds master access. Select which modules and features the cashier counters are allowed to use.'}
+                ? 'مین لاگ ان ہمیشہ ایڈمن کے پاس ہوگا۔ یہاں منتخب کریں کہ کیشیئر کو کون کون سی چیزوں کی ایکسس دینی ہے اور کون سی لاک رکھنی ہیں۔'
+                : 'Admin holds master access. Select which modules and features the cashier counters are allowed to use.'}
             </p>
           </div>
 

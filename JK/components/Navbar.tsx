@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   // Modals state
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [roleModalTab, setRoleModalTab] = useState<'manager' | 'cashier'>('manager');
+  const [roleModalTab, setRoleModalTab] = useState<'admin' | 'cashier'>('admin');
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
@@ -117,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     });
   };
 
-  // Manager PIN state
+  // Admin PIN state
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pendingTab, setPendingTab] = useState<string | null>(null);
@@ -212,11 +212,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     },
     {
       id: 'audit',
-      label: t('auditLogs'),
+      label: lang === 'ur' ? 'اسٹاک و سسٹم آڈٹ' : 'Stock & Audit',
       icon: ShieldCheck,
-      shortcut: 'LOG',
-      bgClass: 'bg-slate-700 hover:bg-slate-600 text-white border-slate-500',
-      activeClass: 'bg-slate-600 text-white ring-4 ring-white shadow-xl shadow-slate-900/60 scale-105 border-white',
+      shortcut: 'F10',
+      bgClass: 'bg-indigo-700 hover:bg-indigo-600 text-white border-indigo-400',
+      activeClass: 'bg-indigo-600 text-white ring-4 ring-white shadow-xl shadow-indigo-900/60 scale-105 border-white',
     },
     {
       id: 'whatsapp',
@@ -241,16 +241,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     const isAllowed = hasAccess(tabId);
     if (!isAllowed) {
       setPendingTab(tabId);
-      setRoleModalTab('manager');
+      setRoleModalTab('admin');
       setShowRoleModal(true);
       return;
     }
     setActiveTab(tabId);
   };
 
-  const handleVerifyManagerPin = (e: React.FormEvent) => {
+  const handleVerifyAdminPin = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = switchRole('MANAGER', pinInput);
+    const success = switchRole('ADMIN', pinInput);
     if (success) {
       setShowRoleModal(false);
       setPinInput('');
@@ -260,7 +260,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
         setPendingTab(null);
       }
     } else {
-      setPinError(lang === 'ur' ? 'غلط مینجر پن کوڈ درج کیا گیا ہے!' : 'Incorrect Manager PIN!');
+      setPinError(lang === 'ur' ? 'غلط ایڈمن پن کوڈ درج کیا گیا ہے!' : 'Incorrect Admin PIN!');
     }
   };
 
@@ -354,20 +354,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               {/* Multi-Counter & Role Switcher */}
               <button
                 onClick={() => {
-                  setRoleModalTab(currentRole === 'MANAGER' ? 'cashier' : 'manager');
+                  setRoleModalTab(currentRole === 'ADMIN' || currentRole === 'MANAGER' ? 'cashier' : 'admin');
                   setShowRoleModal(true);
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${
-                  currentRole === 'MANAGER'
+                  currentRole === 'ADMIN' || currentRole === 'MANAGER'
                     ? 'bg-purple-950/80 border-purple-600/70 text-purple-200 hover:bg-purple-900'
                     : 'bg-emerald-950/80 border-emerald-600/70 text-emerald-200 hover:bg-emerald-900'
                 }`}
-                title={lang === 'ur' ? 'کاؤنٹر اور رول تبدیل کریں' : 'Switch Counter / Manager'}
+                title={lang === 'ur' ? 'کاؤنٹر اور ایڈمن لاگ ان تبدیل کریں' : 'Switch Counter / Admin'}
               >
-                {currentRole === 'MANAGER' ? (
+                {currentRole === 'ADMIN' || currentRole === 'MANAGER' ? (
                   <>
                     <Unlock className="w-3.5 h-3.5 text-purple-400" />
-                    <span>{lang === 'ur' ? '👑 مینجر موڈ' : '👑 Manager'}</span>
+                    <span>{lang === 'ur' ? '👑 ایڈمن موڈ' : '👑 Admin'}</span>
                   </>
                 ) : (
                   <>
@@ -501,7 +501,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                 )}
-                {currentRole === 'MANAGER' && !isHeaderCollapsed && (
+                {(currentRole === 'ADMIN' || currentRole === 'MANAGER') && !isHeaderCollapsed && (
                   <button
                     onClick={() => handleTabClick('settings')}
                     className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-md transition-colors"
@@ -600,7 +600,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                           ? item.activeClass
                           : `${item.bgClass} shadow-sm`
                       }`}
-                      title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (مینجر پن درکار ہے)' : 'Locked for cashier') : ''}
+                      title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : ''}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.label}</span>
@@ -663,7 +663,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         )}
 
-        {/* Manager & Multi-Counter Cashier Session Modal */}
+        {/* Admin & Multi-Counter Cashier Session Modal */}
         {showRoleModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 text-white shadow-2xl relative animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
@@ -685,18 +685,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4">
                 <button
                   onClick={() => {
-                    setRoleModalTab('manager');
+                    setRoleModalTab('admin');
                     setPinError('');
                     setCashierPinError('');
                   }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    roleModalTab === 'manager'
+                    roleModalTab === 'admin'
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
                   <Unlock className="w-4 h-4 text-purple-300" />
-                  <span>{lang === 'ur' ? 'مینجر لاگ ان (Admin PIN)' : 'Manager Login'}</span>
+                  <span>{lang === 'ur' ? 'ایڈمن لاگ ان (Admin PIN)' : 'Admin Login'}</span>
                 </button>
 
                 <button
@@ -716,8 +716,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 </button>
               </div>
 
-              {/* TAB 1: MANAGER LOGIN */}
-              {roleModalTab === 'manager' && (
+              {/* TAB 1: ADMIN LOGIN */}
+              {roleModalTab === 'admin' && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
@@ -725,20 +725,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-white">
-                        {lang === 'ur' ? 'مینجر سیکیورٹی پن درج کریں' : 'Enter Manager PIN'}
+                        {lang === 'ur' ? 'ایڈمن سیکیورٹی پن درج کریں' : 'Enter Admin PIN'}
                       </h3>
                       <p className="text-xs text-slate-400">
                         {pendingTab
-                          ? (lang === 'ur' ? 'اس ماڈیول کی رسائی کے لیے مینجر پن درکار ہے' : 'Manager PIN required for this module')
+                          ? (lang === 'ur' ? 'اس ماڈیول کی رسائی کے لیے ایڈمن پن درکار ہے' : 'Admin PIN required for this module')
                           : (lang === 'ur' ? 'ڈیفالٹ پن: 1234 (سیٹنگز سے تبدیل ہو سکتا ہے)' : 'Default PIN: 1234')}
                       </p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleVerifyManagerPin} className="space-y-4 pt-2">
+                  <form onSubmit={handleVerifyAdminPin} className="space-y-4 pt-2">
                     <div>
                       <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        {lang === 'ur' ? 'مینجر خفیہ پن کوڈ' : 'Manager Secret PIN'}
+                        {lang === 'ur' ? 'ایڈمن خفیہ پن کوڈ' : 'Admin Secret PIN'}
                       </label>
                       <input
                         type="password"
@@ -776,7 +776,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                         type="submit"
                         className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition-colors shadow-lg shadow-purple-900/40"
                       >
-                        {lang === 'ur' ? 'مینجر لاگ ان کریں' : 'Unlock Manager'}
+                        {lang === 'ur' ? 'ایڈمن لاگ ان کریں' : 'Unlock Admin'}
                       </button>
                     </div>
                   </form>

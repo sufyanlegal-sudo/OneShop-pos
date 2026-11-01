@@ -229,7 +229,7 @@ export const GRNView: React.FC = () => {
       balanceAmount,
       paymentMethod,
       notes,
-      receivedBy: 'مینجر (Admin)',
+      receivedBy: 'ایڈمن (Admin)',
     });
 
     // Reset Form
