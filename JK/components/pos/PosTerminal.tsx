@@ -127,9 +127,23 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       return false;
     }
     posSound.playScanBeep();
-    tryAddToCart(product, quantity, unit, variationDetails, options);
+    addToCart(product, quantity, unit, variationDetails, options);
     return true;
   };
+
+  // Real-time Dynamic Online / Offline Network Status Detection
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  useEffect(() => {
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // WhatsApp Orders Management Modal State
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
@@ -1496,10 +1510,25 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </span>
           </div>
 
-          {/* Cloud Sync Pulse Indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/50">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-mono text-emerald-400">{lang === 'ur' ? 'کلاؤڈ سنک فعال' : 'Cloud Sync Active'}</span>
+          {/* Real-time Dynamic Online / Offline & Cloud Indicator */}
+          <div
+            className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-xl border transition-all ${
+              isOnline
+                ? 'text-emerald-300 bg-emerald-950/60 border-emerald-700/60'
+                : 'text-amber-300 bg-amber-950/70 border-amber-500/70'
+            }`}
+            title={
+              isOnline
+                ? (lang === 'ur' ? 'انٹرنیٹ اور گوگل کلاؤڈ سنک فعال ہے' : 'Online & Google Cloud Sync Active')
+                : (lang === 'ur' ? 'انٹرنیٹ کے بغیر تمام بلنگ اور اسٹاک 100% آف لائن فعال ہے' : '100% Offline Mode Active - Zero Internet Required')
+            }
+          >
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span className="font-mono text-xs">
+              {isOnline
+                ? (lang === 'ur' ? '🟢 آن لائن • کلاؤڈ سنک فعال' : '🟢 Online • Cloud Sync')
+                : (lang === 'ur' ? '⚡ 100% آف لائن موڈ فعال' : '⚡ 100% Offline Active')}
+            </span>
           </div>
         </div>
 

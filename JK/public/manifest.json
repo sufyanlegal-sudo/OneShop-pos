@@ -1,0 +1,24 @@
+{
+  "name": "OneShop POS - ون شاپ پی او ایس",
+  "short_name": "OneShop POS",
+  "description": "Multi-Counter Retail ERP & POS System by JK Developers Pakistan (Bilingual Urdu/English)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07131b",
+  "theme_color": "#059669",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/images/supermarket-shelves.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/supermarket-shelves.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

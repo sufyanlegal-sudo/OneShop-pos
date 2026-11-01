@@ -1,11 +1,25 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ShopProvider } from '@/context/ShopContext';
 
+export const viewport: Viewport = {
+  themeColor: '#059669',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: 'OneShop POS | JK Developers Pakistan - ون شاپ پی او ایس',
   description: 'OneShop POS - Enterprise Bilingual POS & ERP System by JK Developers Pakistan',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'OneShop POS',
+  },
 };
 
 export default function RootLayout({
@@ -15,12 +29,31 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ur" dir="rtl" className="h-full">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#059669" />
+      </head>
       <body className="h-full antialiased font-sans bg-slate-100 text-slate-900 selection:bg-emerald-500 selection:text-white">
         <LanguageProvider>
           <ShopProvider>
             {children}
           </ShopProvider>
         </LanguageProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.log('SW registration note:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
