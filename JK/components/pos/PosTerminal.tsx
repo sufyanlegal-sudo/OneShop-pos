@@ -508,20 +508,20 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   // Filtered products (Matches specific portion when selected, and ALL products when 'all' is selected)
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const pCat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
+      const pCat = lang === 'ur' ? (p.categoryUr || p.categoryEn || '') : (p.categoryEn || p.categoryUr || '');
       const matchCat =
         selectedCategory === 'all' ||
         pCat === selectedCategory ||
         p.categoryUr === selectedCategory ||
         p.categoryEn === selectedCategory;
 
-      const q = searchQuery.toLowerCase().trim();
+      const q = (searchQuery || '').toLowerCase().trim();
       const matchSearch =
         !q ||
-        p.nameEn.toLowerCase().includes(q) ||
-        p.nameUr.toLowerCase().includes(q) ||
-        p.barcode.includes(q) ||
-        p.sku.toLowerCase().includes(q);
+        (p.nameEn || '').toLowerCase().includes(q) ||
+        (p.nameUr || '').toLowerCase().includes(q) ||
+        (p.barcode || '').includes(q) ||
+        (p.sku || '').toLowerCase().includes(q);
 
       return matchCat && matchSearch;
     });
@@ -529,14 +529,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   // Global search suggestions (across all categories for fast billing input)
   const searchResults = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = (searchQuery || '').toLowerCase().trim();
     if (!q) return [];
     return products.filter(
       (p) =>
-        p.nameEn.toLowerCase().includes(q) ||
-        p.nameUr.toLowerCase().includes(q) ||
-        p.barcode.includes(q) ||
-        p.sku.toLowerCase().includes(q)
+        (p.nameEn || '').toLowerCase().includes(q) ||
+        (p.nameUr || '').toLowerCase().includes(q) ||
+        (p.barcode || '').includes(q) ||
+        (p.sku || '').toLowerCase().includes(q)
     );
   }, [products, searchQuery]);
 
@@ -559,10 +559,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
     const matched = products.find(
       (p) =>
-        p.barcode === clean ||
-        p.sku.toLowerCase() === clean.toLowerCase() ||
+        (p.barcode && p.barcode === clean) ||
+        ((p.sku || '').toLowerCase() === clean.toLowerCase()) ||
         p.id === clean ||
-        clean.includes(p.barcode)
+        (p.barcode && clean.includes(p.barcode))
     );
 
     if (matched) {
@@ -598,7 +598,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
 
     const matched = products.find(
-      (p) => p.barcode === barcodeInput.trim() || p.sku.toLowerCase() === barcodeInput.trim().toLowerCase()
+      (p) =>
+        (p.barcode && p.barcode === barcodeInput.trim()) ||
+        ((p.sku || '').toLowerCase() === barcodeInput.trim().toLowerCase())
     );
 
     if (matched) {
@@ -1938,36 +1940,56 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     )}
 
                     <div>
-                      <div className="text-[10px] text-slate-400 font-mono font-bold tracking-wider">{p.sku}</div>
-                      <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-1 line-clamp-2">
-                        {lang === 'ur' ? p.nameUr : p.nameEn}
-                      </h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
-                        {lang === 'ur' ? p.nameEn : p.nameUr}
-                      </p>
+                      <div className="flex gap-2.5 items-start">
+                        {p.image && (
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                            <img
+                              src={p.image}
+                              alt={p.nameEn || p.nameUr}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] text-slate-400 font-mono font-bold tracking-wider">{p.sku}</div>
+                          <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-0.5 line-clamp-2">
+                            {lang === 'ur' ? p.nameUr : p.nameEn}
+                          </h4>
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
+                            {lang === 'ur' ? p.nameEn : p.nameUr}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
-                      <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between">
+                      <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-end justify-between gap-2">
                         <div>
-                          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight flex items-baseline gap-1">
-                            <span>{p.salePrice.toLocaleString()}</span>
+                          <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight flex items-baseline gap-1">
+                            <span>{(p.salePrice || 0).toLocaleString()}</span>
                             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">PKR</span>
                           </div>
                           <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                            {lang === 'ur' ? `فی ${p.unit}` : `per ${p.unit}`}
+                            {lang === 'ur' ? (p.unit ? `فی ${p.unit}` : 'عدد / پیس') : (p.unit ? `per ${p.unit}` : 'Piece')}
                           </div>
                         </div>
 
-                        {isMarginUnlocked ? (
-                          <span className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-black shadow-xs">
-                            +{profitPerUnit} PKR
-                          </span>
-                        ) : (
-                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                            {p.stock} {p.unit} {p.stock === 0 ? (lang === 'ur' ? '(صفر)' : '(0)') : ''}
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            posSound.playScanBeep();
+                            tryAddToCart(p, 1);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 shadow-sm transition-all active:scale-95 shrink-0"
+                          title={lang === 'ur' ? 'بل میں شامل کریں' : 'Add to Cart'}
+                        >
+                          <span>+</span>
+                          <span>{lang === 'ur' ? 'بل میں شامل کریں' : 'Add to Cart'}</span>
+                        </button>
                       </div>
 
                       {/* Weight Quick-Add Pills */}

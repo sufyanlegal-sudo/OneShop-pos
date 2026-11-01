@@ -66,11 +66,15 @@ export const BillsHistoryView: React.FC = () => {
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
-        inv.invoiceNo.toLowerCase().includes(q) ||
-        inv.customerName.toLowerCase().includes(q) ||
+        (inv.invoiceNo || '').toLowerCase().includes(q) ||
+        (inv.customerName || '').toLowerCase().includes(q) ||
         (inv.customerPhone && inv.customerPhone.includes(q));
 
-      const matchStatus = filterStatus === 'all' || inv.status === filterStatus;
+      const matchStatus =
+        filterStatus === 'all' ||
+        (filterStatus === 'PENDING' && (inv.status === 'PENDING' || inv.balanceDue > 0)) ||
+        (filterStatus === 'COMPLETED' && inv.status === 'COMPLETED' && inv.balanceDue === 0) ||
+        inv.status === filterStatus;
       return matchSearch && matchStatus;
     });
   }, [invoices, searchQuery, filterStatus]);
@@ -279,7 +283,17 @@ export const BillsHistoryView: React.FC = () => {
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
             }`}
           >
-            {lang === 'ur' ? 'مکمل بل' : 'Completed'}
+            {lang === 'ur' ? 'مکمل کیش' : 'Cash Bills'}
+          </button>
+          <button
+            onClick={() => setFilterStatus('PENDING')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+              filterStatus === 'PENDING'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            {lang === 'ur' ? '⏳ پینڈنگ ادھار' : 'Pending Udhaar'}
           </button>
           <button
             onClick={() => setFilterStatus('PARTIAL_RETURN')}
@@ -360,15 +374,19 @@ export const BillsHistoryView: React.FC = () => {
                     </td>
                     <td className="p-3 text-center">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          inv.status === 'COMPLETED'
+                        className={`inline-block px-2.5 py-1 rounded-full text-[10.5px] font-bold ${
+                          inv.balanceDue > 0 || inv.status === 'PENDING'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200'
+                            : inv.status === 'COMPLETED'
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                             : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                         }`}
                       >
-                        {inv.status === 'COMPLETED'
-                          ? lang === 'ur' ? 'مکمل' : 'Completed'
-                          : lang === 'ur' ? 'واپسی شدہ' : 'Returned'}
+                        {inv.balanceDue > 0 || inv.status === 'PENDING'
+                          ? (lang === 'ur' ? '⏳ پینڈنگ ادھار' : 'Pending Udhaar')
+                          : inv.status === 'COMPLETED'
+                          ? (lang === 'ur' ? 'مکمل ادا شدہ' : 'Paid')
+                          : (lang === 'ur' ? 'واپسی شدہ' : 'Returned')}
                       </span>
                     </td>
                     <td className="p-3 text-center">

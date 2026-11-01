@@ -104,9 +104,9 @@ export const AuditView: React.FC = () => {
       const matchDate = !selectedDate || log.timestamp.startsWith(selectedDate);
       const matchSearch =
         !searchQuery ||
-        log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (log.refId && log.refId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        log.role.toLowerCase().includes(searchQuery.toLowerCase());
+        (log.details || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.refId && (log.refId || '').toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (log.role || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchAction && matchDate && matchSearch;
     });

@@ -184,7 +184,7 @@ export interface Invoice {
   currencyDenominations?: CurrencyDenominations;
   preset: BusinessPresetType;
   developerBranding: 'JK Developers Pakistan' | 'JK Software Developer';
-  status: 'COMPLETED' | 'RETURNED' | 'PARTIALLY_RETURNED';
+  status: 'COMPLETED' | 'RETURNED' | 'PARTIALLY_RETURNED' | 'PENDING';
 }
 
 export interface SaleReturnItem {

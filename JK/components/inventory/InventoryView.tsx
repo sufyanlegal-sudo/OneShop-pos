@@ -54,13 +54,13 @@ export const InventoryView: React.FC = () => {
         p.categoryUr === filterCategory ||
         p.categoryEn === filterCategory;
 
-      const q = searchQuery.toLowerCase().trim();
+      const q = (searchQuery || '').toLowerCase().trim();
       const textMatch =
         !q ||
-        p.nameEn.toLowerCase().includes(q) ||
-        p.nameUr.toLowerCase().includes(q) ||
-        p.barcode.includes(q) ||
-        p.sku.toLowerCase().includes(q);
+        (p.nameEn || '').toLowerCase().includes(q) ||
+        (p.nameUr || '').toLowerCase().includes(q) ||
+        (p.barcode || '').includes(q) ||
+        (p.sku || '').toLowerCase().includes(q);
 
       const stockMatch = !lowStockOnly || p.stock <= p.minStockAlert;
 

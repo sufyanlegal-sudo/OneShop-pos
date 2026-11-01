@@ -1197,7 +1197,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currencyDenominations: params.currencyDenominations,
       preset: activePreset,
       developerBranding: 'JK Developers Pakistan',
-      status: 'COMPLETED',
+      status: balanceDue > 0 ? 'PENDING' : 'COMPLETED',
     };
 
     // Deduct stock
@@ -1687,6 +1687,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     setCustomers(updatedCustomers);
     storage.saveCustomers(updatedCustomers);
+
+    // If customer has fully cleared their balance, mark pending invoices as completed
+    if (newBalance === 0) {
+      const updatedInvoices = invoices.map((inv) => {
+        if (inv.customerId === customerId && inv.status === 'PENDING') {
+          return { ...inv, status: 'COMPLETED' as const, balanceDue: 0, paidAmount: inv.grandTotal };
+        }
+        return inv;
+      });
+      setInvoices(updatedInvoices);
+      storage.saveInvoices(updatedInvoices);
+    }
 
     const roznamchaEntry: RoznamchaEntry = {
       id: 'rz-' + Date.now(),

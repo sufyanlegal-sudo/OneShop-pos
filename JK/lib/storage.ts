@@ -32,6 +32,8 @@ const KEYS = {
   ACTIVE_PRESET: 'jk_active_preset',
   PROFILES: 'jk_business_profiles',
   PRODUCTS: 'jk_products',
+  PRODUCT_OVERRIDES: 'jk_product_overrides',
+  CUSTOM_PRODUCTS: 'jk_custom_products',
   CUSTOMERS: 'jk_customers',
   INVOICES: 'jk_invoices',
   ROZNAMCHA: 'jk_roznamcha',
@@ -53,22 +55,52 @@ const KEYS = {
   CURRENT_USER: 'pos_current_user',
 };
 
+export const safeStorage = {
+  get(key: string): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn(`[SafeStorage] get failed for key "${key}":`, e);
+      return null;
+    }
+  },
+  set(key: string, value: string): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.warn(`[SafeStorage] set failed for key "${key}":`, e);
+      return false;
+    }
+  },
+  remove(key: string): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn(`[SafeStorage] remove failed for key "${key}":`, e);
+    }
+  },
+};
+
 export const storage = {
   getActivePreset(): BusinessPresetType {
     if (typeof window === 'undefined') return 'karyana';
-    return (localStorage.getItem(KEYS.ACTIVE_PRESET) as BusinessPresetType) || 'karyana';
+    return (safeStorage.get(KEYS.ACTIVE_PRESET) as BusinessPresetType) || 'karyana';
   },
 
   setActivePreset(preset: BusinessPresetType): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.ACTIVE_PRESET, preset);
+    safeStorage.set(KEYS.ACTIVE_PRESET, preset);
   },
 
   getProfiles(): Record<string, BusinessProfile> {
     if (typeof window === 'undefined') return defaultBusinessProfiles;
-    const raw = localStorage.getItem(KEYS.PROFILES);
+    const raw = safeStorage.get(KEYS.PROFILES);
     if (!raw) {
-      localStorage.setItem(KEYS.PROFILES, JSON.stringify(defaultBusinessProfiles));
+      safeStorage.set(KEYS.PROFILES, JSON.stringify(defaultBusinessProfiles));
       return defaultBusinessProfiles;
     }
     try {
@@ -81,7 +113,7 @@ export const storage = {
         }
       });
       if (updated) {
-        localStorage.setItem(KEYS.PROFILES, JSON.stringify(parsed));
+        safeStorage.set(KEYS.PROFILES, JSON.stringify(parsed));
       }
       return parsed;
     } catch {
@@ -93,91 +125,118 @@ export const storage = {
     if (typeof window === 'undefined') return;
     const profiles = this.getProfiles();
     profiles[preset] = profile;
-    localStorage.setItem(KEYS.PROFILES, JSON.stringify(profiles));
+    safeStorage.set(KEYS.PROFILES, JSON.stringify(profiles));
   },
 
   checkAndApplyCleanSlate(): void {
     if (typeof window === 'undefined') return;
-    const CLEAN_KEY = 'jk_clean_slate_zero_v6';
-    if (!localStorage.getItem(CLEAN_KEY)) {
+    const CLEAN_KEY = 'jk_clean_slate_zero_v8';
+    if (!safeStorage.get(CLEAN_KEY)) {
       // 1. Reset customers to completely empty [] (No dummy khatedars)
-      localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify([]));
+      safeStorage.set(KEYS.CUSTOMERS, JSON.stringify([]));
       // 2. Reset roznamcha cashbook to completely empty []
-      localStorage.setItem(KEYS.ROZNAMCHA, JSON.stringify([]));
+      safeStorage.set(KEYS.ROZNAMCHA, JSON.stringify([]));
       // 3. Reset invoices history to completely empty []
-      localStorage.setItem(KEYS.INVOICES, JSON.stringify([]));
+      safeStorage.set(KEYS.INVOICES, JSON.stringify([]));
       // 4. Reset vendors to empty []
-      localStorage.setItem(KEYS.VENDORS, JSON.stringify([]));
-      // 5. Enforce 0 stock for the expanded 9000+ item catalog
-      const zeroSeed = seedProducts.map((p) => ({ ...p, stock: 0 }));
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroSeed));
-      localStorage.setItem(CLEAN_KEY, 'true');
+      safeStorage.set(KEYS.VENDORS, JSON.stringify([]));
+      // 5. Reset product overrides and custom products
+      safeStorage.set(KEYS.PRODUCT_OVERRIDES, JSON.stringify({}));
+      safeStorage.set(KEYS.CUSTOM_PRODUCTS, JSON.stringify([]));
+      // 6. Purge the legacy 4.7MB string immediately to free up browser quota
+      safeStorage.remove(KEYS.PRODUCTS);
+      safeStorage.set(CLEAN_KEY, 'true');
     }
   },
 
   getProducts(): Product[] {
-    if (typeof window === 'undefined') return seedProducts.map((p) => ({ ...p, stock: 0 }));
-    this.checkAndApplyCleanSlate();
-    const raw = localStorage.getItem(KEYS.PRODUCTS);
-    const ZERO_STOCK_APPLIED_KEY = 'jk_inventory_zero_stock_v6';
-    const isZeroStockApplied = localStorage.getItem(ZERO_STOCK_APPLIED_KEY);
-
     const zeroSeed = seedProducts.map((p) => ({ ...p, stock: 0 }));
+    if (typeof window === 'undefined') return zeroSeed;
+    this.checkAndApplyCleanSlate();
 
-    if (!raw) {
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroSeed));
-      localStorage.setItem(ZERO_STOCK_APPLIED_KEY, 'true');
-      return zeroSeed;
-    }
-    try {
-      let parsed: Product[] = JSON.parse(raw);
-      if (!isZeroStockApplied) {
-        // Enforce zero stock across all products and integrate newly added seed products
-        const existingMap = new Map(parsed.map((p) => [p.id, p]));
-        const merged: Product[] = [];
-        for (const sp of zeroSeed) {
-          const existing = existingMap.get(sp.id);
-          if (existing) {
-            merged.push({ ...sp, stock: 0 });
-            existingMap.delete(sp.id);
-          } else {
-            merged.push({ ...sp, stock: 0 });
-          }
-        }
-        existingMap.forEach((remaining) => {
-          merged.push({ ...remaining, stock: 0 });
-        });
-        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(merged));
-        localStorage.setItem(ZERO_STOCK_APPLIED_KEY, 'true');
-        return merged;
-      }
+    const rawOverrides = safeStorage.get(KEYS.PRODUCT_OVERRIDES);
+    const rawCustom = safeStorage.get(KEYS.CUSTOM_PRODUCTS);
+    const rawLegacy = safeStorage.get(KEYS.PRODUCTS);
 
-      const existingIds = new Set(parsed.map((p) => p.id));
-      const missing = zeroSeed.filter((sp) => !existingIds.has(sp.id));
-      if (missing.length > 0) {
-        const merged = [...parsed, ...missing];
-        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(merged));
-        return merged;
-      }
-      return parsed;
-    } catch {
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(zeroSeed));
-      localStorage.setItem(ZERO_STOCK_APPLIED_KEY, 'true');
-      return zeroSeed;
+    let overrides: Record<string, Partial<Product>> = {};
+    let customProducts: Product[] = [];
+
+    if (rawOverrides) {
+      try {
+        overrides = JSON.parse(rawOverrides);
+      } catch {}
     }
+    if (rawCustom) {
+      try {
+        customProducts = JSON.parse(rawCustom);
+      } catch {}
+    }
+
+    // Migrate from legacy raw products string if exists and overrides not yet created
+    if (rawLegacy && Object.keys(overrides).length === 0 && customProducts.length === 0) {
+      try {
+        const legacyParsed: Product[] = JSON.parse(rawLegacy);
+        this.saveProducts(legacyParsed);
+        safeStorage.remove(KEYS.PRODUCTS);
+        return legacyParsed;
+      } catch {}
+    }
+
+    // Purge legacy massive raw string to permanently protect quota
+    safeStorage.remove(KEYS.PRODUCTS);
+
+    const baseProducts: Product[] = zeroSeed.map((p) => {
+      const ov = overrides[p.id];
+      if (ov) {
+        return { ...p, ...ov };
+      }
+      return p;
+    });
+
+    return [...baseProducts, ...customProducts];
   },
 
   saveProducts(products: Product[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
+
+    const seedMap = new Map(seedProducts.map((p) => [p.id, p]));
+    const overrides: Record<string, Partial<Product>> = {};
+    const customProducts: Product[] = [];
+
+    for (const p of products) {
+      const sp = seedMap.get(p.id);
+      if (sp) {
+        const diff: Partial<Product> = {};
+        let changed = false;
+        if (p.stock !== sp.stock) { diff.stock = p.stock; changed = true; }
+        if (p.costPrice !== sp.costPrice) { diff.costPrice = p.costPrice; changed = true; }
+        if (p.salePrice !== sp.salePrice) { diff.salePrice = p.salePrice; changed = true; }
+        if (p.minStockAlert !== sp.minStockAlert) { diff.minStockAlert = p.minStockAlert; changed = true; }
+        if (p.nameUr !== sp.nameUr) { diff.nameUr = p.nameUr; changed = true; }
+        if (p.nameEn !== sp.nameEn) { diff.nameEn = p.nameEn; changed = true; }
+        if (p.barcode !== sp.barcode) { diff.barcode = p.barcode; changed = true; }
+        if (p.sku !== sp.sku) { diff.sku = p.sku; changed = true; }
+        if (p.image !== sp.image) { diff.image = p.image; changed = true; }
+        if (changed) {
+          overrides[p.id] = diff;
+        }
+      } else {
+        customProducts.push(p);
+      }
+    }
+
+    safeStorage.set(KEYS.PRODUCT_OVERRIDES, JSON.stringify(overrides));
+    safeStorage.set(KEYS.CUSTOM_PRODUCTS, JSON.stringify(customProducts));
+    // Always purge the massive legacy string
+    safeStorage.remove(KEYS.PRODUCTS);
   },
 
   getCustomers(): Customer[] {
     if (typeof window === 'undefined') return [];
     this.checkAndApplyCleanSlate();
-    const raw = localStorage.getItem(KEYS.CUSTOMERS);
+    const raw = safeStorage.get(KEYS.CUSTOMERS);
     if (!raw) {
-      localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify([]));
+      safeStorage.set(KEYS.CUSTOMERS, JSON.stringify([]));
       return [];
     }
     try {
@@ -189,13 +248,13 @@ export const storage = {
 
   saveCustomers(customers: Customer[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(customers));
+    safeStorage.set(KEYS.CUSTOMERS, JSON.stringify(customers));
   },
 
   getInvoices(): Invoice[] {
     if (typeof window === 'undefined') return [];
     this.checkAndApplyCleanSlate();
-    const raw = localStorage.getItem(KEYS.INVOICES);
+    const raw = safeStorage.get(KEYS.INVOICES);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -206,15 +265,15 @@ export const storage = {
 
   saveInvoices(invoices: Invoice[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.INVOICES, JSON.stringify(invoices));
+    safeStorage.set(KEYS.INVOICES, JSON.stringify(invoices));
   },
 
   getRoznamcha(): RoznamchaEntry[] {
     if (typeof window === 'undefined') return [];
     this.checkAndApplyCleanSlate();
-    const raw = localStorage.getItem(KEYS.ROZNAMCHA);
+    const raw = safeStorage.get(KEYS.ROZNAMCHA);
     if (!raw) {
-      localStorage.setItem(KEYS.ROZNAMCHA, JSON.stringify([]));
+      safeStorage.set(KEYS.ROZNAMCHA, JSON.stringify([]));
       return [];
     }
     try {
@@ -226,15 +285,15 @@ export const storage = {
 
   saveRoznamcha(entries: RoznamchaEntry[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.ROZNAMCHA, JSON.stringify(entries));
+    safeStorage.set(KEYS.ROZNAMCHA, JSON.stringify(entries));
   },
 
   getVendors(): Vendor[] {
     if (typeof window === 'undefined') return [];
     this.checkAndApplyCleanSlate();
-    const raw = localStorage.getItem(KEYS.VENDORS);
+    const raw = safeStorage.get(KEYS.VENDORS);
     if (!raw) {
-      localStorage.setItem(KEYS.VENDORS, JSON.stringify([]));
+      safeStorage.set(KEYS.VENDORS, JSON.stringify([]));
       return [];
     }
     try {
@@ -246,12 +305,12 @@ export const storage = {
 
   saveVendors(vendors: Vendor[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.VENDORS, JSON.stringify(vendors));
+    safeStorage.set(KEYS.VENDORS, JSON.stringify(vendors));
   },
 
   getGRNList(): GRN[] {
     if (typeof window === 'undefined') return [];
-    const raw = localStorage.getItem(KEYS.GRN_LIST);
+    const raw = safeStorage.get(KEYS.GRN_LIST);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -262,14 +321,14 @@ export const storage = {
 
   saveGRNList(list: GRN[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.GRN_LIST, JSON.stringify(list));
+    safeStorage.set(KEYS.GRN_LIST, JSON.stringify(list));
   },
 
   getStaffList(): Staff[] {
     if (typeof window === 'undefined') return seedStaff;
-    const raw = localStorage.getItem(KEYS.STAFF_LIST);
+    const raw = safeStorage.get(KEYS.STAFF_LIST);
     if (!raw) {
-      localStorage.setItem(KEYS.STAFF_LIST, JSON.stringify(seedStaff));
+      safeStorage.set(KEYS.STAFF_LIST, JSON.stringify(seedStaff));
       return seedStaff;
     }
     try {
@@ -281,37 +340,37 @@ export const storage = {
 
   saveStaffList(staff: Staff[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.STAFF_LIST, JSON.stringify(staff));
+    safeStorage.set(KEYS.STAFF_LIST, JSON.stringify(staff));
   },
 
   getOpeningCash(): number {
     if (typeof window === 'undefined') return 5000;
-    const raw = localStorage.getItem(KEYS.OPENING_CASH);
+    const raw = safeStorage.get(KEYS.OPENING_CASH);
     return raw ? parseFloat(raw) : 5000;
   },
 
   setOpeningCash(amount: number): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.OPENING_CASH, amount.toString());
+    safeStorage.set(KEYS.OPENING_CASH, amount.toString());
   },
 
   getActiveRole(): 'ADMIN' | 'MANAGER' | 'CASHIER' {
     if (typeof window === 'undefined') return 'ADMIN';
-    const role = localStorage.getItem(KEYS.ACTIVE_ROLE);
+    const role = safeStorage.get(KEYS.ACTIVE_ROLE);
     if (role === 'CASHIER') return 'CASHIER';
     return 'ADMIN';
   },
 
   setActiveRole(role: 'ADMIN' | 'MANAGER' | 'CASHIER'): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.ACTIVE_ROLE, role);
+    safeStorage.set(KEYS.ACTIVE_ROLE, role);
   },
 
   getCashiers(): CashierAccount[] {
     if (typeof window === 'undefined') return defaultCashierAccounts;
-    const raw = localStorage.getItem(KEYS.CASHIERS);
+    const raw = safeStorage.get(KEYS.CASHIERS);
     if (!raw) {
-      localStorage.setItem(KEYS.CASHIERS, JSON.stringify(defaultCashierAccounts));
+      safeStorage.set(KEYS.CASHIERS, JSON.stringify(defaultCashierAccounts));
       return defaultCashierAccounts;
     }
     try {
@@ -321,7 +380,7 @@ export const storage = {
         const existingIds = new Set(parsed.map(c => c.id));
         const missing = defaultCashierAccounts.filter(d => !existingIds.has(d.id));
         const merged = [...parsed, ...missing];
-        localStorage.setItem(KEYS.CASHIERS, JSON.stringify(merged));
+        safeStorage.set(KEYS.CASHIERS, JSON.stringify(merged));
         return merged;
       }
       return parsed;
@@ -332,35 +391,35 @@ export const storage = {
 
   saveCashiers(cashiers: CashierAccount[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.CASHIERS, JSON.stringify(cashiers));
+    safeStorage.set(KEYS.CASHIERS, JSON.stringify(cashiers));
   },
 
   getActiveCounter(): number {
     if (typeof window === 'undefined') return 1;
-    const raw = localStorage.getItem(KEYS.ACTIVE_COUNTER);
+    const raw = safeStorage.get(KEYS.ACTIVE_COUNTER);
     return raw ? parseInt(raw, 10) : 1;
   },
 
   setActiveCounter(counter: number): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.ACTIVE_COUNTER, counter.toString());
+    safeStorage.set(KEYS.ACTIVE_COUNTER, counter.toString());
   },
 
   getActiveCashierId(): string {
     if (typeof window === 'undefined') return 'counter-1';
-    return localStorage.getItem(KEYS.ACTIVE_CASHIER_ID) || 'counter-1';
+    return safeStorage.get(KEYS.ACTIVE_CASHIER_ID) || 'counter-1';
   },
 
   setActiveCashierId(id: string): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.ACTIVE_CASHIER_ID, id);
+    safeStorage.set(KEYS.ACTIVE_CASHIER_ID, id);
   },
 
   getCashierPermissions(): CashierModulePermissions {
     if (typeof window === 'undefined') return defaultCashierPermissions;
-    const raw = localStorage.getItem(KEYS.CASHIER_PERMISSIONS);
+    const raw = safeStorage.get(KEYS.CASHIER_PERMISSIONS);
     if (!raw) {
-      localStorage.setItem(KEYS.CASHIER_PERMISSIONS, JSON.stringify(defaultCashierPermissions));
+      safeStorage.set(KEYS.CASHIER_PERMISSIONS, JSON.stringify(defaultCashierPermissions));
       return defaultCashierPermissions;
     }
     try {
@@ -372,12 +431,12 @@ export const storage = {
 
   saveCashierPermissions(perms: CashierModulePermissions): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.CASHIER_PERMISSIONS, JSON.stringify(perms));
+    safeStorage.set(KEYS.CASHIER_PERMISSIONS, JSON.stringify(perms));
   },
 
   getSaleReturns(): SaleReturn[] {
     if (typeof window === 'undefined') return [];
-    const raw = localStorage.getItem(KEYS.SALE_RETURNS);
+    const raw = safeStorage.get(KEYS.SALE_RETURNS);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -388,12 +447,12 @@ export const storage = {
 
   saveSaleReturns(returns: SaleReturn[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.SALE_RETURNS, JSON.stringify(returns));
+    safeStorage.set(KEYS.SALE_RETURNS, JSON.stringify(returns));
   },
 
   getSaleExchanges(): SaleExchange[] {
     if (typeof window === 'undefined') return [];
-    const raw = localStorage.getItem(KEYS.SALE_EXCHANGES);
+    const raw = safeStorage.get(KEYS.SALE_EXCHANGES);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -404,12 +463,12 @@ export const storage = {
 
   saveSaleExchanges(exchanges: SaleExchange[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.SALE_EXCHANGES, JSON.stringify(exchanges));
+    safeStorage.set(KEYS.SALE_EXCHANGES, JSON.stringify(exchanges));
   },
 
   getAuditLogs(): AuditLog[] {
     if (typeof window === 'undefined') return [];
-    const raw = localStorage.getItem(KEYS.AUDIT_LOGS);
+    const raw = safeStorage.get(KEYS.AUDIT_LOGS);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -420,13 +479,13 @@ export const storage = {
 
   saveAuditLogs(logs: AuditLog[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(logs));
+    safeStorage.set(KEYS.AUDIT_LOGS, JSON.stringify(logs));
   },
 
   getWhatsAppOrders(): WhatsAppOrder[] {
     if (typeof window === 'undefined') return seedWhatsAppOrders;
     try {
-      const data = localStorage.getItem(KEYS.WHATSAPP_ORDERS);
+      const data = safeStorage.get(KEYS.WHATSAPP_ORDERS);
       return data ? JSON.parse(data) : seedWhatsAppOrders;
     } catch {
       return seedWhatsAppOrders;
@@ -435,19 +494,21 @@ export const storage = {
 
   saveWhatsAppOrders(orders: WhatsAppOrder[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.WHATSAPP_ORDERS, JSON.stringify(orders));
+    safeStorage.set(KEYS.WHATSAPP_ORDERS, JSON.stringify(orders));
   },
 
   resetAllData(): void {
     if (typeof window === 'undefined') return;
-    localStorage.removeItem(KEYS.ACTIVE_PRESET);
-    localStorage.removeItem(KEYS.PROFILES);
-    localStorage.removeItem(KEYS.PRODUCTS);
-    localStorage.removeItem(KEYS.CUSTOMERS);
-    localStorage.removeItem(KEYS.INVOICES);
-    localStorage.removeItem(KEYS.ROZNAMCHA);
-    localStorage.removeItem(KEYS.OPENING_CASH);
-    localStorage.removeItem(KEYS.VENDORS);
+    safeStorage.remove(KEYS.ACTIVE_PRESET);
+    safeStorage.remove(KEYS.PROFILES);
+    safeStorage.remove(KEYS.PRODUCTS);
+    safeStorage.remove(KEYS.PRODUCT_OVERRIDES);
+    safeStorage.remove(KEYS.CUSTOM_PRODUCTS);
+    safeStorage.remove(KEYS.CUSTOMERS);
+    safeStorage.remove(KEYS.INVOICES);
+    safeStorage.remove(KEYS.ROZNAMCHA);
+    safeStorage.remove(KEYS.OPENING_CASH);
+    safeStorage.remove(KEYS.VENDORS);
     localStorage.removeItem(KEYS.GRN_LIST);
     localStorage.removeItem(KEYS.STAFF_LIST);
     localStorage.removeItem(KEYS.SALE_RETURNS);
@@ -485,21 +546,21 @@ export const storage = {
   importBackup(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString);
-      if (data.profiles) localStorage.setItem(KEYS.PROFILES, JSON.stringify(data.profiles));
-      if (data.products) localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(data.products));
-      if (data.customers) localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(data.customers));
-      if (data.invoices) localStorage.setItem(KEYS.INVOICES, JSON.stringify(data.invoices));
-      if (data.roznamcha) localStorage.setItem(KEYS.ROZNAMCHA, JSON.stringify(data.roznamcha));
-      if (data.vendors) localStorage.setItem(KEYS.VENDORS, JSON.stringify(data.vendors));
-      if (data.grnList) localStorage.setItem(KEYS.GRN_LIST, JSON.stringify(data.grnList));
-      if (data.staffList) localStorage.setItem(KEYS.STAFF_LIST, JSON.stringify(data.staffList));
-      if (data.saleReturns) localStorage.setItem(KEYS.SALE_RETURNS, JSON.stringify(data.saleReturns));
-      if (data.saleExchanges) localStorage.setItem(KEYS.SALE_EXCHANGES, JSON.stringify(data.saleExchanges));
-      if (data.auditLogs) localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(data.auditLogs));
-      if (data.cashiers) localStorage.setItem(KEYS.CASHIERS, JSON.stringify(data.cashiers));
-      if (data.cashierPermissions) localStorage.setItem(KEYS.CASHIER_PERMISSIONS, JSON.stringify(data.cashierPermissions));
-      if (data.whatsappOrders) localStorage.setItem(KEYS.WHATSAPP_ORDERS, JSON.stringify(data.whatsappOrders));
-      if (data.preset) localStorage.setItem(KEYS.ACTIVE_PRESET, data.preset);
+      if (data.profiles) safeStorage.set(KEYS.PROFILES, JSON.stringify(data.profiles));
+      if (data.products) this.saveProducts(data.products);
+      if (data.customers) safeStorage.set(KEYS.CUSTOMERS, JSON.stringify(data.customers));
+      if (data.invoices) safeStorage.set(KEYS.INVOICES, JSON.stringify(data.invoices));
+      if (data.roznamcha) safeStorage.set(KEYS.ROZNAMCHA, JSON.stringify(data.roznamcha));
+      if (data.vendors) safeStorage.set(KEYS.VENDORS, JSON.stringify(data.vendors));
+      if (data.grnList) safeStorage.set(KEYS.GRN_LIST, JSON.stringify(data.grnList));
+      if (data.staffList) safeStorage.set(KEYS.STAFF_LIST, JSON.stringify(data.staffList));
+      if (data.saleReturns) safeStorage.set(KEYS.SALE_RETURNS, JSON.stringify(data.saleReturns));
+      if (data.saleExchanges) safeStorage.set(KEYS.SALE_EXCHANGES, JSON.stringify(data.saleExchanges));
+      if (data.auditLogs) safeStorage.set(KEYS.AUDIT_LOGS, JSON.stringify(data.auditLogs));
+      if (data.cashiers) safeStorage.set(KEYS.CASHIERS, JSON.stringify(data.cashiers));
+      if (data.cashierPermissions) safeStorage.set(KEYS.CASHIER_PERMISSIONS, JSON.stringify(data.cashierPermissions));
+      if (data.whatsappOrders) safeStorage.set(KEYS.WHATSAPP_ORDERS, JSON.stringify(data.whatsappOrders));
+      if (data.preset) safeStorage.set(KEYS.ACTIVE_PRESET, data.preset);
       return true;
     } catch (e) {
       console.error('Import failed', e);
@@ -510,7 +571,7 @@ export const storage = {
   getUsersDB(): PosUserLicense[] {
     if (typeof window === 'undefined') return [];
     try {
-      const data = localStorage.getItem(KEYS.USERS_DB);
+      const data = safeStorage.get(KEYS.USERS_DB);
       if (data) return JSON.parse(data);
     } catch (e) {
       console.error('Failed to load users DB', e);
@@ -530,7 +591,7 @@ export const storage = {
 
   saveUsersDB(users: PosUserLicense[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(KEYS.USERS_DB, JSON.stringify(users));
+    safeStorage.set(KEYS.USERS_DB, JSON.stringify(users));
   },
 
   getCurrentUser(): string | null {
@@ -547,7 +608,7 @@ export const storage = {
         }
       }
       // Also clean up any legacy persistent localStorage login key
-      localStorage.removeItem(KEYS.CURRENT_USER);
+      safeStorage.remove(KEYS.CURRENT_USER);
     } catch (e) {
       console.error('Session storage error', e);
     }
@@ -558,7 +619,7 @@ export const storage = {
     if (typeof window === 'undefined') return;
     try {
       // Ensure localStorage is cleared so links never inherit old logged-in accounts
-      localStorage.removeItem(KEYS.CURRENT_USER);
+      safeStorage.remove(KEYS.CURRENT_USER);
       if (!email) {
         sessionStorage.removeItem(KEYS.CURRENT_USER);
       } else {
