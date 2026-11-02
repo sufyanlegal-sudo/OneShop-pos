@@ -7,6 +7,7 @@ export const defaultCashierPermissions: CashierModulePermissions = {
   canReturn: false,
   canViewCostMargin: false,
   canNegativeStock: false, // strictly false for cashier
+  canGiveCredit: false, // strictly false for cashier - only Admin can give credit
   billsHistory: true,
   grn: false,
   vendors: false,

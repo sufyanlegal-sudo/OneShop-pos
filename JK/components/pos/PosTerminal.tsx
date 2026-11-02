@@ -74,6 +74,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     checkoutInvoice,
     customers,
     canSellOutOfStock,
+    canGiveCredit,
     isMarginUnlocked,
     unlockMargin,
     lockMargin,
@@ -403,6 +404,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     const handleHelp = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      if (!canGiveCredit()) {
+        posSound.playErrorBuzz();
+        setHoldToast(lang === 'ur' ? '⛔ غیر مجاز عمل! کیشیئر کو ادھار دینے کی اجازت نہیں ہے' : 'Unauthorized! Cashier cannot give credit');
+        setTimeout(() => setHoldToast(null), 3000);
+        return false;
+      }
       setPaymentMethod('CREDIT');
       setHoldToast(lang === 'ur' ? '📝 ادھار کھاتہ موڈ فعال ہوگیا' : 'Credit mode active');
       setTimeout(() => setHoldToast(null), 2500);
@@ -418,6 +425,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       if (e.key === 'F1' || (e.altKey && (e.key === 'u' || e.key === 'U' || e.key === 'k' || e.key === 'K'))) {
         e.preventDefault();
         e.stopPropagation();
+        if (!canGiveCredit()) {
+          posSound.playErrorBuzz();
+          setHoldToast(lang === 'ur' ? '⛔ غیر مجاز عمل! کیشیئر کو ادھار دینے کی اجازت نہیں ہے' : 'Unauthorized! Cashier cannot give credit');
+          setTimeout(() => setHoldToast(null), 3000);
+          return;
+        }
         setPaymentMethod('CREDIT');
         setHoldToast(lang === 'ur' ? '📝 ادھار کھاتہ موڈ فعال ہوگیا (گاہک کا نام درج کریں)' : 'Credit mode active');
         setTimeout(() => setHoldToast(null), 2500);
@@ -1017,6 +1030,18 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
       const expectedBalance = Math.max(0, netTotal - paid);
 
+      // Cashier Credit Permission Guard: Strictly block cashiers without credit permission
+      if ((paymentMethod === 'CREDIT' || expectedBalance > 0) && !canGiveCredit()) {
+        posSound.playErrorBuzz();
+        alert(
+          lang === 'ur'
+            ? '⛔ غیر مجاز عمل!\nکیشیئر کو کاؤنٹر پر ادھار دینے کی اجازت نہیں دی گئی۔\nبرائے مہربانی مکمل نقد یا آن لائن رقم وصول کریں یا ایڈمن سے رابطہ کریں۔'
+            : 'Unauthorized! Cashier is not allowed to issue credit bills.\nPlease collect full payment in Cash or Online, or login as Admin.'
+        );
+        setPaymentMethod('CASH');
+        return;
+      }
+
       // Udhaar validation: Ensure customer name exists for credit transactions
       let finalCustName = customerName.trim();
       let finalCustPhone = customerPhone.trim();
@@ -1554,17 +1579,29 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <button
               type="button"
               onClick={() => {
+                if (!canGiveCredit()) {
+                  posSound.playErrorBuzz();
+                  alert(
+                    lang === 'ur'
+                      ? '⛔ غیر مجاز عمل!\nکیشیئر کو ادھار پر سودا دینے کی اجازت نہیں ہے۔\nادھار کی رسائی صرف ایڈمن کے پاس ہے۔'
+                      : 'Unauthorized! Cashiers cannot give credit. Admin only.'
+                  );
+                  return;
+                }
                 posSound.playClick();
                 setPaymentMethod('CREDIT');
               }}
               className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
-                paymentMethod === 'CREDIT'
+                !canGiveCredit()
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-dashed border-rose-300 dark:border-rose-900/40 cursor-not-allowed opacity-60'
+                  : paymentMethod === 'CREDIT'
                   ? 'bg-rose-600 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
               }`}
+              title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked (Admin Only)') : 'ادھار کھاتہ'}
             >
-              <FileQuestion className="w-3 h-3" />
-              <span>{lang === 'ur' ? 'ادھار' : 'Khata'}</span>
+              {!canGiveCredit() ? <Lock className="w-3 h-3 text-rose-500" /> : <FileQuestion className="w-3 h-3" />}
+              <span>{!canGiveCredit() ? (lang === 'ur' ? '🔒 ادھار (بلاک)' : '🔒 Credit') : (lang === 'ur' ? 'ادھار' : 'Khata')}</span>
             </button>
             <button
               type="button"
@@ -2292,19 +2329,27 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         <button
           type="button"
           onClick={() => {
+            if (!canGiveCredit()) {
+              posSound.playErrorBuzz();
+              setHoldToast(lang === 'ur' ? '⛔ کیشیئر کو ادھار دینے کی اجازت نہیں ہے!' : 'Cashier credit blocked!');
+              setTimeout(() => setHoldToast(null), 3000);
+              return;
+            }
             setPaymentMethod('CREDIT');
             customerNameInputRef.current?.focus();
             customerNameInputRef.current?.select();
           }}
           className={`px-2.5 py-1 rounded-xl shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer ${
-            paymentMethod === 'CREDIT'
+            !canGiveCredit()
+              ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
+              : paymentMethod === 'CREDIT'
               ? 'bg-rose-600 text-white ring-2 ring-rose-400'
               : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100 dark:hover:bg-rose-950/40'
           }`}
-          title="ادھار کھاتہ سیل (F1 یا Alt+U)"
+          title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked') : 'ادھار کھاتہ سیل (F1 یا Alt+U)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F1</span>
-          <span>📝 ادھار کھاتہ</span>
+          <span>{!canGiveCredit() ? '🔒 ادھار (بلاک)' : '📝 ادھار کھاتہ'}</span>
         </button>
 
         {/* F4: Cash Received */}

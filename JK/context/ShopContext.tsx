@@ -122,6 +122,7 @@ interface ShopContextType {
   switchCashierCounter: (counterNumber: number, pin: string) => { success: boolean; message: string };
   hasAccess: (moduleKey: string) => boolean;
   canSellOutOfStock: () => boolean;
+  canGiveCredit: () => boolean;
   isMarginUnlocked: boolean;
   unlockMargin: (pin: string) => boolean;
   lockMargin: () => void;
@@ -767,6 +768,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Boolean(cashierPermissions.canNegativeStock);
   };
 
+  const canGiveCredit = (): boolean => {
+    if (currentRole === 'ADMIN' || currentRole === 'MANAGER') return true;
+    if (activeCashier?.permissions && activeCashier.permissions.canGiveCredit !== undefined) {
+      return Boolean(activeCashier.permissions.canGiveCredit);
+    }
+    if (activeCashier?.permissions && activeCashier.permissions.khata !== undefined) {
+      return Boolean(activeCashier.permissions.khata);
+    }
+    if (cashierPermissions && cashierPermissions.canGiveCredit !== undefined) {
+      return Boolean(cashierPermissions.canGiveCredit);
+    }
+    return Boolean(cashierPermissions?.khata);
+  };
+
   const saveCashiers = (accounts: CashierAccount[]) => {
     setCashierAccounts(accounts);
     storage.saveCashiers(accounts);
@@ -1126,6 +1141,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const balanceDue = Math.max(0, grandTotal - paidAmount);
 
     const isCredit = params.paymentMethod === 'CREDIT' || balanceDue > 0;
+
+    // Strict Permission Enforcement: Cashiers cannot issue credit/udhaar without permission
+    if (isCredit && !canGiveCredit()) {
+      throw new Error('⛔ غیر مجاز عمل! کیشیئر کو ادھار پر بل بنانے کی اجازت نہیں ہے۔');
+    }
+
     const cleanCustomerName = (params.customerName || '').trim();
     const cleanCustomerPhone = (params.customerPhone || '').trim();
 
@@ -2745,6 +2766,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchCashierCounter,
         hasAccess,
         canSellOutOfStock,
+        canGiveCredit,
         isMarginUnlocked,
         unlockMargin,
         lockMargin,

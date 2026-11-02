@@ -28,6 +28,7 @@ import {
   MessageSquare,
   KeyRound,
   Image as ImageIcon,
+  FileText,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -816,10 +817,29 @@ export const SettingsView: React.FC = () => {
               <div>
                 <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-purple-500" />
-                  <span>{lang === 'ur' ? 'گاہکوں کا ادھار کھاتہ (Customer Khata)' : 'Customer Credit Khata Ledger'}</span>
+                  <span>{lang === 'ur' ? 'گاہکوں کا ادھار کھاتہ مینو (Customer Khata Ledger)' : 'Customer Credit Khata Ledger'}</span>
                 </span>
                 <p className="text-[11px] text-slate-500">
-                  {lang === 'ur' ? 'گاہکوں کا ادھار، بقایا اور وصولی درج کرنا' : 'View customer receivables and payments'}
+                  {lang === 'ur' ? 'گاہکوں کا ادھار، بقایا اور وصولی کا مینو دیکھنا' : 'View customer receivables and payments'}
+                </p>
+              </div>
+            </label>
+
+            {/* 7b. Allow POS Counter Credit */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 cursor-pointer hover:border-rose-500 transition-all">
+              <input
+                type="checkbox"
+                checked={localPerms.canGiveCredit || false}
+                onChange={(e) => setLocalPerms({ ...localPerms, canGiveCredit: e.target.checked })}
+                className="mt-1 w-4 h-4 text-rose-600 rounded"
+              />
+              <div>
+                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-rose-500" />
+                  <span>{lang === 'ur' ? 'کاؤنٹر پر گاہک کو ادھار دینے کی اجازت (Allow POS Credit)' : 'Allow Udhaar/Credit at Counter'}</span>
+                </span>
+                <p className="text-[11px] text-slate-500">
+                  {lang === 'ur' ? 'اگر ان چیک ہو تو کیشیئر کاؤنٹر پر ادھار بل نہیں بنا سکے گا (صرف ایڈمن ادھار دے سکتا ہے)' : 'Only Admin can give credit when unchecked'}
                 </p>
               </div>
             </label>

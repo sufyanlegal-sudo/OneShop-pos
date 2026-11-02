@@ -24,6 +24,7 @@ export interface CashierModulePermissions {
   canReturn: boolean;
   canViewCostMargin: boolean;
   canNegativeStock?: boolean; // Negative stock billing permission (Default: false, only Admin has access)
+  canGiveCredit?: boolean; // Allow cashier to issue udhaar/credit at counter (Default: false, only Admin has access)
   billsHistory: boolean;
   grn: boolean;
   vendors: boolean;
