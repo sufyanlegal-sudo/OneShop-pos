@@ -30,6 +30,7 @@ import {
   Phone,
   Clock,
   ExternalLink,
+  Copy,
   ArrowRight,
   QrCode,
   Camera,
@@ -77,6 +78,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     unlockMargin,
     lockMargin,
     businessProfile,
+    updateBusinessProfile,
     currentRole,
     switchRole,
     activeCounter,
@@ -275,6 +277,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const [urduKeyboardOpen, setUrduKeyboardOpen] = useState(false);
   const [holdToast, setHoldToast] = useState<string | null>(null);
 
+  // Shopkeeper WhatsApp Link State
+  const [isShopWhatsAppModalOpen, setIsShopWhatsAppModalOpen] = useState(false);
+  const [shopWhatsAppInput, setShopWhatsAppInput] = useState(businessProfile.whatsapp || businessProfile.phone || '03334140088');
+
+  useEffect(() => {
+    setShopWhatsAppInput(businessProfile.whatsapp || businessProfile.phone || '03334140088');
+  }, [businessProfile.whatsapp, businessProfile.phone]);
+
   const [heldBills, setHeldBills] = useState<HeldBill[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -385,7 +395,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
   }, [cart, cart.length]);
 
-  // Keyboard Shortcuts: F12 or Enter = Complete & Print, F4 = Cash Input, F2/F9 = Barcode Search
+  // Complete Zero-Mouse Keyboard Operation Support (F12, F4, F6, F7, F8, F10, F11, F2/F9, Esc)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // F12 or Alt+Enter -> Instant Complete & Print Bill
@@ -397,9 +407,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         return;
       }
 
-      // F4 -> Jump directly to Cash Received Input
+      // F4 -> Jump directly to Cash Received Input (auto-fills exact bill total)
       if (e.key === 'F4') {
         e.preventDefault();
+        if (!tenderedAmount || tenderedAmount === 0) {
+          setTenderedAmount(effectiveNetTotal);
+        }
         tenderedInputRef.current?.focus();
         tenderedInputRef.current?.select();
         return;
@@ -412,6 +425,47 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         return;
       }
 
+      // F7 -> Open Held Bills Queue Modal
+      if (e.key === 'F7') {
+        e.preventDefault();
+        setHeldBillsModalOpen(true);
+        return;
+      }
+
+      // F10 -> Open Bills History & Fast Reprint
+      if (e.key === 'F10') {
+        e.preventDefault();
+        setIsRecentBillsModalOpen(true);
+        return;
+      }
+
+      // F11 -> Open Sale Return & Exchange
+      if (e.key === 'F11') {
+        e.preventDefault();
+        setIsExchangeModalOpen(true);
+        return;
+      }
+
+      // F3 -> Open Quick Custom Item Add Modal
+      if (e.key === 'F3') {
+        e.preventDefault();
+        setCustomItemModalOpen(true);
+        return;
+      }
+
+      // F8 -> Delete last added item from cart without touching mouse
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          const lastItem = cart[cart.length - 1];
+          removeFromCart(lastItem.product.id);
+          posSound.playClick();
+          setHoldToast(lang === 'ur' ? `آئٹم حذف ہو گئی (${lastItem.product.nameUr})` : 'Item deleted');
+          setTimeout(() => setHoldToast(null), 2000);
+        }
+        return;
+      }
+
       // F2 or F9 -> Jump focus back to Barcode Scanner Input
       if (e.key === 'F2' || e.key === 'F9') {
         e.preventDefault();
@@ -419,11 +473,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         barcodeInputRef.current?.select();
         return;
       }
+
+      // Escape -> Close any open modals or drawers and return focus to scanner
+      if (e.key === 'Escape') {
+        setHeldBillsModalOpen(false);
+        setIsRecentBillsModalOpen(false);
+        setIsExchangeModalOpen(false);
+        setCustomItemModalOpen(false);
+        setIsShopWhatsAppModalOpen(false);
+        setSearchSuggestionsOpen(false);
+        setUrduKeyboardOpen(false);
+        barcodeInputRef.current?.focus();
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [cart.length, cartTotals.subtotal, orderDiscount, tenderedAmount, paymentMethod, amountPaid]);
+  }, [cart.length, cartTotals.subtotal, orderDiscount, tenderedAmount, paymentMethod, amountPaid, effectiveNetTotal]);
 
   // Currency Denominations State (Notes Counter)
   const [cashInputMode, setCashInputMode] = useState<'direct' | 'notes'>('direct');
@@ -622,15 +689,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
   };
 
-  // Handle Barcode Scanner Enter Key
+  // Handle Barcode Scanner & Unified Product Input Enter Key (100% Zero-Mouse Operation!)
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!barcodeInput.trim()) {
+    const raw = barcodeInput.trim();
+    if (!raw) {
       // If empty barcode and cart has items: jump straight to tendered amount or checkout without mouse!
       if (cart.length > 0) {
         if (tenderedAmount > 0) {
           handleCheckout();
         } else {
+          setTenderedAmount(effectiveNetTotal);
           tenderedInputRef.current?.focus();
           tenderedInputRef.current?.select();
         }
@@ -638,18 +707,44 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       return;
     }
 
-    const matched = products.find(
+    // Support multiplier syntax e.g. "5*89640001" or "2*چینی" or "3*1001"
+    let qty = 1;
+    let target = raw;
+    if (raw.includes('*')) {
+      const parts = raw.split('*');
+      if (parts.length === 2 && !isNaN(Number(parts[0])) && Number(parts[0]) > 0) {
+        qty = parseFloat(parts[0]) || 1;
+        target = parts[1].trim();
+      }
+    }
+
+    // 1. Match by exact barcode, SKU or ID
+    let matched = products.find(
       (p) =>
-        (p.barcode && p.barcode === barcodeInput.trim()) ||
-        ((p.sku || '').toLowerCase() === barcodeInput.trim().toLowerCase())
+        (p.barcode && p.barcode.toLowerCase() === target.toLowerCase()) ||
+        ((p.sku || '').toLowerCase() === target.toLowerCase()) ||
+        p.id === target
     );
 
+    // 2. Fallback: match by product name in Urdu or English
+    if (!matched && target.length >= 2) {
+      const q = target.toLowerCase();
+      matched = products.find(
+        (p) =>
+          (p.nameUr && p.nameUr.toLowerCase().includes(q)) ||
+          (p.nameEn && p.nameEn.toLowerCase().includes(q))
+      );
+    }
+
     if (matched) {
-      tryAddToCart(matched, 1);
+      tryAddToCart(matched, qty);
       setBarcodeInput('');
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 30);
     } else {
       posSound.playErrorBuzz();
-      alert(lang === 'ur' ? 'یہ بارکوڈ پروڈکٹ میں نہیں ملا!' : 'Barcode not found!');
+      alert(lang === 'ur' ? `پروڈکٹ "${target}" سسٹم میں نہیں ملی!` : `Product "${target}" not found!`);
     }
   };
 
@@ -1799,7 +1894,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* Quick Hold Bill Button */}
+        {/* 1. INSTANT COMPLETE & PRINT BUTTON (F12 / Enter) - High Priority on Main Front Row */}
+        <button
+          type="button"
+          onClick={handleCheckout}
+          disabled={cart.length === 0}
+          className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-40 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-700/30 border-2 border-emerald-400 ring-2 ring-emerald-500/20 active:scale-95 transition-all whitespace-nowrap"
+          title="بل مکمل کریں اور پرنٹ نکالیں (Enter یا F12 دبائیں)"
+        >
+          <Printer className="w-4 h-4 text-white" />
+          <span>{lang === 'ur' ? '⚡ بل بنائیں و پرنٹ (F12)' : 'Generate & Print (F12)'}</span>
+          {cart.length > 0 && (
+            <span className="bg-white/20 text-white px-2 py-0.5 rounded-full font-mono text-[11px]">
+              {effectiveNetTotal.toLocaleString()} PKR
+            </span>
+          )}
+        </button>
+
+        {/* 2. Quick Hold Bill Button */}
         <button
           type="button"
           onClick={handleHoldBill}
@@ -1810,21 +1922,66 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           <span>{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold Bill (F6)'}</span>
         </button>
 
-        {/* Dedicated Held Bills Queue Button (Visible whenever held bills exist) */}
+        {/* 3. Dedicated Held Bills Queue Button */}
         {heldBills.length > 0 && (
           <button
             type="button"
             onClick={() => setHeldBillsModalOpen(true)}
             className="px-3.5 py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all ring-2 ring-amber-400/50 animate-pulse whitespace-nowrap"
-            title="ہولڈ شدہ بلز دیکھیں اور بحال کریں"
+            title="ہولڈ شدہ بلز دیکھیں اور بحال کریں (F7)"
           >
             <Clock className="w-4 h-4 text-slate-950" />
-            <span>{lang === 'ur' ? '📋 ہولڈ شدہ بلز' : 'Held Bills'}</span>
+            <span>{lang === 'ur' ? '📋 ہولڈ شدہ بلز (F7)' : 'Held Bills (F7)'}</span>
             <span className="bg-slate-950 text-amber-400 px-2 py-0.5 rounded-full text-[10px] font-mono font-black">
               {heldBills.length}
             </span>
           </button>
         )}
+
+        {/* 4. Shopkeeper WhatsApp Button (Front & Center) */}
+        <button
+          type="button"
+          onClick={() => setIsShopWhatsAppModalOpen(true)}
+          className="px-3.5 py-3 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/50 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs whitespace-nowrap"
+          title="دوکاندار کا واٹس ایپ نمبر اور آرڈر لنک سیٹ کریں"
+        >
+          <MessageSquare className="w-4 h-4 text-[#25D366]" />
+          <span>{lang === 'ur' ? 'دوکاندار واٹس ایپ:' : 'Shop WhatsApp:'}</span>
+          <span className="font-mono text-xs font-black" dir="ltr">{businessProfile.whatsapp || businessProfile.phone || '03334140088'}</span>
+        </button>
+
+        {/* 5. Bills History & Reprint Button */}
+        <button
+          type="button"
+          onClick={() => setIsRecentBillsModalOpen(true)}
+          className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all whitespace-nowrap"
+          title="پچھلے بلز دیکھیں اور ری پرنٹ نکالیں (F10)"
+        >
+          <History className="w-4 h-4 text-blue-400" />
+          <span>{lang === 'ur' ? 'پچھلے بلز (F10)' : 'History (F10)'}</span>
+        </button>
+
+        {/* 6. Sale Return & Exchange Button */}
+        <button
+          type="button"
+          onClick={() => setIsExchangeModalOpen(true)}
+          className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all whitespace-nowrap"
+          title="مال واپسی و تبدیلی (F11)"
+        >
+          <Repeat className="w-4 h-4 text-rose-400" />
+          <span>{lang === 'ur' ? 'مال واپسی (F11)' : 'Return (F11)'}</span>
+        </button>
+
+        {/* 7. Quick Add Custom Item Button */}
+        <button
+          type="button"
+          onClick={() => setCustomItemModalOpen(true)}
+          className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all whitespace-nowrap"
+          title="نیا غیر فہرست شدہ آئٹم شامل کریں (F3)"
+        >
+          <Plus className="w-4 h-4 text-emerald-400" />
+          <span>{lang === 'ur' ? '+ نیا آئٹم (F3)' : '+ New Item (F3)'}</span>
+        </button>
 
         {/* Quick Tools Floating Dropdown Menu (Clean & Clutter-Free) */}
         <div ref={quickToolsRef} className="relative">
@@ -3560,6 +3717,114 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               <Printer className="w-4 h-4" />
               <span>{lang === 'ur' ? 'بل مکمل کریں (پرنٹ)' : 'Complete Sale'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 7. SHOPKEEPER WHATSAPP LINK & CONTROL MODAL */}
+      {isShopWhatsAppModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-[#25D366] rounded-3xl w-full max-w-lg p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-[#25D366]/20 text-[#25D366] rounded-2xl border border-[#25D366]/30">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
+                    {lang === 'ur' ? 'دوکاندار کا واٹس ایپ لنک و بلنگ سیٹنگز' : 'Shopkeeper WhatsApp Link & Settings'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {lang === 'ur'
+                      ? 'تمام گاہکوں کے آرڈرز اور بلز دوکاندار کے اسی واٹس ایپ پر موصول ہوں گے'
+                      : 'All customer WhatsApp orders and bills connect strictly to this shopkeeper phone'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShopWhatsAppModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {lang === 'ur' ? 'دوکاندار کا موبائل و واٹس ایپ نمبر:' : 'Shopkeeper Mobile & WhatsApp Number:'}
+                </label>
+                <input
+                  type="text"
+                  value={shopWhatsAppInput}
+                  onChange={(e) => setShopWhatsAppInput(e.target.value)}
+                  placeholder="03334140088 یا 03001234567"
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-sm outline-none focus:border-[#25D366]"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl space-y-1.5">
+                <div className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                  {lang === 'ur' ? '💡 گاہکوں کیلئے براہِ راست واٹس ایپ آرڈر لنک:' : 'Customer WhatsApp Order Link:'}
+                </div>
+                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-300 break-all p-1.5 bg-white dark:bg-slate-900 rounded border" dir="ltr">
+                  {(() => {
+                    let clean = shopWhatsAppInput.replace(/[^0-9]/g, '');
+                    if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+                    return `https://wa.me/${clean}?text=${encodeURIComponent('السلام علیکم! مجھے سامان کا آرڈر دینا ہے۔')}`;
+                  })()}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    let clean = shopWhatsAppInput.replace(/[^0-9]/g, '');
+                    if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+                    const link = `https://wa.me/${clean}?text=${encodeURIComponent('السلام علیکم! مجھے سامان کا آرڈر دینا ہے۔')}`;
+                    navigator.clipboard.writeText(link);
+                    alert('✅ دوکاندار کا واٹس ایپ آرڈر لنک کاپی ہو گیا!\n\n' + link);
+                  }}
+                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95 transition-all"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{lang === 'ur' ? 'آرڈر لنک کاپی کریں' : 'Copy Order Link'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    let clean = shopWhatsAppInput.replace(/[^0-9]/g, '');
+                    if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+                    window.open(`https://wa.me/${clean}`, '_blank');
+                  }}
+                  className="py-2 px-3 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border border-[#25D366]/40 active:scale-95 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>{lang === 'ur' ? 'چیٹ ٹیسٹ کریں' : 'Test Chat'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateBusinessProfile({
+                      whatsapp: shopWhatsAppInput.trim(),
+                      phone: shopWhatsAppInput.trim(),
+                    });
+                    posSound.playClick();
+                    setIsShopWhatsAppModalOpen(false);
+                    setHoldToast('✅ دوکاندار کا واٹس ایپ نمبر کامیابی سے محفوظ ہو گیا!');
+                    setTimeout(() => setHoldToast(null), 3000);
+                  }}
+                  className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{lang === 'ur' ? 'نمبر محفوظ کریں (Save)' : 'Save Number'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

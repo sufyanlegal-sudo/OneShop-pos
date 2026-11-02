@@ -59,6 +59,22 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     setCustomTendered(null);
   }, [isOpen, invoice]);
 
+  // 100% Zero-Mouse Keyboard Support: Enter = Instant Print, Esc = Close and return to new bill
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleReceiptKeys = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.print();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleReceiptKeys);
+    return () => window.removeEventListener('keydown', handleReceiptKeys);
+  }, [isOpen, onClose]);
+
   // Generate QR Code and Barcode images whenever modal opens or invoice changes
   useEffect(() => {
     if (!isOpen || !invoice) return;
