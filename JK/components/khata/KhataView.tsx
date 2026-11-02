@@ -16,10 +16,14 @@ import {
   Mic,
   Banknote,
   TrendingDown,
+  X,
+  CheckCircle2,
+  Receipt,
+  ExternalLink,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
-import { Customer } from '@/types';
+import { Customer, KhataPaymentReceipt } from '@/types';
 import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 
 export const KhataView: React.FC = () => {
@@ -31,6 +35,10 @@ export const KhataView: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [newCustomerModalOpen, setNewCustomerModalOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+
+  // Recovery Receipt Modal State
+  const [completedReceipt, setCompletedReceipt] = useState<KhataPaymentReceipt | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
   // Payment form
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -47,6 +55,22 @@ export const KhataView: React.FC = () => {
     return customers.find((c) => c.id === selectedCustomerId) || customers[0] || null;
   }, [customers, selectedCustomerId]);
 
+  // Selected Customer Ledger Statistics (کل ادھار، کل جمع شدہ وصولی، خالص بقایا)
+  const customerStats = useMemo(() => {
+    if (!selectedCustomer) return { totalDebit: 0, totalCredit: 0, balance: 0 };
+    let totalDebit = 0;
+    let totalCredit = 0;
+    selectedCustomer.khata.forEach((k) => {
+      if (k.type === 'DEBIT') totalDebit += k.amount;
+      if (k.type === 'CREDIT') totalCredit += k.amount;
+    });
+    return {
+      totalDebit,
+      totalCredit,
+      balance: selectedCustomer.currentBalance,
+    };
+  }, [selectedCustomer]);
+
   // Total Outstanding Debt across all customers
   const totalMarketDebt = useMemo(() => {
     return customers.reduce((sum, c) => sum + c.currentBalance, 0);
@@ -62,20 +86,25 @@ export const KhataView: React.FC = () => {
       .sort((a, b) => b.currentBalance - a.currentBalance);
   }, [customers, searchQuery]);
 
-  // Handle Receive Payment
+  // Handle Receive Payment (کھاتے میں رقم جمع کرنا)
   const handleReceivePayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer || paymentAmount <= 0) return;
 
-    receiveKhataPayment(
+    const receipt = receiveKhataPayment(
       selectedCustomer.id,
       paymentAmount,
-      paymentDesc.trim() || 'نقد وصولی بذریعہ کھاتہ'
+      paymentDesc.trim() || 'نقد وصولی بذریعہ کیش'
     );
 
     setPaymentModalOpen(false);
     setPaymentAmount(0);
     setPaymentDesc('');
+
+    if (receipt) {
+      setCompletedReceipt(receipt);
+      setReceiptModalOpen(true);
+    }
   };
 
   // Handle Add Customer
@@ -97,7 +126,7 @@ export const KhataView: React.FC = () => {
     setCustAddress('');
   };
 
-  // WhatsApp reminder generator (exact polite template)
+  // WhatsApp reminder generator (پالائٹ یاد دہانی)
   const sendWhatsAppReminder = (cust: Customer) => {
     let cleanPhone = cust.phone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('03')) {
@@ -106,10 +135,33 @@ export const KhataView: React.FC = () => {
     const msg = `محترم ${cust.name} صاحب!
 السلام علیکم ورحمۃ اللہ و برکاتہ۔
 امید ہے آپ بخیریت ہوں گے۔
-آپ کے نام ${businessProfile.nameUr} کے کھاتے میں اس وقت کل واجب الادا رقم ${cust.currentBalance.toLocaleString()} روپے ہے۔
+آپ کے نام ${businessProfile.nameUr} کے کھاتے میں اس وقت کل واجب الادا بقایا رقم ${cust.currentBalance.toLocaleString()} روپے ہے۔
 برائے مہربانی سہولت کے مطابق ادائیگی کا انتظام فرما کر تعاون فرمائیں۔
 شکریہ!
-${businessProfile.nameUr} (${businessProfile.phone})`;
+${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})`;
+
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
+  // WhatsApp payment receipt generator (رقم جمع ہونے کی تصدیق)
+  const sendWhatsAppReceipt = (rec: KhataPaymentReceipt) => {
+    let cleanPhone = rec.customerPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('03')) {
+      cleanPhone = '92' + cleanPhone.substring(1);
+    }
+    const msg = `*محترم ${rec.customerName} صاحب!*
+السلام علیکم ورحمۃ اللہ و برکاتہ۔
+آپ کی جانب سے ادھار کھاتے کی رقم موصول ہو کر کھاتے میں جمع کر دی گئی ہے۔
+--------------------------------
+*رسید نمبر:* ${rec.receiptNo}
+*تاریخ:* ${new Date(rec.date).toLocaleDateString()}
+*سابقہ ادھار:* ${rec.previousBalance.toLocaleString()} روپے
+*جمع شدہ رقم (وصول):* ${rec.amountPaid.toLocaleString()} روپے
+*باقی بقایا رقم:* ${rec.remainingBalance.toLocaleString()} روپے
+--------------------------------
+ادائیگی کا بہت شکریہ!
+*${businessProfile.nameUr}* (${businessProfile.phone || businessProfile.whatsapp})`;
 
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -148,7 +200,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
 
           <button
             onClick={() => setNewCustomerModalOpen(true)}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t('addCustomer')}</span>
@@ -213,7 +265,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                     </div>
 
                     <div className="text-right">
-                      <div className="font-black text-xs text-rose-600 dark:text-rose-400 font-mono">
+                      <div className={`font-black text-xs font-mono ${c.currentBalance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {c.currentBalance.toLocaleString()} PKR
                       </div>
                       <span className="text-[9px] text-slate-400">
@@ -232,7 +284,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
           {selectedCustomer ? (
             <>
               {/* Customer Header Box */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-black text-slate-900 dark:text-white">
@@ -252,16 +304,19 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPaymentModalOpen(true)}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                    onClick={() => {
+                      setPaymentAmount(selectedCustomer.currentBalance > 0 ? selectedCustomer.currentBalance : 0);
+                      setPaymentModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                   >
-                    <Banknote className="w-3.5 h-3.5" />
-                    <span>{t('receivePayment')}</span>
+                    <Banknote className="w-4 h-4" />
+                    <span>{lang === 'ur' ? '💵 رقم جمع کریں (وصولی)' : 'Deposit / Receive Payment'}</span>
                   </button>
 
                   <button
                     onClick={() => sendWhatsAppReminder(selectedCustomer)}
-                    className="px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                    className="px-3 py-2 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                     title="Send Polite WhatsApp Reminder"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -270,14 +325,37 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 </div>
               </div>
 
-              {/* Outstanding Balance Banner */}
-              <div className="px-4 py-2.5 bg-rose-50/70 dark:bg-rose-950/30 border-b border-rose-200 dark:border-rose-900/40 flex items-center justify-between text-xs">
-                <span className="font-semibold text-rose-800 dark:text-rose-300">
-                  {lang === 'ur' ? 'موجودہ کل واجب الادا بقایا رقم:' : 'Current Outstanding Balance:'}
-                </span>
-                <span className="text-base font-black text-rose-600 dark:text-rose-400 font-mono">
-                  {selectedCustomer.currentBalance.toLocaleString()} PKR
-                </span>
+              {/* 3-PILLAR LEDGER BALANCE STATS (کل ادھار، کل جمع رقم، اور خالص بقایا رقم) */}
+              <div className="grid grid-cols-3 gap-2 p-3 bg-slate-100/70 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-xs shrink-0">
+                {/* 1. Total Debit (ادھار لیا) */}
+                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex flex-col justify-between">
+                  <span className="text-[10.5px] font-bold text-rose-700 dark:text-rose-400">
+                    {lang === 'ur' ? 'کل ادھار (سودا لیا):' : 'Total Credit Taken:'}
+                  </span>
+                  <span className="text-base font-black font-mono text-rose-600 dark:text-rose-300 mt-1">
+                    {customerStats.totalDebit.toLocaleString()} PKR
+                  </span>
+                </div>
+
+                {/* 2. Total Credit (رقم جمع کرائی) */}
+                <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 flex flex-col justify-between">
+                  <span className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
+                    {lang === 'ur' ? 'کل جمع رقم (وصول):' : 'Total Deposited (Paid):'}
+                  </span>
+                  <span className="text-base font-black font-mono text-emerald-600 dark:text-emerald-300 mt-1">
+                    {customerStats.totalCredit.toLocaleString()} PKR
+                  </span>
+                </div>
+
+                {/* 3. Remaining Balance (باقی بقایا رقم) */}
+                <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex flex-col justify-between">
+                  <span className="text-[10.5px] font-bold text-blue-700 dark:text-blue-400">
+                    {lang === 'ur' ? 'باقی بقایا رقم:' : 'Remaining Balance:'}
+                  </span>
+                  <span className={`text-base font-black font-mono mt-1 ${customerStats.balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {customerStats.balance.toLocaleString()} PKR
+                  </span>
+                </div>
               </div>
 
               {/* Khata Entries Table */}
@@ -287,9 +365,15 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                     <tr>
                       <th className="p-3">{t('date')}</th>
                       <th className="p-3">{t('description')}</th>
-                      <th className="p-3 text-right">{t('debit')}</th>
-                      <th className="p-3 text-right">{t('credit')}</th>
-                      <th className="p-3 text-right">{t('runningBalance')}</th>
+                      <th className="p-3 text-right text-rose-600 dark:text-rose-400">
+                        {lang === 'ur' ? 'نامے / ادھار (+)' : 'Debit (+)'}
+                      </th>
+                      <th className="p-3 text-right text-emerald-600 dark:text-emerald-400">
+                        {lang === 'ur' ? 'جمع / وصول شدہ (-)' : 'Credit / Paid (-)'}
+                      </th>
+                      <th className="p-3 text-right text-slate-900 dark:text-white">
+                        {lang === 'ur' ? 'باقی بقایا رقم' : 'Remaining Balance'}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
@@ -319,18 +403,36 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                             )}
                           </td>
                           <td className="p-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
-                            {k.type === 'DEBIT' ? `+${k.amount.toLocaleString()}` : '-'}
+                            {k.type === 'DEBIT' ? `+${k.amount.toLocaleString()} PKR` : '-'}
                           </td>
                           <td className="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {k.type === 'CREDIT' ? `-${k.amount.toLocaleString()}` : '-'}
+                            {k.type === 'CREDIT' ? `${k.amount.toLocaleString()} PKR جمع` : '-'}
                           </td>
-                          <td className="p-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                          <td className="p-3 text-right font-mono font-black text-slate-900 dark:text-white">
                             {k.balanceAfter.toLocaleString()} PKR
                           </td>
                         </tr>
                       ))
                     )}
                   </tbody>
+                  {selectedCustomer.khata.length > 0 && (
+                    <tfoot className="bg-slate-100 dark:bg-slate-800 font-black text-xs border-t-2 border-slate-300 dark:border-slate-700">
+                      <tr>
+                        <td colSpan={2} className="p-3 text-slate-700 dark:text-slate-300">
+                          {lang === 'ur' ? 'کل میزان (Total Statement):' : 'Total Statement:'}
+                        </td>
+                        <td className="p-3 text-right text-rose-600 dark:text-rose-400 font-mono">
+                          +{customerStats.totalDebit.toLocaleString()} PKR
+                        </td>
+                        <td className="p-3 text-right text-emerald-600 dark:text-emerald-400 font-mono">
+                          -{customerStats.totalCredit.toLocaleString()} PKR
+                        </td>
+                        <td className="p-3 text-right font-mono text-sm text-slate-900 dark:text-white">
+                          {customerStats.balance.toLocaleString()} PKR
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
             </>
@@ -342,67 +444,244 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
         </div>
       </div>
 
-      {/* Receive Payment Modal */}
+      {/* RECEIVE PAYMENT MODAL (کھاتے میں رقم جمع کرنے کا فارم مع لائیو بقایا حساب) */}
       {paymentModalOpen && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              {t('receivePayment')}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              {selectedCustomer.name} - {lang === 'ur' ? 'کل بقایا:' : 'Total Due:'}{' '}
-              <span className="font-bold text-rose-600">
-                {selectedCustomer.currentBalance.toLocaleString()} PKR
-              </span>
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-xl">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {lang === 'ur' ? 'کھاتے میں رقم جمع کریں' : 'Receive Khata Payment'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {selectedCustomer.name} ({selectedCustomer.phone})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick 1-Click Amount Buttons */}
+            {selectedCustomer.currentBalance > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  {lang === 'ur' ? 'فوری انتخاب (1-کلک):' : 'Quick Presets:'}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentAmount(selectedCustomer.currentBalance)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    پورے {selectedCustomer.currentBalance.toLocaleString()} PKR جمع کریں
+                  </button>
+                  {selectedCustomer.currentBalance > 100 && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentAmount(Math.round(selectedCustomer.currentBalance / 2))}
+                      className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 active:scale-95 cursor-pointer"
+                    >
+                      50% نصف رقم
+                    </button>
+                  )}
+                  {[500, 1000, 2000, 5000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPaymentAmount(preset)}
+                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-950/40 cursor-pointer"
+                    >
+                      {preset.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleReceivePayment} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                  {lang === 'ur' ? 'وصول شدہ رقم (روپے):' : 'Amount Received (PKR):'}
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'جمع کرنے کی رقم (روپے):' : 'Amount to Deposit (PKR):'}
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={selectedCustomer.currentBalance}
                   required
                   autoFocus
                   value={paymentAmount || ''}
                   onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                   placeholder={selectedCustomer.currentBalance.toString()}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-mono font-bold text-base outline-none text-emerald-600"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-2.5 font-mono font-black text-lg outline-none text-emerald-600 dark:text-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                  {t('description')}:
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'تفصیل / نوٹ:' : 'Description / Note:'}
                 </label>
                 <input
                   type="text"
                   value={paymentDesc}
                   onChange={(e) => setPaymentDesc(e.target.value)}
-                  placeholder={lang === 'ur' ? 'مثلاً: نقد وصولی بذریعہ کیش' : 'e.g. Cash recovery'}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 outline-none"
+                  placeholder={lang === 'ur' ? 'نقد وصولی بذریعہ کیش' : 'Cash deposit'}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 outline-none font-medium"
                 />
+              </div>
+
+              {/* LIVE BALANCE CALCULATION PREVIEW (رقم جمع ہونے کے بعد نیا بقایا) */}
+              <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                <div className="flex justify-between text-slate-500">
+                  <span>{lang === 'ur' ? 'سابقہ کل ادھار:' : 'Previous Balance:'}</span>
+                  <span className="font-mono font-bold">{selectedCustomer.currentBalance.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span>{lang === 'ur' ? 'جمع کی جا رہی رقم (وصولی):' : 'Amount Deposited:'}</span>
+                  <span className="font-mono font-black">-{paymentAmount.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black text-sm">
+                  <span>{lang === 'ur' ? 'جمع کے بعد باقی بقایا رہے گا:' : 'Remaining Balance After Deposit:'}</span>
+                  <span className={`font-mono text-base ${Math.max(0, selectedCustomer.currentBalance - paymentAmount) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {Math.max(0, selectedCustomer.currentBalance - paymentAmount).toLocaleString()} PKR
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setPaymentModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold"
+                  className="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-300 cursor-pointer"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md"
+                  disabled={paymentAmount <= 0}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl font-bold shadow-md active:scale-95 transition-all text-sm flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  {t('save')}
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{lang === 'ur' ? 'رقم جمع کریں و رسید نکالیں' : 'Deposit & Print'}</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* RECOVERY RECEIPT MODAL (وصولی رسید مع تھرمل پرنٹ اور واٹس ایپ) */}
+      {receiptModalOpen && completedReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-4 bg-emerald-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5" />
+                <h3 className="font-black text-sm">
+                  {lang === 'ur' ? 'ادھار وصولی رسید (Payment Receipt)' : 'Khata Payment Receipt'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="p-1 text-white/80 hover:text-white rounded-lg hover:bg-emerald-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Printable Slip Body */}
+            <div className="p-5 space-y-3 bg-white text-slate-900 text-xs font-medium">
+              <div className="text-center border-b pb-3 space-y-0.5">
+                <h2 className="font-black text-base text-slate-900">
+                  {businessProfile.nameUr || businessProfile.nameEn}
+                </h2>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  {businessProfile.phone || businessProfile.whatsapp}
+                </p>
+                {businessProfile.addressUr && (
+                  <p className="text-[10px] text-slate-500">{businessProfile.addressUr}</p>
+                )}
+                <div className="pt-1">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px]">
+                    کھاتہ وصولی سلپ (Payment Voucher)
+                  </span>
+                </div>
+              </div>
+
+              {/* Receipt Details */}
+              <div className="space-y-1.5 py-1 text-[11px] border-b pb-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">رسید نمبر:</span>
+                  <span className="font-mono font-bold">{completedReceipt.receiptNo}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">تاریخ و وقت:</span>
+                  <span className="font-mono">{new Date(completedReceipt.date).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">گاہک کا نام:</span>
+                  <span className="font-bold text-slate-900">{completedReceipt.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">موبائل نمبر:</span>
+                  <span className="font-mono font-bold">{completedReceipt.customerPhone}</span>
+                </div>
+              </div>
+
+              {/* Amount Breakdown */}
+              <div className="space-y-2 py-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-600">سابقہ کل ادھار:</span>
+                  <span className="font-mono font-bold">{completedReceipt.previousBalance.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between text-sm font-black text-emerald-600 bg-emerald-50 p-2 rounded-xl">
+                  <span>وصول شدہ رقم (جمع):</span>
+                  <span className="font-mono font-black">{completedReceipt.amountPaid.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between text-sm font-black text-slate-900 border-t pt-2">
+                  <span>نیا باقی بقایا رقم:</span>
+                  <span className={`font-mono ${completedReceipt.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {completedReceipt.remainingBalance.toLocaleString()} PKR
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-dashed">
+                <p>بروقت ادائیگی پر آپ کا شکریہ!</p>
+                <p className="font-mono">JK Developers Pakistan • 0300-8998381</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="p-3 bg-slate-100 dark:bg-slate-800 flex gap-2 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-emerald-400" />
+                <span>پرنٹ رسید (Print)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => sendWhatsAppReceipt(completedReceipt)}
+                className="flex-1 py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>واٹس ایپ رسید</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -478,7 +757,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md cursor-pointer"
                 >
                   {t('save')}
                 </button>

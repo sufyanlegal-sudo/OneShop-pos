@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
-import { Product, PaymentMethod, Invoice, CurrencyDenominations } from '@/types';
+import { Product, PaymentMethod, Invoice, CurrencyDenominations, KhataPaymentReceipt } from '@/types';
 import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
 import { ExchangeModal } from '@/components/pos/ExchangeModal';
@@ -72,6 +72,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     clearCart,
     replaceCart,
     checkoutInvoice,
+    receiveKhataPayment,
     customers,
     canSellOutOfStock,
     canGiveCredit,
@@ -277,6 +278,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const [heldBillsModalOpen, setHeldBillsModalOpen] = useState(false);
   const [urduKeyboardOpen, setUrduKeyboardOpen] = useState(false);
   const [holdToast, setHoldToast] = useState<string | null>(null);
+
+  // Quick Khata Recovery at POS Counter State
+  const [posKhataPaymentModalOpen, setPosKhataPaymentModalOpen] = useState(false);
+  const [posKhataPayCustomerId, setPosKhataPayCustomerId] = useState('');
+  const [posKhataPayAmount, setPosKhataPayAmount] = useState<number>(0);
+  const [posKhataPayDesc, setPosKhataPayDesc] = useState('');
+  const [posKhataCompletedReceipt, setPosKhataCompletedReceipt] = useState<KhataPaymentReceipt | null>(null);
+  const [posKhataReceiptModalOpen, setPosKhataReceiptModalOpen] = useState(false);
 
   // Shopkeeper WhatsApp Link State
   const [isShopWhatsAppModalOpen, setIsShopWhatsAppModalOpen] = useState(false);
@@ -1478,6 +1487,26 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             >
               <Mic className="w-3.5 h-3.5 text-emerald-600" />
             </button>
+
+            {/* Quick Receive Payment Pill if Customer has Balance */}
+            {selectedCustomerId && (customers.find((c) => c.id === selectedCustomerId)?.currentBalance || 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const cust = customers.find((c) => c.id === selectedCustomerId);
+                  if (cust) {
+                    setPosKhataPayCustomerId(cust.id);
+                    setPosKhataPayAmount(cust.currentBalance);
+                    setPosKhataPaymentModalOpen(true);
+                  }
+                }}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer animate-fadeIn"
+                title="اس گاہک کی طرف سے رقم وصول کریں اور کھاتے میں جمع کریں"
+              >
+                <Banknote className="w-3.5 h-3.5" />
+                <span>{lang === 'ur' ? 'رقم جمع' : 'Deposit'}</span>
+              </button>
+            )}
           </div>
 
           {/* If new walk-in / custom name or phone */}
@@ -1527,9 +1556,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
               {/* Dynamic Auto-Khata Feedback Pill */}
               {detectedExistingCustomer ? (
-                <div className="flex items-center justify-between px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 animate-fadeIn">
-                  <span className="truncate">👤 {detectedExistingCustomer.name} (کھاتہ پہلے سے موجود ہے)</span>
-                  <span className="shrink-0 font-mono text-emerald-700 dark:text-emerald-400">سابقہ ادھار: {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 animate-fadeIn">
+                  <span className="truncate">👤 {detectedExistingCustomer.name} (کھاتہ موجود ہے)</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-emerald-700 dark:text-emerald-400">سابقہ ادھار: {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
+                    {detectedExistingCustomer.currentBalance > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPosKhataPayCustomerId(detectedExistingCustomer.id);
+                          setPosKhataPayAmount(detectedExistingCustomer.currentBalance);
+                          setPosKhataPaymentModalOpen(true);
+                        }}
+                        className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9.5px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        رقم جمع کریں
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (customerName.trim() || customerPhone.trim()) && paymentMethod === 'CREDIT' ? (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-700/60 text-[10px] font-bold text-blue-800 dark:text-blue-300 animate-fadeIn">
@@ -2235,6 +2279,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               >
                 <Mic className="w-4 h-4 text-emerald-500" />
                 <span>{lang === 'ur' ? 'آواز سے بول کر آرڈر (Voice Order)' : 'Voice Order'}</span>
+              </button>
+
+              {/* Receive Customer Khata Payment */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickToolsOpen(false);
+                  if (selectedCustomerId) {
+                    const cust = customers.find((c) => c.id === selectedCustomerId);
+                    setPosKhataPayCustomerId(cust?.id || '');
+                    setPosKhataPayAmount(cust?.currentBalance || 0);
+                  }
+                  setPosKhataPaymentModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-all text-right cursor-pointer"
+              >
+                <Banknote className="w-4 h-4 text-emerald-500" />
+                <span>{lang === 'ur' ? '💵 کھاتے میں رقم جمع کریں (وصولی)' : 'Receive Khata Payment'}</span>
               </button>
 
               {/* Toggle Catalog View */}
@@ -4173,6 +4235,310 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                   <span>{lang === 'ur' ? 'نمبر محفوظ کریں (Save)' : 'Save Number'}</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. POS COUNTER KHATA DEPOSIT MODAL (کاؤنٹر پر گاہک کی رقم جمع کرنے کا فارم) */}
+      {posKhataPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-2xl">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {lang === 'ur' ? 'کاؤنٹر پر ادھار رقم جمع کریں' : 'Deposit Khata Payment'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {lang === 'ur' ? 'رقم جمع ہو کر بقایا خودکار اپ ڈیٹ ہو جائے گا' : 'Deposit amount & auto-update remaining balance'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPosKhataPaymentModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Select Customer */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {lang === 'ur' ? 'گاہک کا انتخاب کریں:' : 'Select Customer:'}
+              </label>
+              <select
+                value={posKhataPayCustomerId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setPosKhataPayCustomerId(id);
+                  const cust = customers.find((c) => c.id === id);
+                  if (cust) {
+                    setPosKhataPayAmount(cust.currentBalance);
+                  }
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+              >
+                <option value="">-- گاہک منتخب کریں --</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'} {c.currentBalance.toLocaleString()} PKR
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {posKhataPayCustomerId && (() => {
+              const cust = customers.find((c) => c.id === posKhataPayCustomerId);
+              if (!cust) return null;
+              const remaining = Math.max(0, cust.currentBalance - posKhataPayAmount);
+
+              return (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!posKhataPayCustomerId || posKhataPayAmount <= 0) return;
+                    const receipt = receiveKhataPayment(
+                      posKhataPayCustomerId,
+                      posKhataPayAmount,
+                      posKhataPayDesc.trim() || 'کاؤنٹر نقد وصولی'
+                    );
+                    setPosKhataPaymentModalOpen(false);
+                    setPosKhataPayAmount(0);
+                    setPosKhataPayDesc('');
+                    if (receipt) {
+                      posSound.playSuccessChime();
+                      setPosKhataCompletedReceipt(receipt);
+                      setPosKhataReceiptModalOpen(true);
+                      setHoldToast(
+                        lang === 'ur'
+                          ? `✅ رقم جمع: "${receipt.customerName}" سے ${receipt.amountPaid.toLocaleString()} روپے وصول ہوئے (نیا بقایا: ${receipt.remainingBalance.toLocaleString()} روپے)!`
+                          : `Payment received: Rs. ${receipt.amountPaid.toLocaleString()}!`
+                      );
+                      setTimeout(() => setHoldToast(null), 4000);
+                    }
+                  }}
+                  className="space-y-3 text-xs"
+                >
+                  {/* Presets */}
+                  {cust.currentBalance > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400">فوری انتخاب:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPosKhataPayAmount(cust.currentBalance)}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                        >
+                          پورے {cust.currentBalance.toLocaleString()} PKR
+                        </button>
+                        {cust.currentBalance > 100 && (
+                          <button
+                            type="button"
+                            onClick={() => setPosKhataPayAmount(Math.round(cust.currentBalance / 2))}
+                            className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 cursor-pointer"
+                          >
+                            50% نصف
+                          </button>
+                        )}
+                        {[500, 1000, 2000, 5000].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setPosKhataPayAmount(preset)}
+                            className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-emerald-100 cursor-pointer"
+                          >
+                            {preset.toLocaleString()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {lang === 'ur' ? 'جمع کرنے کی رقم (روپے):' : 'Deposit Amount:'}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      autoFocus
+                      value={posKhataPayAmount || ''}
+                      onChange={(e) => setPosKhataPayAmount(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-2 font-mono font-black text-lg outline-none text-emerald-600 dark:text-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {lang === 'ur' ? 'تفصیل / نوٹ:' : 'Description:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={posKhataPayDesc}
+                      onChange={(e) => setPosKhataPayDesc(e.target.value)}
+                      placeholder="کاؤنٹر نقد وصولی"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 outline-none font-medium"
+                    />
+                  </div>
+
+                  {/* Real-time Balance Preview */}
+                  <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                    <div className="flex justify-between text-slate-500">
+                      <span>سابقہ کل ادھار:</span>
+                      <span className="font-mono font-bold">{cust.currentBalance.toLocaleString()} PKR</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                      <span>جمع کی جارہی رقم:</span>
+                      <span className="font-mono font-black">-{posKhataPayAmount.toLocaleString()} PKR</span>
+                    </div>
+                    <div className="flex justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black text-sm">
+                      <span>جمع کے بعد باقی بقایا رہے گا:</span>
+                      <span className={`font-mono text-base ${remaining === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {remaining.toLocaleString()} PKR
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPosKhataPaymentModalOpen(false)}
+                      className="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold cursor-pointer"
+                    >
+                      منسوخ
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={posKhataPayAmount <= 0}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl font-black text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>رقم جمع کریں و رسید نکالیں</span>
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* 10. POS COUNTER KHATA RECOVERY RECEIPT MODAL */}
+      {posKhataReceiptModalOpen && posKhataCompletedReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-emerald-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5" />
+                <h3 className="font-black text-sm">ادھار وصولی رسید (Payment Slip)</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPosKhataReceiptModalOpen(false)}
+                className="p-1 text-white/80 hover:text-white rounded-lg hover:bg-emerald-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 bg-white text-slate-900 text-xs font-medium">
+              <div className="text-center border-b pb-3 space-y-0.5">
+                <h2 className="font-black text-base text-slate-900">
+                  {businessProfile.nameUr || businessProfile.nameEn}
+                </h2>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  {businessProfile.phone || businessProfile.whatsapp}
+                </p>
+                <div className="pt-1">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px]">
+                    کھاتہ وصولی سلپ (Payment Voucher)
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 py-1 text-[11px] border-b pb-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">رسید نمبر:</span>
+                  <span className="font-mono font-bold">{posKhataCompletedReceipt.receiptNo}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">تاریخ و وقت:</span>
+                  <span className="font-mono">{new Date(posKhataCompletedReceipt.date).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">گاہک کا نام:</span>
+                  <span className="font-bold text-slate-900">{posKhataCompletedReceipt.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">موبائل نمبر:</span>
+                  <span className="font-mono font-bold">{posKhataCompletedReceipt.customerPhone}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 py-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-600">سابقہ کل ادھار:</span>
+                  <span className="font-mono font-bold">{posKhataCompletedReceipt.previousBalance.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between text-sm font-black text-emerald-600 bg-emerald-50 p-2 rounded-xl">
+                  <span>وصول شدہ رقم (جمع):</span>
+                  <span className="font-mono font-black">{posKhataCompletedReceipt.amountPaid.toLocaleString()} PKR</span>
+                </div>
+                <div className="flex justify-between text-sm font-black text-slate-900 border-t pt-2">
+                  <span>نیا باقی بقایا رقم:</span>
+                  <span className={`font-mono ${posKhataCompletedReceipt.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {posKhataCompletedReceipt.remainingBalance.toLocaleString()} PKR
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-dashed">
+                <p>بروقت ادائیگی پر آپ کا شکریہ!</p>
+                <p className="font-mono">JK Developers Pakistan • 0300-8998381</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-100 dark:bg-slate-800 flex gap-2 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-emerald-400" />
+                <span>پرنٹ رسید (Print)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  let cleanPhone = posKhataCompletedReceipt.customerPhone.replace(/[^0-9]/g, '');
+                  if (cleanPhone.startsWith('03')) cleanPhone = '92' + cleanPhone.substring(1);
+                  const msg = `*محترم ${posKhataCompletedReceipt.customerName} صاحب!*
+السلام علیکم ورحمۃ اللہ و برکاتہ۔
+آپ کی جانب سے ادھار کھاتے کی رقم موصول ہو کر کھاتے میں جمع کر دی گئی ہے۔
+--------------------------------
+*رسید نمبر:* ${posKhataCompletedReceipt.receiptNo}
+*تاریخ:* ${new Date(posKhataCompletedReceipt.date).toLocaleDateString()}
+*سابقہ ادھار:* ${posKhataCompletedReceipt.previousBalance.toLocaleString()} روپے
+*جمع شدہ رقم (وصول):* ${posKhataCompletedReceipt.amountPaid.toLocaleString()} روپے
+*باقی بقایا رقم:* ${posKhataCompletedReceipt.remainingBalance.toLocaleString()} روپے
+--------------------------------
+ادائیگی کا بہت شکریہ!
+*${businessProfile.nameUr}* (${businessProfile.phone || businessProfile.whatsapp})`;
+                  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                }}
+                className="flex-1 py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>واٹس ایپ رسید</span>
+              </button>
             </div>
           </div>
         </div>

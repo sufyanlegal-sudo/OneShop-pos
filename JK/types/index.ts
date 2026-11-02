@@ -376,6 +376,18 @@ export interface Customer {
   createdAt: string;
 }
 
+export interface KhataPaymentReceipt {
+  receiptNo: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  date: string;
+  previousBalance: number;
+  amountPaid: number;
+  remainingBalance: number;
+  description: string;
+}
+
 export type RoznamchaType = 
   | 'CASH_SALE' 
   | 'CREDIT_RECOVERY' 

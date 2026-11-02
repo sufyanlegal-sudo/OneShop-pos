@@ -6,6 +6,7 @@ import {
   BusinessProfile,
   Product,
   Customer,
+  KhataPaymentReceipt,
   Invoice,
   RoznamchaEntry,
   CartItem,
@@ -151,7 +152,7 @@ interface ShopContextType {
   checkoutInvoice: (params: CheckoutParams) => Invoice;
   processSaleReturn: (params: ProcessReturnParams) => SaleReturn | null;
   processSaleExchange: (params: ProcessExchangeParams) => SaleExchange | null;
-  receiveKhataPayment: (customerId: string, amount: number, description?: string) => void;
+  receiveKhataPayment: (customerId: string, amount: number, description?: string) => KhataPaymentReceipt | null;
   addRoznamchaEntry: (entry: Omit<RoznamchaEntry, 'id' | 'date'>) => void;
   addAuditLog: (action: AuditLog['action'], details: string, amount?: number, refId?: string) => void;
   // Inventory Management
@@ -1733,12 +1734,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Receive Khata Payment
-  const receiveKhataPayment = (customerId: string, amount: number, description = 'ادھار وصولی') => {
+  const receiveKhataPayment = (customerId: string, amount: number, description = 'ادھار وصولی'): KhataPaymentReceipt | null => {
     const customer = customers.find((c) => c.id === customerId);
-    if (!customer || amount <= 0) return;
+    if (!customer || amount <= 0) return null;
 
-    const newBalance = Math.max(0, customer.currentBalance - amount);
+    const previousBalance = customer.currentBalance;
+    const newBalance = Math.max(0, previousBalance - amount);
     const date = new Date().toISOString();
+    const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
 
     const khataEntry: KhataEntry = {
       id: 'kh-' + Date.now(),
@@ -1747,7 +1750,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type: 'CREDIT',
       amount,
       balanceAfter: newBalance,
-      description,
+      description: `${description} (رسید #${receiptNo})`,
     };
 
     const updatedCustomers = customers.map((c) => {
@@ -1763,17 +1766,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCustomers(updatedCustomers);
     storage.saveCustomers(updatedCustomers);
 
-    // If customer has fully cleared their balance, mark pending invoices as completed
-    if (newBalance === 0) {
-      const updatedInvoices = invoices.map((inv) => {
-        if (inv.customerId === customerId && inv.status === 'PENDING') {
+    // Distribute payment across customer's pending credit invoices
+    let remainingPaymentToDistribute = amount;
+    const updatedInvoices = invoices.map((inv) => {
+      if (inv.customerId === customerId && inv.status === 'PENDING' && remainingPaymentToDistribute > 0) {
+        if (remainingPaymentToDistribute >= inv.balanceDue) {
+          remainingPaymentToDistribute -= inv.balanceDue;
           return { ...inv, status: 'COMPLETED' as const, balanceDue: 0, paidAmount: inv.grandTotal };
+        } else {
+          const newInvBalance = inv.balanceDue - remainingPaymentToDistribute;
+          const newPaid = inv.paidAmount + remainingPaymentToDistribute;
+          remainingPaymentToDistribute = 0;
+          return { ...inv, balanceDue: newInvBalance, paidAmount: newPaid };
         }
-        return inv;
-      });
-      setInvoices(updatedInvoices);
-      storage.saveInvoices(updatedInvoices);
-    }
+      }
+      return inv;
+    });
+    setInvoices(updatedInvoices);
+    storage.saveInvoices(updatedInvoices);
 
     const roznamchaEntry: RoznamchaEntry = {
       id: 'rz-' + Date.now(),
@@ -1782,7 +1792,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       category: 'ادھار وصولی (Udhaar Recovery)',
       amount,
       isCashIn: true,
-      description: `کھاتہ وصولی از ${customer.name}: ${description}`,
+      description: `کھاتہ وصولی از ${customer.name}: ${description} (رسید #${receiptNo})`,
       refCustomerId: customerId,
     };
     const updatedRoznamcha = [roznamchaEntry, ...roznamcha];
@@ -1791,11 +1801,23 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addAuditLog(
       'KHATA_PAYMENT',
-      `کھاتہ وصولی: ${customer.name} سے ${amount} PKR وصول ہوئے - نیا بقایا: ${newBalance} PKR`,
+      `کھاتہ وصولی #${receiptNo}: ${customer.name} سے ${amount} PKR وصول ہوئے - سابقہ ادھار: ${previousBalance} PKR، نیا بقایا: ${newBalance} PKR`,
       amount,
       customerId
     );
     triggerAutoCloudSync();
+
+    return {
+      receiptNo,
+      customerId,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      date,
+      previousBalance,
+      amountPaid: amount,
+      remainingBalance: newBalance,
+      description,
+    };
   };
 
   // Add Roznamcha entry
