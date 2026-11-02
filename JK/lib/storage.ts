@@ -613,8 +613,16 @@ export const storage = {
   getCurrentUser(): string | null {
     if (typeof window === 'undefined') return null;
     try {
-      // Use sessionStorage so opening a new link, sending link to another person,
-      // or opening in a new tab will NEVER auto-log in!
+      // 1. Check persistent localStorage first
+      const local = safeStorage.get(KEYS.CURRENT_USER);
+      if (local) {
+        try {
+          return JSON.parse(local);
+        } catch {
+          return local;
+        }
+      }
+      // 2. Check sessionStorage fallback
       const sess = sessionStorage.getItem(KEYS.CURRENT_USER);
       if (sess) {
         try {
@@ -623,8 +631,6 @@ export const storage = {
           return sess;
         }
       }
-      // Also clean up any legacy persistent localStorage login key
-      safeStorage.remove(KEYS.CURRENT_USER);
     } catch (e) {
       console.error('Session storage error', e);
     }
@@ -634,11 +640,11 @@ export const storage = {
   setCurrentUser(email: string | null): void {
     if (typeof window === 'undefined') return;
     try {
-      // Ensure localStorage is cleared so links never inherit old logged-in accounts
-      safeStorage.remove(KEYS.CURRENT_USER);
       if (!email) {
+        safeStorage.remove(KEYS.CURRENT_USER);
         sessionStorage.removeItem(KEYS.CURRENT_USER);
       } else {
+        safeStorage.set(KEYS.CURRENT_USER, JSON.stringify(email));
         sessionStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(email));
       }
     } catch (e) {

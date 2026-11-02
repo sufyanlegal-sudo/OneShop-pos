@@ -2362,9 +2362,28 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const syncWithCloud = async (
     targetEmail?: string
   ): Promise<{ success: boolean; message: string }> => {
-    const email = (targetEmail || currentUserEmail || '').trim().toLowerCase();
+    let email = (targetEmail || currentUserEmail || '').trim().toLowerCase();
     if (!email) {
-      return { success: false, message: 'لاگ ان درکار ہے' };
+      const saved = storage.getCurrentUser();
+      if (saved) {
+        email = saved.trim().toLowerCase();
+        setCurrentUserEmail(email);
+      } else if (businessProfile.backupEmail) {
+        email = businessProfile.backupEmail.trim().toLowerCase();
+      } else {
+        const approvedClients = usersDB.filter(
+          (u) => u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && u.approved
+        );
+        if (approvedClients.length > 0) {
+          email = approvedClients[0].email.trim().toLowerCase();
+          setCurrentUserEmail(email);
+          storage.setCurrentUser(email);
+        }
+      }
+    }
+
+    if (!email) {
+      return { success: false, message: 'برائے مہربانی لاگ ان کریں (Login required)' };
     }
     setIsCloudSyncing(true);
     try {

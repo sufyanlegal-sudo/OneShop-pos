@@ -104,18 +104,36 @@ ${businessProfile.nameUr} میں خوش آمدید۔
 
       const data = await res.json();
 
-      const botMsg: WhatsAppMessage = {
-        id: 'msg-' + (Date.now() + 1),
-        timestamp: new Date().toISOString(),
-        sender: 'BOT',
-        text: data.reply || 'معذرت، میں آپ کی بات سمجھ نہیں سکا۔',
-        parsedOrder: data.parsedOrder,
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
+      let replyText = data.reply || 'معذرت، میں آپ کی بات سمجھ نہیں سکا۔';
 
       if (data.parsedOrder && data.parsedOrder.items && data.parsedOrder.items.length > 0) {
         setLastParsedOrder(data.parsedOrder);
+        const orderNo = `WA-${Math.floor(1000 + Math.random() * 9000)}`;
+        const itemsList = data.parsedOrder.items
+          .map(
+            (it: any, idx: number) =>
+              `${idx + 1}. *${it.name}* (${it.qty} ${it.unit}) = *${(it.total || 0).toLocaleString()} PKR*`
+          )
+          .join('\n');
+
+        replyText = `🧾 *آپ کا ڈیجیٹل بل / آرڈر رسید* 🧾
+🏪 *${businessProfile.nameUr || 'ون شاپ پی او ایس'}*
+───────────────────
+📌 *آرڈر نمبر:* #${orderNo}
+👤 *گاہک:* محترم واٹس ایپ گاہک
+⏳ *حیثیت:* ⏳ *زیرِ تکمیل / پینڈنگ (PENDING)*
+───────────────────
+🛒 *تفصیلِ اشیاء:*
+${itemsList}
+───────────────────
+💰 *کل رقم (Total Bill):* *${(data.parsedOrder.grandTotal || 0).toLocaleString()} PKR*
+───────────────────
+✅ *آپ کا آرڈر موصول ہو چکا ہے اور کاؤنٹر پر پینڈنگ لسٹ میں شامل کر لیا گیا ہے۔*
+جلد ہی سامان پیک کر کے آپ کو روانہ کیا جائے گا۔
+
+شکریہ برائے خریداری!
+📞 رابطہ: ${businessProfile.phone || businessProfile.whatsapp || '0300-8998381'}`;
+
         // Automatically save as a PENDING WhatsApp Order for dashboard & POS!
         addWhatsAppOrder({
           customerName: 'محترم واٹس ایپ گاہک',
@@ -131,9 +149,19 @@ ${businessProfile.nameUr} میں خوش آمدید۔
           })),
           grandTotal: data.parsedOrder.grandTotal || 0,
           rawMessage: text.trim(),
-          notes: 'واٹس ایپ چیٹ کے ذریعے خودکار موصول شدہ آرڈر (Pending)',
+          notes: 'واٹس ایپ کے ذریعے خودکار موصول شدہ لائیو آرڈر (Pending)',
         });
       }
+
+      const botMsg: WhatsAppMessage = {
+        id: 'msg-' + (Date.now() + 1),
+        timestamp: new Date().toISOString(),
+        sender: 'BOT',
+        text: replyText,
+        parsedOrder: data.parsedOrder,
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
     } catch (e: any) {
       const errorMsg: WhatsAppMessage = {
         id: 'msg-' + (Date.now() + 1),
