@@ -113,8 +113,8 @@ export default function Home() {
           {effectiveTab === 'settings' && <SettingsView />}
         </main>
 
-        {/* Floating AI Business & Report Assistant Trigger (ONLY for ADMIN) */}
-        {currentRole === 'ADMIN' && <AiChatboardFloatingButton />}
+        {/* Floating AI Business & Report Assistant Trigger (ONLY for ADMIN when not on billing counter) */}
+        {currentRole === 'ADMIN' && effectiveTab !== 'pos' && <AiChatboardFloatingButton />}
 
         {/* Persistent Developer Bottom Bar with Support Phone */}
         <footer className="no-print bg-slate-900 text-slate-400 py-2.5 px-4 border-t border-slate-800 text-center text-xs flex flex-wrap items-center justify-between gap-3">

@@ -177,13 +177,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const [barcodeInput, setBarcodeInput] = useState('');
 
   // Screen Layout Mode: Full Dedicated Billing Mode (false) vs Side-by-Side Catalog Grid Mode (true)
-  const [showCatalog, setShowCatalog] = useState<boolean>(() => {
+  // Default is false: Full-screen bill-centric mode as requested by user
+  const [showCatalog, setShowCatalog] = useState<boolean>(false);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('pos_show_catalog');
-      return saved === 'true'; // Default is false: Full-screen bill-centric mode as requested by user
+      localStorage.setItem('pos_show_catalog', 'false');
     }
-    return false;
-  });
+  }, []);
 
   const toggleCatalog = () => {
     setShowCatalog((prev) => {
@@ -1513,9 +1514,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     const shortAmount = isShort ? effectiveNetTotal - activeTendered : 0;
 
     return (
-      <div className="flex flex-col h-full min-h-0 justify-between gap-1.5">
-        {/* Upper Area: Customer & Payment Method (Compact Row) */}
-        <div className="space-y-1.5 shrink-0">
+      <div className="flex flex-col h-full min-h-0 justify-between gap-1.5 overflow-hidden">
+        {/* Upper Area: Customer & Payment Method (Scrollable if needed, doesn't push bottom dock) */}
+        <div className="space-y-1.5 overflow-y-auto pr-0.5 shrink min-h-0">
           {/* Customer Selection Row */}
           <div className="flex items-center gap-1.5">
             <select
@@ -1799,7 +1800,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         {/* CANDELA & NEBS 3-COLUMN FRONT ROW: TOTAL | CASH RECEIVED | CHANGE RETURN */}
         {/* 100% VISIBLE ON THE FRONT - ZERO SCROLLING - NO MOUSE REQUIRED           */}
         {/* ========================================================================= */}
-        <div className="shrink-0 space-y-1.5 pt-1">
+        <div className="shrink-0 space-y-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
           {paymentMethod === 'CASH' ? (
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {/* 1. TOTAL BILL (کل بل) */}
@@ -3145,22 +3146,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar */
             <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
               {/* Left Pane: Items in Active Bill */}
-              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 scroll-smooth">
+              <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3 space-y-2.5 scroll-smooth">
                 {renderCartItems()}
               </div>
 
               {/* Right Pane: Customer, Notes Counter & Checkout Controls (Candela Fixed Dock) */}
-              <div className="w-full lg:w-[400px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col min-h-0 shadow-inner overflow-y-auto pb-16 lg:pb-3">
+              <div className="w-full lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-2.5 sm:p-3 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden pb-16 lg:pb-2.5">
                 {renderCheckoutControls()}
               </div>
             </div>
           ) : (
             /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div ref={cartContainerRef} className="flex-1 min-h-[220px] sm:min-h-[280px] overflow-y-auto p-2.5 sm:p-3 space-y-2.5 scroll-smooth">
+              <div ref={cartContainerRef} className="flex-1 min-h-[140px] overflow-y-auto p-2.5 sm:p-3 space-y-2 scroll-smooth">
                 {renderCartItems()}
               </div>
-              <div className="shrink-0 max-h-[50%] overflow-y-auto p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col pb-16 lg:pb-2.5">
+              <div className="shrink-0 max-h-[60%] overflow-hidden p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col pb-16 lg:pb-2">
                 {renderCheckoutControls()}
               </div>
             </div>
