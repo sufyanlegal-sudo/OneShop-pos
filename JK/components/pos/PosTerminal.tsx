@@ -397,22 +397,30 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
   }, [cart, cart.length]);
 
-  // Complete Zero-Mouse Keyboard Operation Support (F12, F4, F6, F7, F8, F10, F11, F2/F9, Esc)
+  // Complete Zero-Mouse Keyboard Operation Support (F1, F2, F3, F4, F6, F7, F8, F10, F11, F12, Esc & Alt Shortcuts)
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // F12 or Alt+Enter -> Instant Complete & Print Bill
-      if (e.key === 'F12' || (e.altKey && e.key === 'Enter')) {
-        e.preventDefault();
-        if (cart.length > 0) {
-          handleCheckout();
-        }
-        return;
-      }
+    // Intercept browser help event to prevent Windows/Chrome Help dialog on F1
+    const handleHelp = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setPaymentMethod('CREDIT');
+      setHoldToast(lang === 'ur' ? '📝 ادھار کھاتہ موڈ فعال ہوگیا' : 'Credit mode active');
+      setTimeout(() => setHoldToast(null), 2500);
+      setTimeout(() => {
+        customerNameInputRef.current?.focus();
+        customerNameInputRef.current?.select();
+      }, 50);
+      return false;
+    };
 
-      // Alt+U or Alt+K -> Instant Switch to Khata/Credit & Jump to Customer Name
-      if (e.altKey && (e.key === 'u' || e.key === 'U' || e.key === 'k' || e.key === 'K')) {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 1. F1 or Alt+U or Alt+K -> Instant Switch to Khata/Credit & Jump to Customer Name
+      if (e.key === 'F1' || (e.altKey && (e.key === 'u' || e.key === 'U' || e.key === 'k' || e.key === 'K'))) {
         e.preventDefault();
+        e.stopPropagation();
         setPaymentMethod('CREDIT');
+        setHoldToast(lang === 'ur' ? '📝 ادھار کھاتہ موڈ فعال ہوگیا (گاہک کا نام درج کریں)' : 'Credit mode active');
+        setTimeout(() => setHoldToast(null), 2500);
         setTimeout(() => {
           customerNameInputRef.current?.focus();
           customerNameInputRef.current?.select();
@@ -420,9 +428,25 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         return;
       }
 
-      // F4 -> Jump directly to Cash Received Input (auto-fills exact bill total)
-      if (e.key === 'F4') {
+      // 2. F12 or Alt+Enter or Ctrl+Enter -> Instant Complete & Print Bill
+      if (e.key === 'F12' || (e.altKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
+        e.stopPropagation();
+        if (cart.length > 0) {
+          handleCheckout();
+        } else {
+          posSound.playErrorBuzz();
+          setHoldToast(lang === 'ur' ? '⚠️ بل بنانے کیلئے پہلے کوئی آئٹم شامل کریں!' : 'Please add items first!');
+          setTimeout(() => setHoldToast(null), 2500);
+        }
+        return;
+      }
+
+      // 3. F4 or Alt+C -> Jump directly to Cash Received Input (auto-fills exact bill total)
+      if (e.key === 'F4' || (e.altKey && (e.key === 'c' || e.key === 'C'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPaymentMethod('CASH');
         if (!tenderedAmount || tenderedAmount === 0) {
           setTenderedAmount(effectiveNetTotal);
         }
@@ -431,44 +455,50 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         return;
       }
 
-      // F6 -> Instant Hold Bill
-      if (e.key === 'F6') {
+      // 4. F6 or Alt+H -> Instant Hold Bill
+      if (e.key === 'F6' || (e.altKey && (e.key === 'h' || e.key === 'H'))) {
         e.preventDefault();
+        e.stopPropagation();
         handleHoldBill();
         return;
       }
 
-      // F7 -> Open Held Bills Queue Modal
-      if (e.key === 'F7') {
+      // 5. F7 or Alt+Q -> Open Held Bills Queue Modal
+      if (e.key === 'F7' || (e.altKey && (e.key === 'q' || e.key === 'Q'))) {
         e.preventDefault();
+        e.stopPropagation();
         setHeldBillsModalOpen(true);
         return;
       }
 
-      // F10 -> Open Bills History & Fast Reprint
-      if (e.key === 'F10') {
+      // 6. F10 or Alt+J -> Open Bills History & Fast Reprint
+      if (e.key === 'F10' || (e.altKey && (e.key === 'j' || e.key === 'J'))) {
         e.preventDefault();
+        e.stopPropagation();
         setIsRecentBillsModalOpen(true);
         return;
       }
 
-      // F11 -> Open Sale Return & Exchange
-      if (e.key === 'F11') {
+      // 7. F11 or Alt+E -> Open Sale Return & Exchange
+      if (e.key === 'F11' || (e.altKey && (e.key === 'e' || e.key === 'E'))) {
         e.preventDefault();
+        e.stopPropagation();
         setIsExchangeModalOpen(true);
         return;
       }
 
-      // F3 -> Open Quick Custom Item Add Modal
-      if (e.key === 'F3') {
+      // 8. F3 or Alt+I -> Open Quick Custom Item Add Modal
+      if (e.key === 'F3' || (e.altKey && (e.key === 'i' || e.key === 'I'))) {
         e.preventDefault();
+        e.stopPropagation();
         setCustomItemModalOpen(true);
         return;
       }
 
-      // F8 -> Delete last added item from cart without touching mouse
-      if (e.key === 'F8') {
+      // 9. F8 or Alt+D -> Delete last added item from cart without touching mouse
+      if (e.key === 'F8' || (e.altKey && (e.key === 'd' || e.key === 'D'))) {
         e.preventDefault();
+        e.stopPropagation();
         if (cart.length > 0) {
           const lastItem = cart[cart.length - 1];
           removeFromCart(lastItem.product.id);
@@ -479,16 +509,36 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         return;
       }
 
-      // F2 or F9 -> Jump focus back to Barcode Scanner Input
-      if (e.key === 'F2' || e.key === 'F9') {
+      // 10. F2 or F9 or Alt+B -> Jump focus back to Barcode Scanner Input
+      if (e.key === 'F2' || e.key === 'F9' || (e.altKey && (e.key === 'b' || e.key === 'B'))) {
         e.preventDefault();
+        e.stopPropagation();
         barcodeInputRef.current?.focus();
         barcodeInputRef.current?.select();
         return;
       }
 
-      // Escape -> Close any open modals or drawers and return focus to scanner
+      // 11. Protect active cart from accidental reload via F5 or Ctrl+R
+      if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+        if (cart.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          const confirmReload = confirm(
+            lang === 'ur'
+              ? '⚠️ بل میں اشیاء موجود ہیں! کیا آپ واقعی پیج ریفریش کرنا چاہتے ہیں؟ (موجودہ بل ضائع ہو جائے گا)'
+              : 'Active items in cart! Are you sure you want to reload?'
+          );
+          if (confirmReload) {
+            window.location.reload();
+          }
+          return;
+        }
+      }
+
+      // 12. Escape -> Close any open modals or drawers and return focus to scanner
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         setHeldBillsModalOpen(false);
         setIsRecentBillsModalOpen(false);
         setIsExchangeModalOpen(false);
@@ -501,9 +551,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       }
     };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [cart.length, cartTotals.subtotal, orderDiscount, tenderedAmount, paymentMethod, amountPaid, effectiveNetTotal]);
+    window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    window.addEventListener('help', handleHelp, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
+      window.removeEventListener('help', handleHelp, { capture: true });
+    };
+  }, [cart.length, cartTotals.subtotal, orderDiscount, tenderedAmount, paymentMethod, amountPaid, effectiveNetTotal, lang]);
 
   // Currency Denominations State (Notes Counter)
   const [cashInputMode, setCashInputMode] = useState<'direct' | 'notes'>('direct');
@@ -2213,6 +2267,147 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ZERO-MOUSE QUICK ACTION & HOTKEY STRIP (1-Click Buttons for all F1-F12 Keys) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 shrink-0 text-[11px] font-bold scrollbar-none">
+        <span className="text-[10px] text-slate-400 font-bold shrink-0 pl-1 flex items-center gap-1">
+          <Zap className="w-3 h-3 text-amber-500" />
+          <span>{lang === 'ur' ? 'ہاٹ کیز (کلک یا کی بورڈ):' : 'Hotkeys:'}</span>
+        </span>
+
+        {/* F12 / Enter: Complete Bill */}
+        <button
+          type="button"
+          onClick={handleCheckout}
+          disabled={cart.length === 0}
+          className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="بل مکمل و پرنٹ (F12 یا Alt+Enter)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F12</span>
+          <span>⚡ بل فائنل</span>
+        </button>
+
+        {/* F1: Credit Khata */}
+        <button
+          type="button"
+          onClick={() => {
+            setPaymentMethod('CREDIT');
+            customerNameInputRef.current?.focus();
+            customerNameInputRef.current?.select();
+          }}
+          className={`px-2.5 py-1 rounded-xl shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer ${
+            paymentMethod === 'CREDIT'
+              ? 'bg-rose-600 text-white ring-2 ring-rose-400'
+              : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100 dark:hover:bg-rose-950/40'
+          }`}
+          title="ادھار کھاتہ سیل (F1 یا Alt+U)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F1</span>
+          <span>📝 ادھار کھاتہ</span>
+        </button>
+
+        {/* F4: Cash Received */}
+        <button
+          type="button"
+          onClick={() => {
+            setPaymentMethod('CASH');
+            if (!tenderedAmount || tenderedAmount === 0) {
+              setTenderedAmount(effectiveNetTotal);
+            }
+            tenderedInputRef.current?.focus();
+            tenderedInputRef.current?.select();
+          }}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="نقد موصولی فیلڈ (F4 یا Alt+C)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F4</span>
+          <span>💵 نقد موصول</span>
+        </button>
+
+        {/* F6: Hold Bill */}
+        <button
+          type="button"
+          onClick={handleHoldBill}
+          disabled={cart.length === 0}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 disabled:opacity-40 cursor-pointer"
+          title="موجودہ بل ہولڈ کریں (F6 یا Alt+H)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F6</span>
+          <span>⏸️ بل ہولڈ</span>
+        </button>
+
+        {/* F7: Held Bills Queue */}
+        <button
+          type="button"
+          onClick={() => setHeldBillsModalOpen(true)}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="ہولڈ شدہ بلز فہرست (F7 یا Alt+Q)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F7</span>
+          <span>📋 ہولڈ لسٹ ({heldBills.length})</span>
+        </button>
+
+        {/* F3: Custom Item */}
+        <button
+          type="button"
+          onClick={() => setCustomItemModalOpen(true)}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="غیر فہرست شدہ آئٹم (F3 یا Alt+I)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F3</span>
+          <span>➕ نیا آئٹم</span>
+        </button>
+
+        {/* F8: Delete Last Item */}
+        <button
+          type="button"
+          onClick={() => {
+            if (cart.length > 0) {
+              const lastItem = cart[cart.length - 1];
+              removeFromCart(lastItem.product.id);
+              posSound.playClick();
+              setHoldToast(lang === 'ur' ? `آئٹم حذف ہو گئی (${lastItem.product.nameUr})` : 'Item deleted');
+              setTimeout(() => setHoldToast(null), 2000);
+            }
+          }}
+          disabled={cart.length === 0}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100 dark:hover:bg-rose-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 disabled:opacity-40 cursor-pointer"
+          title="آخری آئٹم ڈیلیٹ کریں (F8 یا Alt+D)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F8</span>
+          <span>❌ آئٹم کٹ</span>
+        </button>
+
+        {/* F2: Barcode Focus */}
+        <button
+          type="button"
+          onClick={() => {
+            barcodeInputRef.current?.focus();
+            barcodeInputRef.current?.select();
+          }}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="بارکوڈ اسکینر پر جائیں (F2 یا F9)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F2</span>
+          <span>🏷️ بارکوڈ</span>
+        </button>
+
+        {/* F10: History */}
+        <button
+          type="button"
+          onClick={() => setIsRecentBillsModalOpen(true)}
+          className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
+          title="پچھلے بلز (F10 یا Alt+J)"
+        >
+          <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F10</span>
+          <span>📜 ہسٹری</span>
+        </button>
+
+        {/* Laptop Fn Helper Hint */}
+        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal shrink-0 pr-2 border-r border-slate-300 dark:border-slate-700 whitespace-nowrap">
+          {lang === 'ur' ? '💡 لیپ ٹاپ پر Fn بٹن کے ساتھ دبائیں یا بٹن پر کلک کریں' : '💡 Laptop: Use Fn key or click buttons'}
+        </span>
       </div>
 
       {/* VIRTUAL URDU KEYBOARD (When toggled on mobile or desktop) */}
