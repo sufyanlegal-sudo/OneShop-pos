@@ -1178,7 +1178,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
 
     return (
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {cart.map((item, idx) => {
           const isWeight = isWeightEligible(item);
           const isLiter = isLiterEligible(item);
@@ -1188,102 +1188,156 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           return (
             <div
               key={item.id}
-              className="p-3 sm:p-3.5 bg-white dark:bg-slate-850 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500/70 transition-all shadow-sm flex flex-wrap items-center justify-between gap-3"
+              className="p-3 sm:p-3.5 bg-white dark:bg-slate-850 rounded-2xl border-2 border-emerald-500/40 hover:border-emerald-500 transition-all shadow-sm flex flex-col gap-2.5 animate-fadeIn"
             >
-              {/* 1. Item Name, Number, Unit Rate & Sub-badge */}
-              <div className="flex items-center gap-3 min-w-[210px] flex-1">
-                <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 dark:bg-slate-750 flex items-center justify-center font-mono font-black text-xs sm:text-sm text-slate-700 dark:text-slate-200 shrink-0 border border-slate-300 dark:border-slate-700 shadow-xs">
-                  {idx + 1}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h5 className="font-black text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
-                      {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
-                    </h5>
-                    {item.packagedVariant && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                        {item.packagedVariant}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-500 font-mono flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="inline-flex items-center gap-1">
-                      <span>ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newRateStr = prompt(
-                            lang === 'ur'
-                              ? `سیل ریٹ تبدیل کریں (${item.product.nameUr}):`
-                              : `Edit Sale Rate for ${item.product.nameEn}:`,
-                            unitRate.toString()
-                          );
-                          if (newRateStr !== null) {
-                            const parsedRate = parseFloat(newRateStr);
-                            if (!isNaN(parsedRate) && parsedRate >= 0) {
-                              updateCartItem(item.id, {
-                                unitPrice: parsedRate,
-                                total: Math.round(item.quantity * parsedRate),
-                              });
+              {/* TOP ROW: Item Number, Urdu & English Name, Sale Rate (Editable), Trash Button */}
+              <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                  <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-mono font-black text-xs sm:text-sm shrink-0 shadow-xs mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h5 className="font-black text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
+                        {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
+                      </h5>
+                      {item.packagedVariant && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                          {item.packagedVariant}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-slate-400 font-normal">({item.product.nameEn || item.product.sku})</span>
+                      <span className="inline-flex items-center gap-1 font-mono text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span>ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newRateStr = prompt(
+                              lang === 'ur'
+                                ? `سیل ریٹ تبدیل کریں (${item.product.nameUr}):`
+                                : `Edit Sale Rate for ${item.product.nameEn}:`,
+                              unitRate.toString()
+                            );
+                            if (newRateStr !== null) {
+                              const parsedRate = parseFloat(newRateStr);
+                              if (!isNaN(parsedRate) && parsedRate >= 0) {
+                                updateCartItem(item.id, {
+                                  unitPrice: parsedRate,
+                                  total: Math.round(item.quantity * parsedRate),
+                                });
+                              }
                             }
-                          }
-                        }}
-                        className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-emerald-600 dark:text-emerald-400 transition ml-1"
-                        title={lang === 'ur' ? 'ریٹ تبدیل کرنے کے لیے کلک کریں' : 'Click to edit price'}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                    </span>
-                    {isWeight && item.quantity < 1 && (
-                      <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
-                        ({Math.round(item.quantity * 1000)} گرام)
+                          }}
+                          className="p-0.5 hover:bg-emerald-200 dark:hover:bg-emerald-900 rounded text-emerald-600 dark:text-emerald-300 transition"
+                          title={lang === 'ur' ? 'ریٹ تبدیل کرنے کے لیے کلک کریں' : 'Click to edit price'}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
                       </span>
-                    )}
-                    {isLiter && item.quantity < 1 && (
-                      <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.5 rounded">
-                        ({Math.round(item.quantity * 1000)} ml)
-                      </span>
-                    )}
+                      {isWeight && item.quantity < 1 && (
+                        <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
+                          ({Math.round(item.quantity * 1000)} گرام)
+                        </span>
+                      )}
+                      {isLiter && item.quantity < 1 && (
+                        <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.5 rounded">
+                          ({Math.round(item.quantity * 1000)} ml)
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 2. Compact Stepper & Quantity / Weight Input (Standard POS - No Sliders) */}
-              <div className="flex items-center gap-2">
+                {/* Delete Button */}
                 <button
                   type="button"
                   onClick={() => {
                     posSound.playClick();
-                    const step = (isWeight || isLiter) ? 0.25 : 1;
-                    if (item.quantity > step) {
-                      const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
-                      updateCartItem(item.id, {
-                        quantity: next,
-                        isGram: false,
-                        isLiter: false,
-                        unitPrice: unitRate,
-                        total: Math.round(next * unitRate),
-                      });
-                    } else {
-                      removeFromCart(item.id);
-                    }
+                    removeFromCart(item.id);
                   }}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-sm text-slate-700 dark:text-slate-200 active:scale-90 transition-all shadow-xs border border-slate-300 dark:border-slate-700"
-                  title="مقدار کم کریں"
+                  className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all shrink-0 cursor-pointer"
+                  title="بل سے یہ آئٹم نکالیں"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
+              </div>
 
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0.01"
-                    step={isWeight || isLiter ? "0.05" : "1"}
-                    value={item.quantity}
-                    onKeyDown={() => posSound.playKeyClick()}
-                    onChange={(e) => {
-                      const val = Math.max(0.01, parseFloat(e.target.value) || 0);
-                      if (!canSellOutOfStock() && val > (Number(item.product.stock) || 0)) {
+              {/* BOTTOM ROW: Large Prominent Quantity Stepper & Big Subtotal */}
+              <div className="flex items-center justify-between gap-3 pt-0.5 flex-wrap">
+                {/* Quantity Controls - Prominent, Large, Touch & Click Friendly */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 shrink-0">
+                    {lang === 'ur' ? 'مقدار / تعداد:' : 'Quantity:'}
+                  </span>
+
+                  {/* Decrement [-] Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      posSound.playClick();
+                      const step = (isWeight || isLiter) ? 0.25 : 1;
+                      if (item.quantity > step) {
+                        const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
+                        updateCartItem(item.id, {
+                          quantity: next,
+                          isGram: false,
+                          isLiter: false,
+                          unitPrice: unitRate,
+                          total: Math.round(next * unitRate),
+                        });
+                      } else {
+                        removeFromCart(item.id);
+                      }
+                    }}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 hover:text-rose-600 dark:hover:bg-rose-950 text-slate-800 dark:text-slate-200 border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center font-black text-base active:scale-90 transition-all shadow-xs cursor-pointer"
+                    title="مقدار کم کریں (-)"
+                  >
+                    <Minus className="w-4 h-4 stroke-[3]" />
+                  </button>
+
+                  {/* Editable Quantity Input */}
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0.01"
+                      step={isWeight || isLiter ? "0.05" : "1"}
+                      value={item.quantity}
+                      onKeyDown={() => posSound.playKeyClick()}
+                      onChange={(e) => {
+                        const val = Math.max(0.01, parseFloat(e.target.value) || 0);
+                        if (!canSellOutOfStock() && val > (Number(item.product.stock) || 0)) {
+                          posSound.playError();
+                          alert(lang === 'ur'
+                            ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
+                            : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
+                          return;
+                        }
+                        updateCartItem(item.id, {
+                          quantity: val,
+                          isGram: false,
+                          isLiter: false,
+                          unitPrice: unitRate,
+                          total: Math.round(val * unitRate),
+                        });
+                      }}
+                      className="w-18 sm:w-22 text-center text-base sm:text-lg font-mono font-black bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl py-1 focus:ring-2 focus:ring-emerald-500/30 outline-none text-slate-900 dark:text-white shadow-inner"
+                      title="براہ راست تعداد لکھیں"
+                    />
+                    <span className="absolute -bottom-3 left-0 right-0 text-center text-[9px] font-bold text-slate-400 font-mono pointer-events-none">
+                      {displayUnit}
+                    </span>
+                  </div>
+
+                  {/* Increment [+] Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      posSound.playClick();
+                      const step = (isWeight || isLiter) ? 0.25 : 1;
+                      const next = Math.round((item.quantity + step) * 100) / 100;
+                      if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
                         posSound.playError();
                         alert(lang === 'ur'
                           ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
@@ -1291,67 +1345,73 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         return;
                       }
                       updateCartItem(item.id, {
-                        quantity: val,
+                        quantity: next,
                         isGram: false,
                         isLiter: false,
                         unitPrice: unitRate,
-                        total: Math.round(val * unitRate),
+                        total: Math.round(next * unitRate),
                       });
                     }}
-                    className="w-20 text-center text-sm font-mono font-black bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl py-1.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-                  />
-                  <span className="absolute -bottom-3.5 left-0 right-0 text-center text-[9px] font-bold text-slate-400 font-mono pointer-events-none">
-                    {displayUnit}
-                  </span>
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-black text-base active:scale-90 transition-all shadow-md shadow-emerald-700/30 border border-emerald-400 cursor-pointer"
+                    title="مقدار بڑھائیں (+)"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                  </button>
+
+                  {/* Quick Shortcuts: +1 and +5 for Speed */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        posSound.playClick();
+                        const next = item.quantity + 1;
+                        if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
+                          posSound.playError();
+                          return;
+                        }
+                        updateCartItem(item.id, {
+                          quantity: next,
+                          unitPrice: unitRate,
+                          total: Math.round(next * unitRate),
+                        });
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-750 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-200 text-xs font-mono font-bold transition-all shadow-xs border border-slate-300 dark:border-slate-700"
+                      title="+1 مزید شامل کریں"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        posSound.playClick();
+                        const next = item.quantity + 5;
+                        if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
+                          posSound.playError();
+                          return;
+                        }
+                        updateCartItem(item.id, {
+                          quantity: next,
+                          unitPrice: unitRate,
+                          total: Math.round(next * unitRate),
+                        });
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-750 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-200 text-xs font-mono font-bold transition-all shadow-xs border border-slate-300 dark:border-slate-700"
+                      title="+5 مزید شامل کریں"
+                    >
+                      +5
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    const step = (isWeight || isLiter) ? 0.25 : 1;
-                    const next = Math.round((item.quantity + step) * 100) / 100;
-                    if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
-                      posSound.playError();
-                      alert(lang === 'ur'
-                        ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
-                        : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
-                      return;
-                    }
-                    updateCartItem(item.id, {
-                      quantity: next,
-                      isGram: false,
-                      isLiter: false,
-                      unitPrice: unitRate,
-                      total: Math.round(next * unitRate),
-                    });
-                  }}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-bold text-sm active:scale-90 transition-all shadow-sm"
-                  title="مقدار بڑھائیں"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* 3. Line Total & Delete Button */}
-              <div className="flex items-center gap-3">
-                <div className="text-right min-w-[85px]">
-                  <span className="font-mono font-black text-sm sm:text-lg text-emerald-600 dark:text-emerald-400">
-                    {item.total.toLocaleString()} PKR
+                {/* Line Total */}
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-bold text-slate-400 block">
+                    {lang === 'ur' ? 'کل رقم:' : 'Total:'}
+                  </span>
+                  <span className="font-mono font-black text-base sm:text-xl text-emerald-600 dark:text-emerald-400">
+                    {item.total.toLocaleString()} <span className="text-xs font-sans">PKR</span>
                   </span>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    removeFromCart(item.id);
-                  }}
-                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
-                  title="آئٹم حذف کریں"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
           );
@@ -1364,12 +1424,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   // Sub-renderer for Recent Hold Bills (پینڈنگ بلز - بائیں جانب خالی جگہ پر نمایاں)
   const renderHeldBillsSection = () => {
+    // If no held bills, do NOT waste vertical space with empty box
+    if (heldBills.length === 0) {
+      return null;
+    }
+
     return (
-      <div className="bg-slate-100 dark:bg-slate-800/90 rounded-2xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+      <div className="bg-amber-50 dark:bg-amber-950/40 rounded-2xl p-2 sm:p-2.5 border-2 border-amber-400 dark:border-amber-600 shadow-sm space-y-2 animate-fadeIn">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 font-black text-xs text-slate-800 dark:text-slate-100">
-            <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span>{lang === 'ur' ? 'ریسنٹ ہولڈ بلز' : 'Recent Hold Bills'}</span>
+          <div className="flex items-center gap-1.5 font-black text-xs text-amber-900 dark:text-amber-200">
+            <Pause className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
+            <span>{lang === 'ur' ? '⚠️ پینڈنگ ہولڈ بلز (محفوظ شدہ):' : 'Pending Held Bills:'}</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-amber-500 text-slate-950 shadow-xs">
               {heldBills.length}
             </span>
@@ -1386,58 +1451,48 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           </button>
         </div>
 
-        {heldBills.length === 0 ? (
-          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-700 text-center">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
-              {lang === 'ur'
-                ? 'کوئی پینڈنگ بل نہیں ہے۔ رش کے دوران گاہک کا بل روکنے کے لیے F6 دبائیں۔'
-                : 'No pending held bills. Press F6 to hold current bill.'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5 scroll-smooth">
-            {heldBills.map((hb) => (
-              <div
-                key={hb.id}
-                className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-750 hover:border-amber-400 dark:hover:border-amber-500 flex items-center justify-between gap-2 shadow-xs transition-all"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-black text-xs text-slate-900 dark:text-white truncate">
-                      {hb.customerName || (lang === 'ur' ? 'عام گاہک' : 'Walk-in')}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {hb.heldAt}
-                    </span>
-                  </div>
-                  <div className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-black mt-0.5">
-                    {hb.items.length} {lang === 'ur' ? 'اشیاء' : 'items'} • {hb.subtotal.toLocaleString()} PKR
-                  </div>
+        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 scroll-smooth">
+          {heldBills.map((hb) => (
+            <div
+              key={hb.id}
+              className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-amber-300 dark:border-amber-700/80 hover:border-amber-500 flex items-center justify-between gap-2 shadow-xs transition-all"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-black text-xs text-slate-900 dark:text-white truncate">
+                    {hb.customerName || (lang === 'ur' ? 'عام گاہک' : 'Walk-in')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {hb.heldAt}
+                  </span>
                 </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleResumeHeldBill(hb)}
-                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all border border-emerald-400"
-                    title="بل بحال کریں اور جاری رکھیں"
-                  >
-                    <Play className="w-3 h-3 fill-current" />
-                    <span>{lang === 'ur' ? 'بحال کریں' : 'Resume'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteHeldBill(hb.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all"
-                    title="ہولڈ بل خارج کریں"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-black mt-0.5">
+                  {hb.items.length} {lang === 'ur' ? 'اشیاء' : 'items'} • {hb.subtotal.toLocaleString()} PKR
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleResumeHeldBill(hb)}
+                  className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all border border-emerald-400"
+                  title="بل بحال کریں اور جاری رکھیں"
+                >
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>{lang === 'ur' ? 'بحال کریں' : 'Resume'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteHeldBill(hb.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all"
+                  title="ہولڈ بل خارج کریں"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -1693,11 +1748,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         )}
 
         {/* ========================================================================= */}
-        {/* RECENT HOLD BILLS SECTION (بائیں جانب خالی جگہ کو پر کرنے کیلئے)            */}
+        {/* RECENT HOLD BILLS SECTION (صرف تب جب ہولڈ بلز موجود ہوں)                   */}
         {/* ========================================================================= */}
-        <div className="my-1 shrink-0">
-          {renderHeldBillsSection()}
-        </div>
+        {heldBills.length > 0 && (
+          <div className="my-1 shrink-0">
+            {renderHeldBillsSection()}
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* CANDELA & NEBS 3-COLUMN FRONT ROW: TOTAL | CASH RECEIVED | CHANGE RETURN */}
@@ -2999,6 +3056,19 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 </button>
               )}
 
+              {/* Quick Hold Bill Button in Cart Header */}
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleHoldBill}
+                  className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                  title="موجودہ بل ہولڈ کریں (F6)"
+                >
+                  <Pause className="w-3 h-3 fill-current" />
+                  <span className="text-[11px]">{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold'}</span>
+                </button>
+              )}
+
               {cart.length > 0 && (
                 <button
                   type="button"
@@ -3028,11 +3098,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
           ) : (
             /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
-            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto lg:overflow-hidden">
-              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth max-h-[45vh] lg:max-h-none">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div ref={cartContainerRef} className="flex-1 min-h-[220px] sm:min-h-[280px] overflow-y-auto p-2.5 sm:p-3 space-y-2.5 scroll-smooth">
                 {renderCartItems()}
               </div>
-              <div className="shrink-0 p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto pb-16 lg:pb-2.5">
+              <div className="shrink-0 max-h-[50%] overflow-y-auto p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col pb-16 lg:pb-2.5">
                 {renderCheckoutControls()}
               </div>
             </div>
