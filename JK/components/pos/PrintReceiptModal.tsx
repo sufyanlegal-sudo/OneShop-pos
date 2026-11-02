@@ -182,7 +182,13 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     : '';
 
   const dueLine = invoice.balanceDue > 0
-    ? (isUrdu ? `\nبقایا ادھار: ${invoice.balanceDue.toLocaleString()} روپے` : `\nBalance Due: Rs. ${invoice.balanceDue.toLocaleString()}`)
+    ? (isUrdu
+        ? `\nاس بل کا بقایا ادھار: ${invoice.balanceDue.toLocaleString()} روپے` +
+          (invoice.previousBalance ? `\nسابقہ ادھار کھاتہ: ${invoice.previousBalance.toLocaleString()} روپے` : '') +
+          (invoice.netTotalDebt ? `\n*کل نیا واجب الادا بقایا کھاتہ: ${invoice.netTotalDebt.toLocaleString()} روپے*` : '')
+        : `\nBalance Due (This Bill): Rs. ${invoice.balanceDue.toLocaleString()}` +
+          (invoice.previousBalance ? `\nPrevious Khata Balance: Rs. ${invoice.previousBalance.toLocaleString()}` : '') +
+          (invoice.netTotalDebt ? `\n*Total Net Khata Debt: Rs. ${invoice.netTotalDebt.toLocaleString()}*` : ''))
     : '';
 
   const itemsText = invoice.items

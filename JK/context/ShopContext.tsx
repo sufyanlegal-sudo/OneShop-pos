@@ -1153,18 +1153,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanCustomerName = (params.customerName || '').trim();
     const cleanCustomerPhone = (params.customerPhone || '').trim();
 
-    // 1. Locate customer by customerId, phone, or name
+    // 1. Locate customer by customerId, phone, or flexible name match (so repeated credit sales always link to existing khata)
     let customer = customers.find((c) => {
       if (params.customerId && c.id === params.customerId) return true;
-      if (cleanCustomerPhone && cleanCustomerPhone !== 'N/A' && cleanCustomerPhone !== '-' && c.phone === cleanCustomerPhone) return true;
+      const cleanPhoneDigits = cleanCustomerPhone.replace(/[^0-9]/g, '');
+      const custPhoneDigits = (c.phone || '').replace(/[^0-9]/g, '');
+      if (cleanPhoneDigits.length >= 7 && custPhoneDigits.length >= 7 && (cleanPhoneDigits === custPhoneDigits || cleanPhoneDigits.endsWith(custPhoneDigits) || custPhoneDigits.endsWith(cleanPhoneDigits))) {
+        return true;
+      }
       if (
         cleanCustomerName &&
         cleanCustomerName !== 'عام گاہک (Walk-in)' &&
         cleanCustomerName !== 'Walk-in Customer' &&
-        cleanCustomerName !== 'عام گاہک' &&
-        c.name.trim().toLowerCase() === cleanCustomerName.toLowerCase()
+        cleanCustomerName !== 'عام گاہک'
       ) {
-        return true;
+        const cName = c.name.trim().toLowerCase();
+        const pName = cleanCustomerName.toLowerCase();
+        if (cName === pName || cName.includes(pName) || pName.includes(cName)) {
+          return true;
+        }
       }
       return false;
     });
@@ -1238,6 +1245,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       packagedVariant: item.packagedVariant,
     }));
 
+    const prevBal = customer ? customer.currentBalance : 0;
+    const netDebt = prevBal + balanceDue;
+
     const newInvoice: Invoice = {
       id: 'inv-' + Date.now(),
       invoiceNo,
@@ -1253,6 +1263,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalProfit: cartTotals.totalProfit - params.discount,
       paidAmount,
       balanceDue,
+      previousBalance: prevBal,
+      netTotalDebt: netDebt,
       tenderedAmount: tendered,
       changeDue,
       paymentMethod: params.paymentMethod,

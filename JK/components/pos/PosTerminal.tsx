@@ -1727,7 +1727,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
         {/* Credit & Down-payment / Split Payment Controls */}
         {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && (
-          <div className="p-2 sm:p-2.5 bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/80 rounded-2xl space-y-1.5 text-xs shrink-0 animate-fadeIn">
+          <div className="p-1.5 sm:p-2 bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/80 rounded-xl space-y-1 text-xs shrink-0 animate-fadeIn">
             <div className="flex items-center justify-between font-bold text-rose-950 dark:text-rose-200">
               <span className="flex items-center gap-1.5 text-xs font-black">
                 <span>📝</span>
@@ -1868,21 +1868,21 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               </div>
             </div>
           ) : (
-            /* Non-cash modes (Online, Khata, Split) */
-            <div className="p-2 sm:p-2.5 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-1">
+            /* Non-cash modes (Online, Khata, Split) - Compact & Prominent */
+            <div className="p-1.5 sm:p-2 bg-slate-900 text-white rounded-xl border border-slate-800 space-y-0.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-400">{t('grandTotal')}:</span>
-                <span className="font-mono text-lg sm:text-xl font-black text-emerald-400">
+                <span className="text-xs font-bold text-slate-400">{lang === 'ur' ? 'کل بل (Grand Total):' : 'Grand Total:'}</span>
+                <span className="font-mono text-base sm:text-lg font-black text-emerald-400">
                   {effectiveNetTotal.toLocaleString()} PKR
                 </span>
               </div>
-              {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && amountPaid > 0 && (
-                <div className="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px] font-bold">
+              {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && (
+                <div className="flex justify-between items-center pt-0.5 border-t border-slate-800 text-[10.5px] font-bold">
                   <span className="text-emerald-400 font-mono">
                     {lang === 'ur' ? 'نقد وصول:' : 'Paid:'} {amountPaid.toLocaleString()} PKR
                   </span>
                   <span className="text-rose-400 font-mono">
-                    {lang === 'ur' ? 'کھاتہ ادھار:' : 'Khata Due:'} {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
+                    {lang === 'ur' ? 'کھاتے میں ادھار:' : 'Khata Due:'} {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
                   </span>
                 </div>
               )}
@@ -1930,9 +1930,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <span className="bg-white/20 text-white font-black text-[11px] px-2 py-0.5 rounded font-mono">
               Rs.
             </span>
-            <Printer className="w-5 h-5 text-white" />
-            <span>{t('completeSale')}</span>
-            <span className="px-2 py-0.5 rounded bg-black/30 text-[10px] sm:text-[11px] font-mono text-emerald-100 border border-white/20">
+            <Printer className="w-4 h-4 text-white" />
+            <span>{lang === 'ur' ? '⚡ بل فائنل کریں و پرنٹ (Done)' : '⚡ Complete & Print (Done)'}</span>
+            <span className="px-1.5 py-0.2 rounded bg-black/30 text-[10px] font-mono text-emerald-100 border border-white/20">
               (Enter / F12)
             </span>
           </button>
@@ -2696,44 +2696,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* POPULAR FAST GROCERY CHIPS (1-Click instant search without typing) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 shrink-0 no-scrollbar" dir={lang === 'ur' ? 'rtl' : 'ltr'}>
-        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap pl-1">
-          {lang === 'ur' ? '⚡ فوری آئٹمز:' : '⚡ Quick Items:'}
-        </span>
-        {[
-          { labelUr: 'چینی', labelEn: 'Sugar', icon: '🍬' },
-          { labelUr: 'آٹا', labelEn: 'Flour', icon: '🌾' },
-          { labelUr: 'گھی', labelEn: 'Ghee', icon: '🧈' },
-          { labelUr: 'تیل', labelEn: 'Cooking Oil', icon: '🫒' },
-          { labelUr: 'صابن', labelEn: 'Soap', icon: '🧼' },
-          { labelUr: 'دال', labelEn: 'Lentils', icon: '🥣' },
-          { labelUr: 'چاول', labelEn: 'Rice', icon: '🍚' },
-          { labelUr: 'بسکٹ', labelEn: 'Biscuits', icon: '🍪' },
-          { labelUr: 'دودھ', labelEn: 'Milk', icon: '🥛' },
-          { labelUr: 'پتی', labelEn: 'Tea', icon: '☕' },
-          { labelUr: 'مٹھائی', labelEn: 'Sweets', icon: '🧁' },
-          { labelUr: 'شربت', labelEn: 'Juice', icon: '🧃' },
-        ].map((item) => {
-          const displayLabel = lang === 'ur' ? item.labelUr : item.labelEn;
-          return (
-            <button
-              key={item.labelUr}
-              type="button"
-              onClick={() => {
-                posSound.playClick();
-                setSearchQuery(displayLabel);
-                setSearchSuggestionsOpen(true);
-              }}
-              className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-850 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 transition-all"
-            >
-              <span>{item.icon}</span>
-              <span>{displayLabel}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* MOBILE TAB CONTROLS (Only visible on mobile / tablet screens < lg) */}
       <div className="lg:hidden flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-2xl shrink-0">
         <button
@@ -3143,15 +3105,15 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
           {/* Body Content based on Layout Mode */}
           {!showCatalog ? (
-            /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar */
-            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
+            /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar - Side-by-side on md and up */
+            <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
               {/* Left Pane: Items in Active Bill */}
-              <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3 space-y-2.5 scroll-smooth">
+              <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth">
                 {renderCartItems()}
               </div>
 
-              {/* Right Pane: Customer, Notes Counter & Checkout Controls (Candela Fixed Dock) */}
-              <div className="w-full lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-2.5 sm:p-3 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden pb-16 lg:pb-2.5">
+              {/* Right Pane: Dedicated Candela Checkout Dock - 100% Fixed, Zero Page Scroll */}
+              <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-800 p-2 sm:p-2.5 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden">
                 {renderCheckoutControls()}
               </div>
             </div>
