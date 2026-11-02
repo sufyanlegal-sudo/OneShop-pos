@@ -382,6 +382,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const cartEndRef = useRef<HTMLDivElement>(null);
   const cartContainerRef = useRef<HTMLDivElement>(null);
   const tenderedInputRef = useRef<HTMLInputElement>(null);
+  const customerNameInputRef = useRef<HTMLInputElement>(null);
+  const customerPhoneInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll the bill list down to the latest item smoothly whenever cart updates (NO MOUSE NEEDED)
   useEffect(() => {
@@ -404,6 +406,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         if (cart.length > 0) {
           handleCheckout();
         }
+        return;
+      }
+
+      // Alt+U or Alt+K -> Instant Switch to Khata/Credit & Jump to Customer Name
+      if (e.altKey && (e.key === 'u' || e.key === 'U' || e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setPaymentMethod('CREDIT');
+        setTimeout(() => {
+          customerNameInputRef.current?.focus();
+          customerNameInputRef.current?.select();
+        }, 50);
         return;
       }
 
@@ -578,6 +591,29 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       setAmountPaid(0);
     }
   }, [cartTotals.grandTotal, paymentMethod]);
+
+  // Auto-detect existing customer if cashier types phone or name in walk-in inputs
+  const detectedExistingCustomer = useMemo(() => {
+    if (selectedCustomerId) return null;
+    const phone = customerPhone.trim();
+    const name = customerName.trim().toLowerCase();
+    if (!phone && !name) return null;
+    return (
+      customers.find((c) => {
+        if (phone && phone !== 'N/A' && phone !== '-' && c.phone === phone) return true;
+        if (
+          name &&
+          name !== 'عام گاہک' &&
+          name !== 'walk-in' &&
+          name !== 'عام گاہک (walk-in)' &&
+          c.name.trim().toLowerCase() === name
+        ) {
+          return true;
+        }
+        return false;
+      }) || null
+    );
+  }, [selectedCustomerId, customerPhone, customerName, customers]);
 
   // Extract categories (all available portions)
   const categories = useMemo(() => {
@@ -915,8 +951,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     try {
-      posSound.playSuccessChime();
-
       const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
       const tendered =
         paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
@@ -927,10 +961,33 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           ? netTotal
           : amountPaid;
       const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
+      const expectedBalance = Math.max(0, netTotal - paid);
+
+      // Udhaar validation: Ensure customer name exists for credit transactions
+      let finalCustName = customerName.trim();
+      let finalCustPhone = customerPhone.trim();
+
+      if ((paymentMethod === 'CREDIT' || expectedBalance > 0) && !selectedCustomerId && !finalCustName) {
+        posSound.playErrorBuzz();
+        const entered = prompt(
+          lang === 'ur'
+            ? '⚠️ ادھار بل کیلئے برائے مہربانی گاہک کا نام درج فرمائیں:\n(کھاتہ بک میں اس کا کھاتہ خودکار بن جائے گا)'
+            : 'Please enter customer name for credit bill:\n(Khata account will be auto-created)'
+        );
+        if (!entered || !entered.trim()) {
+          customerNameInputRef.current?.focus();
+          return;
+        }
+        finalCustName = entered.trim();
+        setCustomerName(finalCustName);
+      }
+
+      posSound.playSuccessChime();
 
       const invoice = checkoutInvoice({
-        customerName: customerName.trim() || (lang === 'ur' ? 'عام گاہک (Walk-in)' : 'Walk-in Customer'),
-        customerPhone: customerPhone.trim(),
+        customerId: selectedCustomerId || undefined,
+        customerName: finalCustName || (lang === 'ur' ? 'عام گاہک (Walk-in)' : 'Walk-in Customer'),
+        customerPhone: finalCustPhone,
         paymentMethod,
         amountPaid: paid,
         tenderedAmount: tendered,
@@ -944,6 +1001,16 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
       setCompletedInvoice(invoice);
       setReceiptModalOpen(true);
+
+      // Udhaar Khata Feedback Toast
+      if (invoice.balanceDue > 0) {
+        setHoldToast(
+          lang === 'ur'
+            ? `✅ ادھار کھاتہ درج: "${invoice.customerName}" کا کھاتہ بن گیا (بقایا: ${invoice.balanceDue.toLocaleString()} روپے)!`
+            : `✅ Credit Khata: "${invoice.customerName}" balance: Rs. ${invoice.balanceDue.toLocaleString()}!`
+        );
+        setTimeout(() => setHoldToast(null), 4000);
+      }
 
       // Reset local customer form & denominations
       setCustomerName('');
@@ -1336,23 +1403,65 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
           {/* If new walk-in / custom name or phone */}
           {!selectedCustomerId && (
-            <div className="grid grid-cols-2 gap-1.5">
-              <input
-                type="text"
-                value={customerName}
-                onKeyDown={() => posSound.playKeyClick()}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder={t('customerName')}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold outline-none focus:border-emerald-500"
-              />
-              <input
-                type="text"
-                value={customerPhone}
-                onKeyDown={() => posSound.playKeyClick()}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder={t('customerPhone')}
-                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-emerald-500"
-              />
+            <div className="space-y-1">
+              <div className="grid grid-cols-2 gap-1.5">
+                <input
+                  ref={customerNameInputRef}
+                  type="text"
+                  value={customerName}
+                  onKeyDown={(e) => {
+                    posSound.playKeyClick();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      customerPhoneInputRef.current?.focus();
+                      customerPhoneInputRef.current?.select();
+                    }
+                  }}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا نام (کھاتہ کیلئے)' : 'Customer Name (Khata)') : t('customerName')}
+                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1 text-xs font-bold outline-none transition-all ${
+                    paymentMethod === 'CREDIT'
+                      ? 'border-rose-400 dark:border-rose-500 ring-1 ring-rose-400/40 bg-rose-50/30 dark:bg-rose-950/20'
+                      : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'
+                  }`}
+                />
+                <input
+                  ref={customerPhoneInputRef}
+                  type="text"
+                  value={customerPhone}
+                  onKeyDown={(e) => {
+                    posSound.playKeyClick();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCheckout();
+                    }
+                  }}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا فون نمبر' : 'Phone (Optional)') : t('customerPhone')}
+                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none transition-all ${
+                    paymentMethod === 'CREDIT'
+                      ? 'border-rose-400 dark:border-rose-500 ring-1 ring-rose-400/40 bg-rose-50/30 dark:bg-rose-950/20'
+                      : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'
+                  }`}
+                />
+              </div>
+
+              {/* Dynamic Auto-Khata Feedback Pill */}
+              {detectedExistingCustomer ? (
+                <div className="flex items-center justify-between px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 animate-fadeIn">
+                  <span className="truncate">👤 {detectedExistingCustomer.name} (کھاتہ پہلے سے موجود ہے)</span>
+                  <span className="shrink-0 font-mono text-emerald-700 dark:text-emerald-400">سابقہ ادھار: {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
+                </div>
+              ) : (customerName.trim() || customerPhone.trim()) && paymentMethod === 'CREDIT' ? (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-700/60 text-[10px] font-bold text-blue-800 dark:text-blue-300 animate-fadeIn">
+                  <span className="animate-pulse">✨</span>
+                  <span>نیا کھاتہ: بل فائنل ہونے پر ادھار کھاتہ بک میں خودکار بن جائے گا!</span>
+                </div>
+              ) : paymentMethod === 'CREDIT' ? (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/60 text-[10px] font-bold text-rose-800 dark:text-rose-300 animate-pulse">
+                  <span>📝 ادھار سیل: گاہک کا نام لکھیں، کھاتہ خودکار کھل جائے گا!</span>
+                </div>
+              ) : null}
             </div>
           )}
 

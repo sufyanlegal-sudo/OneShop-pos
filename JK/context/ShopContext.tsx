@@ -42,6 +42,7 @@ import {
 } from '@/lib/seedData';
 
 interface CheckoutParams {
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   paymentMethod: PaymentMethod;
@@ -1124,16 +1125,58 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const paidAmount = Math.min(params.amountPaid, grandTotal);
     const balanceDue = Math.max(0, grandTotal - paidAmount);
 
-    let customer = customers.find(
-      (c) => (params.customerPhone && c.phone === params.customerPhone) || (params.customerName && c.name === params.customerName)
-    );
+    const isCredit = params.paymentMethod === 'CREDIT' || balanceDue > 0;
+    const cleanCustomerName = (params.customerName || '').trim();
+    const cleanCustomerPhone = (params.customerPhone || '').trim();
 
-    if (!customer && (params.customerName || params.customerPhone)) {
-      customer = addCustomer(
-        params.customerName || 'نامعلوم گاہک',
-        params.customerPhone || '',
-        'کاؤنٹر سیل'
-      );
+    // 1. Locate customer by customerId, phone, or name
+    let customer = customers.find((c) => {
+      if (params.customerId && c.id === params.customerId) return true;
+      if (cleanCustomerPhone && cleanCustomerPhone !== 'N/A' && cleanCustomerPhone !== '-' && c.phone === cleanCustomerPhone) return true;
+      if (
+        cleanCustomerName &&
+        cleanCustomerName !== 'عام گاہک (Walk-in)' &&
+        cleanCustomerName !== 'Walk-in Customer' &&
+        cleanCustomerName !== 'عام گاہک' &&
+        c.name.trim().toLowerCase() === cleanCustomerName.toLowerCase()
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    let currentCustomerList = [...customers];
+    let isNewCustomerCreated = false;
+
+    // 2. Auto-create customer if missing
+    if (!customer) {
+      const isWalkInName =
+        !cleanCustomerName ||
+        cleanCustomerName === 'عام گاہک (Walk-in)' ||
+        cleanCustomerName === 'Walk-in Customer' ||
+        cleanCustomerName === 'عام گاہک';
+
+      if (isCredit || !isWalkInName || (cleanCustomerPhone && cleanCustomerPhone !== 'N/A')) {
+        const finalName = !isWalkInName
+          ? cleanCustomerName
+          : cleanCustomerPhone
+          ? `گاہک (${cleanCustomerPhone})`
+          : `ادھار گاہک #${invoiceNo.slice(-4)}`;
+
+        const newCust: Customer = {
+          id: 'cust-' + Date.now(),
+          name: finalName,
+          phone: cleanCustomerPhone || 'N/A',
+          address: 'کاؤنٹر ادھار کھاتہ (خودکار)',
+          creditLimit: 50000,
+          currentBalance: 0,
+          khata: [],
+          createdAt: date,
+        };
+        customer = newCust;
+        currentCustomerList = [newCust, ...currentCustomerList];
+        isNewCustomerCreated = true;
+      }
     }
 
     const tendered = params.tenderedAmount !== undefined ? params.tenderedAmount : params.amountPaid;
@@ -1219,32 +1262,40 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInvoices(updatedInvoices);
     storage.saveInvoices(updatedInvoices);
 
-    // Update customer khata if udhaar
-    if (balanceDue > 0 && customer) {
-      const newBalance = customer.currentBalance + balanceDue;
-      const khataEntry: KhataEntry = {
-        id: 'kh-' + Date.now(),
-        customerId: customer.id,
-        date,
-        type: 'DEBIT',
-        amount: balanceDue,
-        balanceAfter: newBalance,
-        description: `انوائس #${invoiceNo} کا بقایا ادھار`,
-        invoiceId: newInvoice.id,
-      };
+    // Update customer khata if udhaar / balance due
+    if (customer) {
+      if (balanceDue > 0) {
+        const newBalance = customer.currentBalance + balanceDue;
+        const khataEntry: KhataEntry = {
+          id: 'kh-' + Date.now(),
+          customerId: customer.id,
+          date,
+          type: 'DEBIT',
+          amount: balanceDue,
+          balanceAfter: newBalance,
+          description: `انوائس #${invoiceNo} کا بقایا ادھار`,
+          invoiceId: newInvoice.id,
+        };
 
-      const updatedCustomers = customers.map((c) => {
-        if (c.id === customer!.id) {
-          return {
-            ...c,
-            currentBalance: newBalance,
-            khata: [khataEntry, ...c.khata],
-          };
-        }
-        return c;
-      });
-      setCustomers(updatedCustomers);
-      storage.saveCustomers(updatedCustomers);
+        const updatedCustomers = currentCustomerList.map((c) => {
+          if (c.id === customer!.id) {
+            return {
+              ...c,
+              currentBalance: newBalance,
+              khata: [khataEntry, ...c.khata],
+            };
+          }
+          return c;
+        });
+        setCustomers(updatedCustomers);
+        storage.saveCustomers(updatedCustomers);
+        triggerAutoCloudSync();
+      } else if (isNewCustomerCreated) {
+        // Customer was auto-created even if paid in full
+        setCustomers(currentCustomerList);
+        storage.saveCustomers(currentCustomerList);
+        triggerAutoCloudSync();
+      }
     }
 
     // Add Roznamcha cash sale entry
