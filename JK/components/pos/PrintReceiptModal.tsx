@@ -13,6 +13,7 @@ import {
   ZoomIn,
   Sliders,
   Globe,
+  ExternalLink,
 } from 'lucide-react';
 import { Invoice, BusinessProfile } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
@@ -243,6 +244,16 @@ ${developerCredit}`;
     window.open(url, '_blank');
   };
 
+  const handleSendToShopOwnerWhatsApp = () => {
+    let ownerPhone = (businessProfile.whatsapp || businessProfile.phone || '03334140088').replace(/[^0-9]/g, '');
+    if (ownerPhone.startsWith('03')) {
+      ownerPhone = '92' + ownerPhone.substring(1);
+    }
+    const alertMsg = `🏪 *شاپ سیل نوٹیفکیشن / بل رسید* 🏪\n` + whatsAppMessage;
+    const url = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(alertMsg)}`;
+    window.open(url, '_blank');
+  };
+
   const handleCopyWhatsApp = () => {
     navigator.clipboard.writeText(whatsAppMessage);
     setCopiedWhatsApp(true);
@@ -365,6 +376,15 @@ ${developerCredit}`;
             >
               <MessageSquare className="w-4 h-4" />
               <span>{isUrdu ? 'واٹس ایپ پر رسید بھیجیں' : 'Send via WhatsApp'}</span>
+            </button>
+
+            <button
+              onClick={handleSendToShopOwnerWhatsApp}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all text-xs border border-emerald-500/40"
+              title="دوکاندار کے اپنے واٹس ایپ نمبر پر بل رسید بھیجیں"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>{isUrdu ? '🏪 دوکاندار کو بل بھیجیں' : 'Send to Shop Owner'}</span>
             </button>
 
             <button

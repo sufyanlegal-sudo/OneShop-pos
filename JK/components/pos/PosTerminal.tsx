@@ -243,6 +243,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const [tenderedAmount, setTenderedAmount] = useState<number>(0);
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
   const [tableNo, setTableNo] = useState<string>('');
+  const effectiveNetTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
 
   // Manual / Custom Unlisted Item State
   const [customItemModalOpen, setCustomItemModalOpen] = useState(false);
@@ -268,6 +269,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     itemCount: number;
   }
 
+  // Mobile responsive view & Urdu Keyboard state
+  const [mobileTab, setMobileTab] = useState<'cart' | 'catalog'>('cart');
+  const [heldBillsModalOpen, setHeldBillsModalOpen] = useState(false);
+  const [urduKeyboardOpen, setUrduKeyboardOpen] = useState(false);
+  const [holdToast, setHoldToast] = useState<string | null>(null);
+
   const [heldBills, setHeldBills] = useState<HeldBill[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -288,6 +295,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   const handleHoldBill = () => {
     if (cart.length === 0) {
+      if (heldBills.length > 0) {
+        setHeldBillsModalOpen(true);
+        return;
+      }
       alert(lang === 'ur' ? 'کارٹ خالی ہے، ہولڈ کرنے کے لیے کوئی بل نہیں ہے!' : 'Cart is empty, nothing to hold!');
       return;
     }
@@ -307,6 +318,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     setCustomerPhone('');
     setSelectedCustomerId('');
     setTenderedAmount(0);
+    setHoldToast(lang === 'ur' ? `✅ بل ہولڈ لسٹ میں محفوظ ہو گیا (#${heldBills.length + 1})` : 'Bill placed on hold!');
+    setTimeout(() => setHoldToast(null), 3000);
   };
 
   const handleResumeHeldBill = (held: HeldBill) => {
@@ -328,6 +341,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     replaceCart(held.items);
     setCustomerName(held.customerName === 'عام گاہک' || held.customerName === 'Walk-in Customer' ? '' : held.customerName);
     setCustomerPhone(held.customerPhone || '');
+    setHeldBillsModalOpen(false);
+    setMobileTab('cart');
+    setHoldToast(lang === 'ur' ? `⚡ بل کاؤنٹر پر بحال ہو گیا (${held.items.length} اشیاء)!` : 'Bill resumed to cart!');
+    setTimeout(() => setHoldToast(null), 3000);
     barcodeInputRef.current?.focus();
   };
 
@@ -1477,7 +1494,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2.5 h-[calc(100vh-70px)] p-2 md:p-3 overflow-hidden">
+    <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden">
       {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
       <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -1686,22 +1703,55 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 if (searchQuery.trim()) setSearchSuggestionsOpen(true);
               }}
               placeholder={lang === 'ur' ? 'آئٹم کا نام لکھیں یا تلاش کریں (چینی، چاول، دال)...' : 'Search product name or press Enter...'}
-              className="w-full pl-11 pr-10 py-3 bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl text-sm sm:text-base font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all shadow-inner"
+              className="w-full pl-11 pr-24 py-3 bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl text-sm sm:text-base font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all shadow-inner"
             />
           </form>
-          {searchQuery && (
+
+          {/* Quick buttons inside search input: Clear, Voice Mic, Virtual Urdu Keyboard */}
+          <div className="absolute right-2 top-2.5 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  posSound.playClick();
+                  setSearchQuery('');
+                  setSearchSuggestionsOpen(false);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 posSound.playClick();
-                setSearchQuery('');
-                setSearchSuggestionsOpen(false);
+                setVoiceMode('search');
+                setVoiceModalOpen(true);
               }}
-              className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+              className="p-1 text-slate-500 hover:text-emerald-600 rounded-md"
+              title="آواز سے بول کر تلاش کریں (Voice Search)"
             >
-              <X className="w-4 h-4" />
+              <Mic className="w-4 h-4" />
             </button>
-          )}
+
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setUrduKeyboardOpen(!urduKeyboardOpen);
+              }}
+              className={`px-2 py-0.5 rounded-lg text-xs font-black transition-all ${
+                urduKeyboardOpen
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300'
+              }`}
+              title="آن اسکرین اردو کی بورڈ کھولیں"
+            >
+              اردو
+            </button>
+          </div>
 
           {/* Live Auto-Suggestions Dropdown */}
           {searchSuggestionsOpen && searchQuery.trim().length > 0 && (
@@ -1749,7 +1799,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* Quick Hold Bill Button (Prominent & Instant Rush Hour Access) */}
+        {/* Quick Hold Bill Button */}
         <button
           type="button"
           onClick={handleHoldBill}
@@ -1758,12 +1808,23 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         >
           <Pause className="w-4 h-4 text-slate-950" />
           <span>{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold Bill (F6)'}</span>
-          {heldBills.length > 0 && (
+        </button>
+
+        {/* Dedicated Held Bills Queue Button (Visible whenever held bills exist) */}
+        {heldBills.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setHeldBillsModalOpen(true)}
+            className="px-3.5 py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all ring-2 ring-amber-400/50 animate-pulse whitespace-nowrap"
+            title="ہولڈ شدہ بلز دیکھیں اور بحال کریں"
+          >
+            <Clock className="w-4 h-4 text-slate-950" />
+            <span>{lang === 'ur' ? '📋 ہولڈ شدہ بلز' : 'Held Bills'}</span>
             <span className="bg-slate-950 text-amber-400 px-2 py-0.5 rounded-full text-[10px] font-mono font-black">
               {heldBills.length}
             </span>
-          )}
-        </button>
+          </button>
+        )}
 
         {/* Quick Tools Floating Dropdown Menu (Clean & Clutter-Free) */}
         <div ref={quickToolsRef} className="relative">
@@ -1888,11 +1949,155 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* VIRTUAL URDU KEYBOARD (When toggled on mobile or desktop) */}
+      {urduKeyboardOpen && (
+        <div className="p-2.5 bg-slate-100 dark:bg-slate-850 rounded-2xl border-2 border-emerald-500/40 shadow-lg space-y-2 animate-fadeIn shrink-0">
+          <div className="flex items-center justify-between text-xs px-1 text-slate-700 dark:text-slate-300">
+            <span className="font-bold flex items-center gap-1.5">
+              <span>⌨️</span>
+              <span>{lang === 'ur' ? 'آن اسکرین اردو کی بورڈ (حروف پر ٹیپ کریں):' : 'Urdu Virtual Keyboard:'}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setUrduKeyboardOpen(false)}
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1 justify-center" dir="rtl">
+            {['آ', 'ا', 'ب', 'پ', 'ت', 'ٹ', 'ث', 'ج', 'چ', 'ح', 'خ', 'د', 'ڈ', 'ذ', 'ر', 'ڑ', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ک', 'گ', 'ل', 'م', 'ن', 'و', 'ہ', 'ء', 'ی', 'ے'].map((char) => (
+              <button
+                key={char}
+                type="button"
+                onClick={() => {
+                  posSound.playKeyClick();
+                  setSearchQuery((prev) => prev + char);
+                  setSearchSuggestionsOpen(true);
+                }}
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-700 hover:bg-emerald-600 hover:text-white rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-600 shadow-xs flex items-center justify-center active:scale-90 transition-all text-slate-800 dark:text-slate-100"
+              >
+                {char}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playKeyClick();
+                setSearchQuery((prev) => prev + ' ');
+              }}
+              className="px-3 h-8 sm:h-9 bg-slate-200 dark:bg-slate-700 text-xs font-bold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95"
+            >
+              اسپیس
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playKeyClick();
+                setSearchQuery((prev) => prev.slice(0, -1));
+              }}
+              className="px-3 h-8 sm:h-9 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 text-xs font-bold rounded-lg hover:bg-rose-200 active:scale-95"
+            >
+              ⌫ مٹائیں
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setSearchQuery('');
+                setSearchSuggestionsOpen(false);
+              }}
+              className="px-3 h-8 sm:h-9 bg-slate-300 dark:bg-slate-700 text-xs font-bold rounded-lg hover:bg-slate-400 active:scale-95"
+            >
+              صاف
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POPULAR URDU GROCERY FAST CHIPS (1-Click instant search without typing) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 shrink-0 no-scrollbar" dir="rtl">
+        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap pl-1">
+          {lang === 'ur' ? '⚡ فوری اردو آئٹمز:' : 'Fast Items:'}
+        </span>
+        {[
+          { label: 'چینی', icon: '🍬' },
+          { label: 'آٹا', icon: '🌾' },
+          { label: 'گھی', icon: '🧈' },
+          { label: 'تیل', icon: '🫒' },
+          { label: 'صابن', icon: '🧼' },
+          { label: 'دال', icon: '🥣' },
+          { label: 'چاول', icon: '🍚' },
+          { label: 'بسکٹ', icon: '🍪' },
+          { label: 'دودھ', icon: '🥛' },
+          { label: 'پتی', icon: '☕' },
+          { label: 'مٹھائی', icon: '🧁' },
+          { label: 'شربت', icon: '🧃' },
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => {
+              posSound.playClick();
+              setSearchQuery(item.label);
+              setSearchSuggestionsOpen(true);
+            }}
+            className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 transition-all"
+          >
+            <span>{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* MOBILE TAB CONTROLS (Only visible on mobile / tablet screens < lg) */}
+      <div className="lg:hidden flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-2xl shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            posSound.playClick();
+            setMobileTab('cart');
+          }}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+            mobileTab === 'cart'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          <span>{lang === 'ur' ? '🛒 فعال بل و چیک آؤٹ' : 'Cart & Bill'}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
+            mobileTab === 'cart' ? 'bg-white/20 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+          }`}>
+            {cartTotals.itemCount} | {effectiveNetTotal.toLocaleString()} PKR
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            posSound.playClick();
+            setMobileTab('catalog');
+            if (!showCatalog) setShowCatalog(true);
+          }}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+            mobileTab === 'catalog'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40'
+          }`}
+        >
+          <LayoutGrid className="w-4 h-4" />
+          <span>{lang === 'ur' ? '📦 اشیاء کیٹلاگ' : 'Products Grid'}</span>
+        </button>
+      </div>
+
       {/* 3. MAIN WORKSPACE */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-y-auto lg:overflow-hidden pb-24 lg:pb-0">
         {/* LEFT: Product Catalog Grid (Only visible if showCatalog is true) */}
         {showCatalog && (
-          <div className="w-full lg:w-[46%] xl:w-[48%] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fadeIn">
+          <div className={`w-full lg:w-[46%] xl:w-[48%] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fadeIn ${
+            mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
+          }`}>
             {/* Catalog Header with Category Filter */}
             <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between text-xs border-b border-slate-800">
               <span className="font-bold flex items-center gap-1.5">
@@ -2163,7 +2368,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         <div
           className={`flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all ${
             !showCatalog ? 'w-full' : 'w-full lg:w-[54%] xl:w-[52%]'
-          }`}
+          } ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}
         >
           {/* Cart Header */}
           <div className="p-3 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
@@ -2175,12 +2380,25 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Quick switch to catalog button on mobile */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileTab('catalog');
+                  setShowCatalog(true);
+                }}
+                className="lg:hidden px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>{lang === 'ur' ? '+ اشیاء منتخب کریں' : '+ Add Items'}</span>
+              </button>
+
               {/* Quick toggle catalog button if catalog is hidden */}
               {!showCatalog && (
                 <button
                   type="button"
                   onClick={toggleCatalog}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg flex items-center gap-1 transition-all border border-slate-700"
+                  className="hidden lg:flex px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg items-center gap-1 transition-all border border-slate-700"
                   title="اشیاء ڈیش بورڈ کھولیں"
                 >
                   <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
@@ -2229,24 +2447,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           {/* Body Content based on Layout Mode */}
           {!showCatalog ? (
             /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar */
-            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
               {/* Left Pane: Items in Active Bill */}
               <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 scroll-smooth">
                 {renderCartItems()}
               </div>
 
               {/* Right Pane: Customer, Notes Counter & Checkout Controls (Candela Fixed Dock) */}
-              <div className="w-full lg:w-[400px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col min-h-0 shadow-inner">
+              <div className="w-full lg:w-[400px] bg-slate-50 dark:bg-slate-850 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col min-h-0 shadow-inner overflow-y-auto pb-16 lg:pb-3">
                 {renderCheckoutControls()}
               </div>
             </div>
           ) : (
             /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth">
+            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto lg:overflow-hidden">
+              <div ref={cartContainerRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 scroll-smooth max-h-[45vh] lg:max-h-none">
                 {renderCartItems()}
               </div>
-              <div className="shrink-0 p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col">
+              <div className="shrink-0 p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto pb-16 lg:pb-2.5">
                 {renderCheckoutControls()}
               </div>
             </div>
@@ -3179,6 +3397,169 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 {lang === 'ur' ? 'منظور کریں و بل میں شامل کریں' : 'Authorize & Add'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. QUICK HOLD / RESUME TOAST FEEDBACK */}
+      {holdToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white border-2 border-emerald-400 px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-black flex items-center gap-2 animate-bounce">
+          <span>{holdToast}</span>
+        </div>
+      )}
+
+      {/* 5. HELD BILLS MANAGER MODAL */}
+      {heldBillsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 md:p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-amber-400 dark:border-amber-500 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Pause className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black flex items-center gap-2">
+                    <span>{lang === 'ur' ? 'ہولڈ شدہ بلز (Held Bills Queue)' : 'Held Bills Queue'}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-black bg-amber-500 text-slate-950">
+                      {heldBills.length}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {lang === 'ur'
+                      ? 'کسی بھی ہولڈ بل پر کلک کریں تاکہ وہ فوری طور پر کاؤنٹر پر بحال ہو جائے'
+                      : 'Click any held bill to resume it directly into the active cart'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setHeldBillsModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content List */}
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 bg-slate-50 dark:bg-slate-950">
+              {heldBills.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 space-y-2">
+                  <Pause className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 opacity-60" />
+                  <p className="font-bold text-sm">
+                    {lang === 'ur' ? 'اس وقت کوئی بل ہولڈ نہیں ہے' : 'No held bills at the moment'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {lang === 'ur'
+                      ? 'رش کے اوقات میں کسی بھی گاہک کا بل ہولڈ کرنے کے لیے "بل ہولڈ (F6)" دبائیں'
+                      : 'Click "Hold Bill" to temporarily pause a customer order'}
+                  </p>
+                </div>
+              ) : (
+                heldBills.map((hb, index) => (
+                  <div
+                    key={hb.id}
+                    className="p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 transition-all shadow-sm space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-400/30">
+                          #{index + 1}
+                        </span>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          👤 {hb.customerName}
+                        </span>
+                        {hb.customerPhone && (
+                          <span className="font-mono text-xs text-slate-500">({hb.customerPhone})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-400 flex items-center gap-1 font-mono text-[11px]">
+                          <Clock className="w-3 h-3" />
+                          {hb.heldAt}
+                        </span>
+                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                          {hb.subtotal.toLocaleString()} PKR
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Items chips preview */}
+                    <div className="flex flex-wrap gap-1.5 text-[11px]">
+                      {hb.items.map((it: any, itIdx: number) => (
+                        <span
+                          key={itIdx}
+                          className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
+                        >
+                          {it.product.nameUr || it.product.nameEn} × {it.quantity} {it.unit}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteHeldBill(hb.id, e)}
+                        className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl text-xs font-bold flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{lang === 'ur' ? 'حذف کریں' : 'Delete'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleResumeHeldBill(hb)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 active:scale-95 transition-all"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>{lang === 'ur' ? '⚡ یہ بل کاؤنٹر پر بحال کریں (Resume)' : 'Resume Bill to Cart'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. MOBILE STICKY BOTTOM QUICK CHECKOUT BAR */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t-2 border-emerald-500 p-2.5 shadow-2xl flex items-center justify-between gap-2 text-white">
+          <div
+            onClick={() => setMobileTab('cart')}
+            className="flex flex-col cursor-pointer"
+          >
+            <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+              <span>🛒 {cartTotals.itemCount} آئٹم</span>
+              <span className="text-amber-400 font-black">• {lang === 'ur' ? 'کارٹ دیکھیں' : 'View Cart'}</span>
+            </div>
+            <div className="font-mono text-base font-black text-emerald-400">
+              {effectiveNetTotal.toLocaleString()} PKR
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleHoldBill}
+              className="px-2.5 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 active:scale-95 shadow"
+              title="بل ہولڈ کریں"
+            >
+              <Pause className="w-3.5 h-3.5" />
+              <span>ہولڈ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCheckout}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-900/50 active:scale-95 transition-all border border-emerald-400"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{lang === 'ur' ? 'بل مکمل کریں (پرنٹ)' : 'Complete Sale'}</span>
+            </button>
           </div>
         </div>
       )}

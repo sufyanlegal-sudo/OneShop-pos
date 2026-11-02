@@ -340,7 +340,35 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                         className="px-3 py-2 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-sm active:scale-95 transition-all"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
-                        <span>{lang === 'ur' ? 'گاہک کو واٹس ایپ بل بھیجیں' : 'Send WhatsApp Bill'}</span>
+                        <span>{lang === 'ur' ? 'گاہک کو بل بھیجیں' : 'Send WhatsApp Bill'}</span>
+                      </button>
+
+                      {/* Send WhatsApp Bill to Shop Owner */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const itemsText = ord.items
+                            .map((it) => `- ${it.productName}: ${it.quantity} ${it.unit} = ${it.total} روپے`)
+                            .join('\n');
+                          const msg = `🔔 *دوکاندار آرڈر الرٹ / بل رسید* 🔔
+گاہک کا نام: ${ord.customerName}
+موبائل نمبر: ${ord.customerPhone}
+آرڈر نمبر: #${ord.orderNo}
+------------------------
+${itemsText}
+------------------------
+کل رقم: ${ord.grandTotal.toLocaleString()} روپے
+کیفیت: ⏳ پینڈنگ (Pending)
+دکان: ${businessProfile.nameUr}`;
+                          let ownerPhone = (businessProfile.whatsapp || businessProfile.phone || '03334140088').replace(/[^0-9]/g, '');
+                          if (ownerPhone.startsWith('03')) ownerPhone = '92' + ownerPhone.substring(1);
+                          window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm active:scale-95 transition-all border border-emerald-500/40"
+                        title="دوکاندار کے اپنے واٹس ایپ پر یہ بل بھیجیں"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>{lang === 'ur' ? '🏪 دوکاندار کو بل بھیجیں' : 'Forward to Owner'}</span>
                       </button>
 
                       {ord.status === 'PENDING' && (

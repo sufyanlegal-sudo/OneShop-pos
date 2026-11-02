@@ -316,6 +316,13 @@ export async function POST(req: NextRequest) {
         });
 
         console.log(`[WhatsApp Auto-Bill Generated & Queued as PENDING]: ${createdOrder.orderNo} | Total: ${createdOrder.grandTotal} PKR`);
+
+        // Automatically dispatch a duplicate bill alert to shopkeeper's linked WhatsApp
+        const shopOwnerPhone = process.env.SHOP_OWNER_WHATSAPP || process.env.WHATSAPP_STORE_PHONE;
+        if (shopOwnerPhone && shopOwnerPhone !== fromNumber) {
+          const shopkeeperAlert = `🔔 *دوکاندار آرڈر نوٹیفکیشن / نیا بل موصول ہوا ہے!* 🔔\n` + replyToSend;
+          await sendWhatsAppMessage(shopOwnerPhone, shopkeeperAlert).catch(() => {});
+        }
       }
 
       // 2. Dispatch outbound message (reply or bill) back to customer on WhatsApp
