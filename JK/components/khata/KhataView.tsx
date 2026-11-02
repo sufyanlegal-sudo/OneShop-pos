@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   Receipt,
   ExternalLink,
+  Edit3,
+  Trash2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -28,7 +30,7 @@ import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 
 export const KhataView: React.FC = () => {
   const { lang, t } = useLanguage();
-  const { customers, receiveKhataPayment, addCustomer, businessProfile } = useShop();
+  const { customers, receiveKhataPayment, adjustCustomerBalance, deleteKhataEntry, addCustomer, businessProfile } = useShop();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -43,6 +45,11 @@ export const KhataView: React.FC = () => {
   // Payment form
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentDesc, setPaymentDesc] = useState('');
+
+  // Balance Adjustment Form (کھاتہ درستی فارم)
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustTargetBalance, setAdjustTargetBalance] = useState<number>(0);
+  const [adjustReason, setAdjustReason] = useState('');
 
   // New Customer form
   const [custName, setCustName] = useState('');
@@ -89,12 +96,29 @@ export const KhataView: React.FC = () => {
   // Handle Receive Payment (کھاتے میں رقم جمع کرنا)
   const handleReceivePayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomer || paymentAmount <= 0) return;
+    if (!selectedCustomer) return;
+
+    let finalAmount = paymentAmount;
+    let finalDesc = paymentDesc.trim();
+
+    // Intelligent safety detection: If user typed the amount (e.g. 1500) into the description field!
+    if (/^\d+(\.\d+)?$/.test(finalDesc)) {
+      const parsedNum = parseFloat(finalDesc);
+      if (parsedNum > 0) {
+        finalAmount = parsedNum;
+        finalDesc = 'نقد وصولی برائے کیش';
+      }
+    }
+
+    if (finalAmount <= 0) {
+      alert(lang === 'ur' ? 'براہ کرم جمع کرنے والی رقم درست درج فرمائیں (مثلاً 1500)' : 'Please enter a valid deposit amount.');
+      return;
+    }
 
     const receipt = receiveKhataPayment(
       selectedCustomer.id,
-      paymentAmount,
-      paymentDesc.trim() || 'نقد وصولی بذریعہ کیش'
+      finalAmount,
+      finalDesc || 'نقد وصولی برائے کیش'
     );
 
     setPaymentModalOpen(false);
@@ -104,6 +128,25 @@ export const KhataView: React.FC = () => {
     if (receipt) {
       setCompletedReceipt(receipt);
       setReceiptModalOpen(true);
+    }
+  };
+
+  // Handle Adjust Balance (کھاتہ بیلنس درستی جمع کرانا)
+  const handleAdjustBalanceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+
+    const success = adjustCustomerBalance(
+      selectedCustomer.id,
+      Math.max(0, adjustTargetBalance),
+      adjustReason.trim() || 'کھاتہ بیلنس درستی'
+    );
+
+    if (success) {
+      setAdjustModalOpen(false);
+      setAdjustTargetBalance(0);
+      setAdjustReason('');
+      alert(lang === 'ur' ? `کھاتہ بیلنس کامیابی سے ${adjustTargetBalance} PKR درست کر دیا گیا!` : 'Balance adjusted successfully!');
     }
   };
 
@@ -305,13 +348,27 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      setPaymentAmount(selectedCustomer.currentBalance > 0 ? selectedCustomer.currentBalance : 0);
+                      setPaymentAmount(0);
+                      setPaymentDesc('');
                       setPaymentModalOpen(true);
                     }}
                     className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                   >
                     <Banknote className="w-4 h-4" />
                     <span>{lang === 'ur' ? '💵 رقم جمع کریں (وصولی)' : 'Deposit / Receive Payment'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setAdjustTargetBalance(selectedCustomer.currentBalance);
+                      setAdjustReason('');
+                      setAdjustModalOpen(true);
+                    }}
+                    className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                    title="کھاتہ میں بقایا رقم کی تصحیح یا درستی کریں"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>{lang === 'ur' ? '✏️ کھاتہ درست کریں' : 'Adjust Balance'}</span>
                   </button>
 
                   <button
@@ -374,6 +431,9 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
                       <th className="p-3 text-right text-slate-900 dark:text-white">
                         {lang === 'ur' ? 'باقی بقایا رقم' : 'Remaining Balance'}
                       </th>
+                      <th className="p-3 text-center w-10">
+                        {lang === 'ur' ? 'منسوخی' : 'Undo'}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
@@ -411,6 +471,23 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
                           <td className="p-3 text-right font-mono font-black text-slate-900 dark:text-white">
                             {k.balanceAfter.toLocaleString()} PKR
                           </td>
+                          <td className="p-2 text-center w-10">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const confirmMsg = lang === 'ur'
+                                  ? `کیا آپ یہ اندراج (${k.description} - ${k.amount.toLocaleString()} PKR) منسوخ / ڈیلیٹ کرنا چاہتے ہیں؟\nاس سے گاہک کا بقایا خودکار درست ہو جائے گا۔`
+                                  : `Delete this entry (${k.amount} PKR)? Balance will automatically adjust.`;
+                                if (confirm(confirmMsg)) {
+                                  deleteKhataEntry(selectedCustomer.id, k.id);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition-all cursor-pointer"
+                              title={lang === 'ur' ? 'یہ اندراج منسوخ کریں' : 'Delete / Undo Entry'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -443,6 +520,96 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
           )}
         </div>
       </div>
+
+      {/* ADJUST BALANCE MODAL (کھاتہ بیلنس درستی فارم) */}
+      {adjustModalOpen && selectedCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-xl">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {lang === 'ur' ? 'کھاتہ بیلنس درست کریں' : 'Adjust Khata Balance'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {selectedCustomer.name} ({selectedCustomer.phone})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdjustModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdjustBalanceSubmit} className="space-y-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs space-y-1">
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">
+                  💡 {lang === 'ur' ? 'موجودہ درج شدہ بقایا:' : 'Current Recorded Balance:'} <strong className="font-mono text-sm">{selectedCustomer.currentBalance.toLocaleString()} PKR</strong>
+                </span>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                  {lang === 'ur'
+                    ? 'اگر کسی غلط اندراج کی وجہ سے بیلنس غلط ہو گیا ہو تو یہاں گاہک کا اصل درست بقایا لکھیں۔ سسٹم خودکار ایڈجسٹمنٹ انٹری درج کر دے گا۔'
+                    : 'Enter the actual correct balance due. The system will record an adjustment entry automatically.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'اصل درست بقایا رقم (PKR):' : 'Correct Balance Due (PKR):'}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  autoFocus
+                  value={adjustTargetBalance}
+                  onChange={(e) => setAdjustTargetBalance(parseFloat(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="300"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-amber-500 rounded-xl px-3 py-2.5 font-mono font-black text-lg outline-none text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'درستی کی وجہ / نوٹ:' : 'Reason for Adjustment:'}
+                </label>
+                <input
+                  type="text"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  placeholder={lang === 'ur' ? 'سابقہ غلط اندراج کی تصحیح (300 بقایا)' : 'Correction of previous entry'}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 outline-none font-medium"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAdjustModalOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-300 cursor-pointer"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow-md active:scale-95 transition-all text-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{lang === 'ur' ? 'بیلنس درست کریں' : 'Save Adjustment'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* RECEIVE PAYMENT MODAL (کھاتے میں رقم جمع کرنے کا فارم مع لائیو بقایا حساب) */}
       {paymentModalOpen && selectedCustomer && (
@@ -494,7 +661,7 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
                       50% نصف رقم
                     </button>
                   )}
-                  {[500, 1000, 2000, 5000].map((preset) => (
+                  {[500, 1000, 1500, 2000, 5000].map((preset) => (
                     <button
                       key={preset}
                       type="button"
@@ -518,9 +685,10 @@ ${businessProfile.nameUr} (${businessProfile.phone || businessProfile.whatsapp})
                   min="1"
                   required
                   autoFocus
-                  value={paymentAmount || ''}
+                  value={paymentAmount === 0 ? '' : paymentAmount}
                   onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                  placeholder={selectedCustomer.currentBalance.toString()}
+                  onFocus={(e) => e.target.select()}
+                  placeholder={lang === 'ur' ? 'رقم درج کریں (مثلاً 1500)' : 'Enter amount (e.g. 1500)'}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-2.5 font-mono font-black text-lg outline-none text-emerald-600 dark:text-emerald-400"
                 />
               </div>

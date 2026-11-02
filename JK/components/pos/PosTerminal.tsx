@@ -1556,7 +1556,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   const cust = customers.find((c) => c.id === selectedCustomerId);
                   if (cust) {
                     setPosKhataPayCustomerId(cust.id);
-                    setPosKhataPayAmount(cust.currentBalance);
+                    setPosKhataPayAmount(0);
                     setPosKhataPaymentModalOpen(true);
                   }
                 }}
@@ -1625,7 +1625,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         type="button"
                         onClick={() => {
                           setPosKhataPayCustomerId(detectedExistingCustomer.id);
-                          setPosKhataPayAmount(detectedExistingCustomer.currentBalance);
+                          setPosKhataPayAmount(0);
                           setPosKhataPaymentModalOpen(true);
                         }}
                         className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9.5px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
@@ -2398,7 +2398,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   if (selectedCustomerId) {
                     const cust = customers.find((c) => c.id === selectedCustomerId);
                     setPosKhataPayCustomerId(cust?.id || '');
-                    setPosKhataPayAmount(cust?.currentBalance || 0);
+                    setPosKhataPayAmount(0);
                   }
                   setPosKhataPaymentModalOpen(true);
                 }}
@@ -4431,11 +4431,29 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!posKhataPayCustomerId || posKhataPayAmount <= 0) return;
+                    if (!posKhataPayCustomerId) return;
+
+                    let finalAmount = posKhataPayAmount;
+                    let finalDesc = posKhataPayDesc.trim();
+
+                    // Intelligent check: if user typed amount into note e.g. "1500"
+                    if (/^\d+(\.\d+)?$/.test(finalDesc)) {
+                      const parsed = parseFloat(finalDesc);
+                      if (parsed > 0) {
+                        finalAmount = parsed;
+                        finalDesc = 'کاؤنٹر نقد وصولی';
+                      }
+                    }
+
+                    if (finalAmount <= 0) {
+                      alert(lang === 'ur' ? 'براہ کرم وصول کی گئی رقم درست درج فرمائیں (مثلاً 1500)' : 'Please enter a valid deposit amount.');
+                      return;
+                    }
+
                     const receipt = receiveKhataPayment(
                       posKhataPayCustomerId,
-                      posKhataPayAmount,
-                      posKhataPayDesc.trim() || 'کاؤنٹر نقد وصولی'
+                      finalAmount,
+                      finalDesc || 'کاؤنٹر نقد وصولی'
                     );
                     setPosKhataPaymentModalOpen(false);
                     setPosKhataPayAmount(0);
@@ -4475,7 +4493,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                             50% نصف
                           </button>
                         )}
-                        {[500, 1000, 2000, 5000].map((preset) => (
+                        {[500, 1000, 1500, 2000, 5000].map((preset) => (
                           <button
                             key={preset}
                             type="button"
@@ -4498,8 +4516,10 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                       min="1"
                       required
                       autoFocus
-                      value={posKhataPayAmount || ''}
+                      value={posKhataPayAmount === 0 ? '' : posKhataPayAmount}
                       onChange={(e) => setPosKhataPayAmount(parseFloat(e.target.value) || 0)}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={lang === 'ur' ? 'رقم درج کریں (مثلاً 1500)' : 'Amount (e.g. 1500)'}
                       className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500 rounded-xl px-3 py-2 font-mono font-black text-lg outline-none text-emerald-600 dark:text-emerald-400"
                     />
                   </div>

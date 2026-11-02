@@ -153,6 +153,8 @@ interface ShopContextType {
   processSaleReturn: (params: ProcessReturnParams) => SaleReturn | null;
   processSaleExchange: (params: ProcessExchangeParams) => SaleExchange | null;
   receiveKhataPayment: (customerId: string, amount: number, description?: string) => KhataPaymentReceipt | null;
+  adjustCustomerBalance: (customerId: string, targetBalance: number, reason?: string) => boolean;
+  deleteKhataEntry: (customerId: string, entryId: string) => boolean;
   addRoznamchaEntry: (entry: Omit<RoznamchaEntry, 'id' | 'date'>) => void;
   addAuditLog: (action: AuditLog['action'], details: string, amount?: number, refId?: string) => void;
   // Inventory Management
@@ -1820,6 +1822,101 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Adjust Customer Khata Balance (درستی کھاتہ / بیلنس تصحیح)
+  const adjustCustomerBalance = (customerId: string, targetBalance: number, reason = 'کھاتہ بیلنس درستی'): boolean => {
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer) return false;
+
+    const previousBalance = customer.currentBalance;
+    const diff = targetBalance - previousBalance;
+    if (diff === 0) return true;
+
+    const date = new Date().toISOString();
+    const entryId = 'kh-' + Date.now();
+    const isDebit = diff > 0;
+    const adjustmentAmount = Math.abs(diff);
+
+    const khataEntry: KhataEntry = {
+      id: entryId,
+      customerId,
+      date,
+      type: isDebit ? 'DEBIT' : 'CREDIT',
+      amount: adjustmentAmount,
+      balanceAfter: targetBalance,
+      description: `${reason} (${isDebit ? 'اضافہ ادھار' : 'کٹوتی / وصولی'})`,
+    };
+
+    const updatedCustomers = customers.map((c) => {
+      if (c.id === customerId) {
+        return {
+          ...c,
+          currentBalance: targetBalance,
+          khata: [khataEntry, ...c.khata],
+        };
+      }
+      return c;
+    });
+
+    setCustomers(updatedCustomers);
+    storage.saveCustomers(updatedCustomers);
+
+    addAuditLog(
+      'KHATA_PAYMENT',
+      `کھاتہ درستی از "${customer.name}": سابقہ بیلنس ${previousBalance} PKR سے تبدیل کر کے ${targetBalance} PKR کیا گیا (${reason})`,
+      adjustmentAmount,
+      customerId
+    );
+
+    triggerAutoCloudSync();
+    return true;
+  };
+
+  // Delete / Undo Khata Entry (اندراج منسوخ کریں)
+  const deleteKhataEntry = (customerId: string, entryId: string): boolean => {
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer) return false;
+
+    const entryToDelete = customer.khata.find((e) => e.id === entryId);
+    if (!entryToDelete) return false;
+
+    const newBalance = entryToDelete.type === 'DEBIT'
+      ? Math.max(0, customer.currentBalance - entryToDelete.amount)
+      : customer.currentBalance + entryToDelete.amount;
+
+    const updatedKhata = customer.khata.filter((e) => e.id !== entryId);
+
+    const updatedCustomers = customers.map((c) => {
+      if (c.id === customerId) {
+        return {
+          ...c,
+          currentBalance: newBalance,
+          khata: updatedKhata,
+        };
+      }
+      return c;
+    });
+
+    setCustomers(updatedCustomers);
+    storage.saveCustomers(updatedCustomers);
+
+    // If it was a credit recovery payment, clean up corresponding roznamcha entry
+    if (entryToDelete.type === 'CREDIT') {
+      const updatedRoznamcha = roznamcha.filter((rz) => rz.refCustomerId !== customerId || !rz.description.includes(entryToDelete.description));
+      setRoznamcha(updatedRoznamcha);
+      storage.saveRoznamcha(updatedRoznamcha);
+    }
+
+    addAuditLog(
+      'KHATA_PAYMENT',
+      `کھاتہ اندراج منسوخ: "${customer.name}" کا اندراج (${entryToDelete.description} - ${entryToDelete.amount} PKR) منسوخ کر دیا گیا۔ نیا بیلنس: ${newBalance} PKR`,
+      entryToDelete.amount,
+      customerId
+    );
+
+    triggerAutoCloudSync();
+    return true;
+  };
+
   // Add Roznamcha entry
   const addRoznamchaEntry = (entry: Omit<RoznamchaEntry, 'id' | 'date'>) => {
     const newEntry: RoznamchaEntry = {
@@ -2801,6 +2898,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         processSaleReturn,
         processSaleExchange,
         receiveKhataPayment,
+        adjustCustomerBalance,
+        deleteKhataEntry,
         addRoznamchaEntry,
         addAuditLog,
         saveProduct,
