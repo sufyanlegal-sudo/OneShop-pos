@@ -129,11 +129,100 @@ ${inventorySummary}
 
     return { reply, parsedOrder };
   } catch (error: any) {
-    console.error('Groq AI error:', error);
+    console.warn('[Groq AI offline, using high-speed local Urdu parser]:', error?.message || error);
+    const localOrder = parseUrduOrderLocally(userMessage, inventory);
+    if (localOrder) {
+      const itemsText = localOrder.items.map((it: any) => `${it.qty} ${it.unit} ${it.name}`).join('، ');
+      return {
+        reply: `وعلیکم السلام محترم گاہک! آپ کا آرڈر موصول ہو چکا ہے (${itemsText})۔ کل بل: ${localOrder.grandTotal} PKR۔ آپ کا بل اور آرڈر کاؤنٹر پر پینڈنگ لسٹ میں شامل کر دیا گیا ہے۔ شکریہ!`,
+        parsedOrder: localOrder,
+      };
+    }
     return {
-      reply: `السلام علیکم! محترم جناب، ہمارے سسٹم میں اس وقت کنکشن کی رفتار سست ہے۔ ہم آپ کی رہنمائی کے لیے جلد حاضر ہوتے ہیں۔ براہ کرم ہمارے نمبر ${businessProfile.whatsapp} پر براہ راست رابطہ فرمائیں۔`,
+      reply: `السلام علیکم و رحمتہ اللہ و برکاتہ! ${businessProfile.nameUr} میں خوش آمدید۔ ہم آپ کی کیا خدمت کر سکتے ہیں؟ آپ کسی بھی چیز کا ریٹ معلوم کر سکتے ہیں یا مطلوبہ اشیاء کی فہرست اور تعداد لکھ کر بھیج سکتے ہیں۔`,
     };
   }
+}
+
+/**
+ * High-speed local Urdu Order Parser for 100% offline & instantaneous WhatsApp order processing
+ */
+export function parseUrduOrderLocally(userMessage: string, inventory: Product[]): any | null {
+  const clean = userMessage.toLowerCase().trim();
+  const numMap: Record<string, number> = {
+    'ایک': 1, '1': 1, 'دو': 2, '2': 2, 'تین': 3, '3': 3, 'چار': 4, '4': 4,
+    'پانچ': 5, '5': 5, 'چھ': 6, '6': 6, 'سات': 7, '7': 7, 'آٹھ': 8, '8': 8,
+    'نو': 9, '9': 9, 'دس': 10, '10': 10, 'آدھا': 0.5, '0.5': 0.5, 'پاؤ': 0.25,
+  };
+
+  const matchedItems: any[] = [];
+  let grandTotal = 0;
+  const addedIds = new Set<string>();
+
+  for (const prod of inventory) {
+    const urName = (prod.nameUr || '').trim();
+    const enName = (prod.nameEn || '').trim().toLowerCase();
+    const mainKeyword = urName.split(' ')[0] || '';
+
+    let matched = false;
+    let matchWord = '';
+
+    if (mainKeyword.length >= 3 && clean.includes(mainKeyword.toLowerCase())) {
+      matched = true;
+      matchWord = mainKeyword;
+    } else if (urName.length >= 3 && clean.includes(urName.toLowerCase())) {
+      matched = true;
+      matchWord = urName;
+    } else if (enName.length >= 3 && clean.includes(enName)) {
+      matched = true;
+      matchWord = enName;
+    }
+
+    if (matched && !addedIds.has(prod.id)) {
+      addedIds.add(prod.id);
+      let qty = 1;
+
+      try {
+        const escaped = matchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const reg1 = new RegExp(`(\\d+|ایک|دو|تین|چار|پانچ|چھ|سات|آٹھ|نو|دس|آدھا|پاؤ)\\s*(?:کلو|گرام|لیٹر|پیکٹ|ڈبہ|عدد|بوتل|kg|gm|ltr|pack|pcs)?\\s*(?:کے|کا|کی)?\\s*${escaped}`, 'i');
+        const reg2 = new RegExp(`${escaped}\\s*(?:کے|کا|کی)?\\s*(\\d+|ایک|دو|تین|چار|پانچ|چھ|سات|آٹھ|نو|دس|آدھا|پاؤ)`, 'i');
+
+        const m1 = clean.match(reg1);
+        const m2 = clean.match(reg2);
+
+        if (m1 && m1[1]) {
+          qty = numMap[m1[1]] || parseInt(m1[1], 10) || 1;
+        } else if (m2 && m2[1]) {
+          qty = numMap[m2[1]] || parseInt(m2[1], 10) || 1;
+        }
+      } catch {}
+
+      const total = qty * prod.salePrice;
+      grandTotal += total;
+
+      matchedItems.push({
+        name: prod.nameUr || prod.nameEn,
+        qty,
+        unit: prod.unit || 'عدد',
+        price: prod.salePrice,
+        total,
+        matchedProductId: prod.id,
+      });
+
+      if (matchedItems.length >= 15) break;
+    }
+  }
+
+  if (matchedItems.length > 0) {
+    return {
+      isOrder: true,
+      items: matchedItems,
+      grandTotal,
+      estimatedTime: '25 سے 40 منٹ',
+    };
+  }
+
+  return null;
 }
 
 export async function parseVoiceOrderWithAI(
