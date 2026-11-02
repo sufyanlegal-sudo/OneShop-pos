@@ -44,6 +44,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     setIsSuperAdminModalOpen,
     fetchGoogleBackup,
     restoreFromGoogleCloud,
+    syncWithCloud,
     usersDB,
   } = useShop();
 
@@ -109,6 +110,9 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
           clearInterval(interval);
           setIsApprovedAndUnlocking(true);
           loginUser({ email: targetEmail });
+          try {
+            await syncWithCloud(targetEmail);
+          } catch {}
           setTimeout(() => {
             window.location.reload();
           }, 1200);
@@ -210,20 +214,11 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     if (res.status === 'APPROVED') {
-      // Auto-Restore for Stolen Device / New PC: If this device is clean/empty, check if cloud backup exists
-      const { storage } = await import('@/lib/storage');
-      const invoices = storage.getInvoices();
-      if (invoices.length === 0) {
-        try {
-          const fetchRes = await fetchGoogleBackup(cleanEmail);
-          if (fetchRes.success && fetchRes.backup) {
-            await restoreFromGoogleCloud(cleanEmail);
-            window.location.reload();
-            return;
-          }
-        } catch (err) {
-          console.log('No previous backup to auto-restore', err);
-        }
+      // Auto-Sync across devices: Immediately sync mobile/cloud entries onto this computer
+      try {
+        await syncWithCloud(cleanEmail);
+      } catch (err) {
+        console.log('Login auto-sync error:', err);
       }
     }
   };

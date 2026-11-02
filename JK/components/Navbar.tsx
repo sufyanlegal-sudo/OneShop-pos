@@ -39,6 +39,8 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
+  Cloud,
+  RefreshCw,
 } from 'lucide-react';
 import { posSound } from '@/lib/sound';
 import { useLanguage } from '@/context/LanguageContext';
@@ -72,7 +74,21 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     isSuperAdmin,
     logoutUser,
     setIsSuperAdminModalOpen,
+    isCloudSyncing,
+    lastCloudSyncTime,
+    syncWithCloud,
   } = useShop();
+
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  const handleManualCloudSync = async () => {
+    posSound.playClick();
+    const res = await syncWithCloud();
+    setSyncFeedback(res.message);
+    setTimeout(() => {
+      setSyncFeedback(null);
+    }, 4000);
+  };
 
   // Modals state
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -283,6 +299,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <>
       <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-xl">
+        {/* Live Cloud Two-Way Sync Feedback Toast */}
+        {syncFeedback && (
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs px-4 py-2 text-center font-bold font-nastaliq shadow-lg border-b border-emerald-400 flex items-center justify-center gap-2 animate-in slide-in-from-top-2">
+            <Cloud className="w-4 h-4 text-emerald-100" />
+            <span>{syncFeedback}</span>
+          </div>
+        )}
+
         {/* Top Bar: Software Branding & Quick Tools (Collapsible for Max Screen Space) */}
         {!isHeaderCollapsed && (
           <div className="bg-slate-950/90 px-4 py-2 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
@@ -393,6 +417,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'پینڈنگ آرڈرز' : 'Pending'}</span>
                 </button>
               )}
+
+              {/* Live Cloud Two-Way Sync Button */}
+              <button
+                type="button"
+                disabled={isCloudSyncing}
+                onClick={handleManualCloudSync}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-black text-xs shadow-md transition-all active:scale-95 ${
+                  isCloudSyncing
+                    ? 'bg-cyan-950/90 border-cyan-400 text-cyan-300 animate-pulse'
+                    : 'bg-emerald-950/80 hover:bg-emerald-900 border-emerald-500/70 text-emerald-300'
+                }`}
+                title={lang === 'ur' ? 'موبائل اور کمپیوٹر کے درمیان ڈیٹا کلاؤڈ سے فوری سنک کریں' : 'Sync Data with Cloud'}
+              >
+                <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-bounce text-cyan-300' : 'text-cyan-400'}`} />
+                <span>
+                  {isCloudSyncing
+                    ? (lang === 'ur' ? 'سنک ہو رہا ہے...' : 'Syncing...')
+                    : (lang === 'ur' ? 'کلاؤڈ سنک' : 'Cloud Sync')}
+                </span>
+                {lastCloudSyncTime && !isCloudSyncing && (
+                  <span className="text-[10px] text-emerald-400 font-mono hidden md:inline">✓</span>
+                )}
+              </button>
 
               {/* 1-Click Language Switcher */}
               <button

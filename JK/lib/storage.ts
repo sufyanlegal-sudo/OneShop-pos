@@ -519,13 +519,23 @@ export const storage = {
   },
 
   exportBackup(): string {
+    let productOverrides = {};
+    let customProducts: Product[] = [];
+    try {
+      const rawO = safeStorage.get(KEYS.PRODUCT_OVERRIDES);
+      if (rawO) productOverrides = JSON.parse(rawO);
+      const rawC = safeStorage.get(KEYS.CUSTOM_PRODUCTS);
+      if (rawC) customProducts = JSON.parse(rawC);
+    } catch {}
+
     const data = {
       app: 'OneShop POS',
       developer: 'JK Developers Pakistan',
       developerPhone: '03008998381',
       preset: this.getActivePreset(),
       profiles: this.getProfiles(),
-      products: this.getProducts(),
+      productOverrides,
+      customProducts,
       customers: this.getCustomers(),
       invoices: this.getInvoices(),
       roznamcha: this.getRoznamcha(),
@@ -543,11 +553,17 @@ export const storage = {
     return JSON.stringify(data, null, 2);
   },
 
-  importBackup(jsonString: string): boolean {
+  importBackup(jsonStringOrObject: string | any): boolean {
     try {
-      const data = JSON.parse(jsonString);
+      const data = typeof jsonStringOrObject === 'string' ? JSON.parse(jsonStringOrObject) : jsonStringOrObject;
+      if (!data) return false;
+
       if (data.profiles) safeStorage.set(KEYS.PROFILES, JSON.stringify(data.profiles));
-      if (data.products) this.saveProducts(data.products);
+      if (data.productOverrides) safeStorage.set(KEYS.PRODUCT_OVERRIDES, JSON.stringify(data.productOverrides));
+      if (data.customProducts) safeStorage.set(KEYS.CUSTOM_PRODUCTS, JSON.stringify(data.customProducts));
+      if (data.products && Array.isArray(data.products)) {
+        this.saveProducts(data.products);
+      }
       if (data.customers) safeStorage.set(KEYS.CUSTOMERS, JSON.stringify(data.customers));
       if (data.invoices) safeStorage.set(KEYS.INVOICES, JSON.stringify(data.invoices));
       if (data.roznamcha) safeStorage.set(KEYS.ROZNAMCHA, JSON.stringify(data.roznamcha));
