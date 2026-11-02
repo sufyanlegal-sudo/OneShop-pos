@@ -63,15 +63,37 @@ export const WhatsAppOrdersModal: React.FC<WhatsAppOrdersModalProps> = ({ onNavi
           </div>
 
           <div className="flex items-center gap-2">
-            <a
-              href={`https://wa.me/${(businessProfile.whatsapp || '').replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold transition-all shadow"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>{lang === 'ur' ? 'شاپ واٹس ایپ لنک' : 'Shop WhatsApp'}</span>
-            </a>
+            {(() => {
+              let clean = (businessProfile.whatsapp || businessProfile.phone || '03008998381').replace(/[^0-9]/g, '');
+              if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+              else if (!clean.startsWith('92') && clean.length === 10) clean = '92' + clean;
+              const waUrl = `https://wa.me/${clean}?text=${encodeURIComponent('السلام علیکم! مجھے سامان کا آرڈر دینا ہے۔')}`;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(waUrl);
+                      alert('✅ شاپ کا واٹس ایپ آرڈر لنک کاپی ہو گیا! آپ اسے فیس بک، واٹس ایپ اسٹیٹس یا گاہکوں کو بھیج سکتے ہیں۔\n\n' + waUrl);
+                    }}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all border border-slate-700 shadow"
+                    title="گاہکوں کے لیے واٹس ایپ آرڈر لنک کاپی کریں"
+                  >
+                    <span>📋 آرڈر لنک کاپی</span>
+                  </button>
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold transition-all shadow"
+                    title="واٹس ایپ چیٹ کھولیں"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{lang === 'ur' ? 'شاپ واٹس ایپ لنک' : 'Shop WhatsApp'}</span>
+                  </a>
+                </>
+              );
+            })()}
 
             <button
               onClick={() => setIsWhatsAppOrdersModalOpen(false)}

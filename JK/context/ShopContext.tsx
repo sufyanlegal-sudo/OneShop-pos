@@ -629,6 +629,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 5. Approved Client Login
     setCurrentUserEmail(cleanEmail);
     storage.setCurrentUser(cleanEmail);
+    // Immediately pull latest data from cloud so mobile entries appear on PC without delay!
+    setTimeout(() => {
+      syncWithCloud(cleanEmail).catch(() => {});
+    }, 100);
     return {
       status: 'APPROVED' as const,
       message: `Welcome ${userRec.name || ''}! Your license is active.`,
@@ -2201,11 +2205,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const syncBackupToGoogleCloud = async (
     targetEmail?: string
   ): Promise<{ success: boolean; message: string; timestamp?: string }> => {
-    const email =
+    let email = (
       targetEmail ||
       currentUserEmail ||
+      storage.getCurrentUser() ||
       businessProfile.backupEmail ||
-      'jkdevelopers.pk@gmail.com';
+      ''
+    ).trim().toLowerCase();
+
+    if (!email) {
+      const approvedClients = usersDB.filter(
+        (u) => u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && u.approved
+      );
+      if (approvedClients.length > 0) {
+        email = approvedClients[0].email.trim().toLowerCase();
+      } else {
+        email = 'xybm22@gmail.com';
+      }
+    }
     const backupJson = storage.exportBackup();
 
     try {
@@ -2351,11 +2368,29 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Debounced auto-save to cloud on any sales / inventory / financial change
   const triggerAutoCloudSync = () => {
     if (typeof window === 'undefined') return;
-    if (!currentUserEmail) return;
+    let email = (
+      currentUserEmail ||
+      storage.getCurrentUser() ||
+      businessProfile.backupEmail ||
+      ''
+    ).trim().toLowerCase();
+
+    if (!email) {
+      const approvedClients = usersDB.filter(
+        (u) => u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && u.approved
+      );
+      if (approvedClients.length > 0) {
+        email = approvedClients[0].email.trim().toLowerCase();
+      } else {
+        email = 'xybm22@gmail.com';
+      }
+    }
+
+    if (!email) return;
     if (cloudSyncDebounceRef.current) clearTimeout(cloudSyncDebounceRef.current);
     cloudSyncDebounceRef.current = setTimeout(() => {
-      syncBackupToGoogleCloud().catch(() => {});
-    }, 1200);
+      syncWithCloud(email).catch(() => {});
+    }, 1500);
   };
 
   // 100% Reliable Two-Way Cloud Sync with intelligent CRDT merge (Zero Data Loss across Mobile & PC)

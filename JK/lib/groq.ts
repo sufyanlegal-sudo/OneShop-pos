@@ -148,68 +148,86 @@ ${inventorySummary}
  * High-speed local Urdu Order Parser for 100% offline & instantaneous WhatsApp order processing
  */
 export function parseUrduOrderLocally(userMessage: string, inventory: Product[]): any | null {
-  const clean = userMessage.toLowerCase().trim();
+  const clean = userMessage.trim();
   const numMap: Record<string, number> = {
-    'ایک': 1, '1': 1, 'دو': 2, '2': 2, 'تین': 3, '3': 3, 'چار': 4, '4': 4,
-    'پانچ': 5, '5': 5, 'چھ': 6, '6': 6, 'سات': 7, '7': 7, 'آٹھ': 8, '8': 8,
-    'نو': 9, '9': 9, 'دس': 10, '10': 10, 'آدھا': 0.5, '0.5': 0.5, 'پاؤ': 0.25,
+    'آدھا': 0.5, '0.5': 0.5, 'پاؤ': 0.25, 'ایک': 1, '1': 1, 'دو': 2, '2': 2,
+    'تین': 3, '3': 3, 'چار': 4, '4': 4, 'پانچ': 5, '5': 5, 'چھ': 6, '6': 6,
+    'سات': 7, '7': 7, 'آٹھ': 8, '8': 8, 'نو': 9, '9': 9, 'دس': 10, '10': 10,
+    'گیارہ': 11, '11': 11, 'بارہ': 12, '12': 12, 'درجن': 12,
   };
 
+  const stopWords = new Set([
+    'اور', 'بھیج', 'دیں', 'چاہیے', 'لکھ', 'لیں', 'دے', 'دو', 'کرو', 'کریں', 'پیکٹ',
+    'کلو', 'گرام', 'لیٹر', 'ڈبہ', 'عدد', 'بوتل', 'درجن', 'پاؤ', 'کا', 'کی', 'کے', 'سے',
+    'سلام', 'وعلیکم', 'السلام', 'بھائی', 'جناب', 'شکریہ', 'مہربانی', 'پلیز', 'please', 'kg', 'ltr', 'gm'
+  ]);
+
+  // Split into clauses by common Urdu conjunctions and separator phrases
+  const clauses = clean.split(/(?:اور|،|,|\n|\r|\+|\bبھیج دیں\b|\bچاہیے\b|\bدے دو\b)/i)
+    .map(c => c.trim())
+    .filter(c => c.length > 1);
+
   const matchedItems: any[] = [];
-  let grandTotal = 0;
   const addedIds = new Set<string>();
+  let grandTotal = 0;
 
-  for (const prod of inventory) {
-    const urName = (prod.nameUr || '').trim();
-    const enName = (prod.nameEn || '').trim().toLowerCase();
-    const mainKeyword = urName.split(' ')[0] || '';
+  for (const clause of clauses) {
+    let qty = 1;
+    let unit = 'عدد';
 
-    let matched = false;
-    let matchWord = '';
-
-    if (mainKeyword.length >= 3 && clean.includes(mainKeyword.toLowerCase())) {
-      matched = true;
-      matchWord = mainKeyword;
-    } else if (urName.length >= 3 && clean.includes(urName.toLowerCase())) {
-      matched = true;
-      matchWord = urName;
-    } else if (enName.length >= 3 && clean.includes(enName)) {
-      matched = true;
-      matchWord = enName;
+    const qtyMatch = clause.match(/(\d+|ایک|دو|تین|چار|پانچ|چھ|سات|آٹھ|نو|دس|آدھا|پاؤ|درجن)\s*(کلو|گرام|لیٹر|پیکٹ|ڈبہ|عدد|بوتل|درجن|پاؤ|kg|gm|ltr|pack|pcs)?/i);
+    if (qtyMatch) {
+      const qStr = qtyMatch[1];
+      qty = numMap[qStr] || parseFloat(qStr) || 1;
+      if (qtyMatch[2]) {
+        unit = qtyMatch[2];
+        if (unit === 'درجن' && qty !== 12) qty = qty * 12;
+      }
     }
 
-    if (matched && !addedIds.has(prod.id)) {
-      addedIds.add(prod.id);
-      let qty = 1;
+    const tokens = clause.split(/[\s,،؛؟!\.]+/).map(t => t.trim()).filter(t => t.length >= 2 && !stopWords.has(t) && !numMap[t] && !/^\d+$/.test(t));
+    if (tokens.length === 0) continue;
 
-      try {
-        const escaped = matchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const reg1 = new RegExp(`(\\d+|ایک|دو|تین|چار|پانچ|چھ|سات|آٹھ|نو|دس|آدھا|پاؤ)\\s*(?:کلو|گرام|لیٹر|پیکٹ|ڈبہ|عدد|بوتل|kg|gm|ltr|pack|pcs)?\\s*(?:کے|کا|کی)?\\s*${escaped}`, 'i');
-        const reg2 = new RegExp(`${escaped}\\s*(?:کے|کا|کی)?\\s*(\\d+|ایک|دو|تین|چار|پانچ|چھ|سات|آٹھ|نو|دس|آدھا|پاؤ)`, 'i');
+    let bestProd: Product | null = null;
+    let bestScore = 0;
 
-        const m1 = clean.match(reg1);
-        const m2 = clean.match(reg2);
+    for (const prod of inventory) {
+      if (addedIds.has(prod.id)) continue;
+      const ur = prod.nameUr || '';
+      const en = (prod.nameEn || '').toLowerCase();
 
-        if (m1 && m1[1]) {
-          qty = numMap[m1[1]] || parseInt(m1[1], 10) || 1;
-        } else if (m2 && m2[1]) {
-          qty = numMap[m2[1]] || parseInt(m2[1], 10) || 1;
+      let score = 0;
+      for (const tok of tokens) {
+        if (ur.includes(tok)) {
+          score += 5;
+          if (ur.startsWith(tok) || ur.includes(' ' + tok)) score += 3;
         }
-      } catch {}
+        if (en.includes(tok.toLowerCase())) {
+          score += 3;
+        }
+      }
 
-      const total = qty * prod.salePrice;
+      if (score > bestScore) {
+        bestScore = score;
+        bestProd = prod;
+      }
+    }
+
+    if (bestProd && bestScore >= 5) {
+      const p = bestProd as Product;
+      addedIds.add(p.id);
+      const total = qty * p.salePrice;
       grandTotal += total;
-
       matchedItems.push({
-        name: prod.nameUr || prod.nameEn,
+        name: p.nameUr || p.nameEn,
         qty,
-        unit: prod.unit || 'عدد',
-        price: prod.salePrice,
+        unit: unit || p.unit || 'عدد',
+        price: p.salePrice,
         total,
-        matchedProductId: prod.id,
+        matchedProductId: p.id,
       });
 
-      if (matchedItems.length >= 15) break;
+      if (matchedItems.length >= 20) break;
     }
   }
 
