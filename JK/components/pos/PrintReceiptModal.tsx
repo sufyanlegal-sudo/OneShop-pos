@@ -704,7 +704,7 @@ ${developerCredit}`;
                     {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                   </div>
                   <div className="text-[9.5px] font-mono font-black text-black">
-                    {isUrdu ? 'سرکاری ہیلپ لائن: 0300-8998381' : 'Official Helpline: +92 300 8998381'}
+                    {isUrdu ? 'ہیلپ لائن: 0300-8998381' : 'Helpline: +92 300 8998381'}
                   </div>
                 </div>
               </div>
@@ -960,7 +960,7 @@ ${developerCredit}`;
                         {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                       </div>
                       <div className="text-emerald-700 font-black text-xs mt-0.5">
-                        {isUrdu ? 'سرکاری رابطہ و ہیلپ لائن: 0300-8998381' : 'Official Helpline: +92 300 8998381'}
+                        {isUrdu ? 'ہیلپ لائن: 0300-8998381' : 'Helpline: +92 300 8998381'}
                       </div>
                     </div>
                   </div>
