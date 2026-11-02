@@ -1028,16 +1028,20 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     if (cart.length === 0) return;
     try {
       const netTotal = Math.max(0, cartTotals.subtotal - orderDiscount);
-      const tendered =
-        paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
-          ? notesCalculatedTotal
-          : tenderedAmount > 0
-          ? tenderedAmount
-          : paymentMethod === 'CASH'
-          ? netTotal
-          : amountPaid;
-      const paid = paymentMethod === 'CREDIT' ? 0 : Math.min(tendered, netTotal);
+      const isCreditMode = paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT';
+      const paid = isCreditMode
+        ? Math.min(Math.max(0, amountPaid), netTotal)
+        : paymentMethod === 'CASH'
+        ? (cashInputMode === 'notes' && notesCalculatedTotal > 0 ? Math.min(notesCalculatedTotal, netTotal) : Math.min(tenderedAmount || netTotal, netTotal))
+        : Math.min(tenderedAmount || netTotal, netTotal);
       const expectedBalance = Math.max(0, netTotal - paid);
+      const tendered = isCreditMode
+        ? paid
+        : paymentMethod === 'CASH' && cashInputMode === 'notes' && notesCalculatedTotal > 0
+        ? notesCalculatedTotal
+        : tenderedAmount > 0
+        ? tenderedAmount
+        : netTotal;
 
       // Cashier Credit Permission Guard: Strictly block cashiers without credit permission
       if ((paymentMethod === 'CREDIT' || expectedBalance > 0) && !canGiveCredit()) {
@@ -1094,8 +1098,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       if (invoice.balanceDue > 0) {
         setHoldToast(
           lang === 'ur'
-            ? `✅ ادھار کھاتہ درج: "${invoice.customerName}" کا کھاتہ بن گیا (بقایا: ${invoice.balanceDue.toLocaleString()} روپے)!`
-            : `✅ Credit Khata: "${invoice.customerName}" balance: Rs. ${invoice.balanceDue.toLocaleString()}!`
+            ? `✅ ادھار کھاتہ درج: "${invoice.customerName}" کا کھاتہ بن گیا (موصول: ${invoice.paidAmount.toLocaleString()} روپے | بقایا: ${invoice.balanceDue.toLocaleString()} روپے)!`
+            : `✅ Credit Khata: "${invoice.customerName}" (Paid: Rs. ${invoice.paidAmount.toLocaleString()} | Balance: Rs. ${invoice.balanceDue.toLocaleString()})!`
         );
         setTimeout(() => setHoldToast(null), 4000);
       }
@@ -1210,7 +1214,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     <div className="text-xs text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="text-slate-400 font-normal">({item.product.nameEn || item.product.sku})</span>
                       <span className="inline-flex items-center gap-1 font-mono text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <span>ریٹ: <strong>{unitRate.toLocaleString()} PKR</strong> / {displayUnit}</span>
+                        <span>{lang === 'ur' ? 'ریٹ:' : 'Rate:'} <strong>{unitRate.toLocaleString()} PKR</strong> / {lang === 'ur' ? displayUnit : (displayUnit === 'عدد' ? 'Pcs' : displayUnit === 'کلو' ? 'Kg' : displayUnit === 'گرام' ? 'g' : displayUnit === 'لیٹر' ? 'L' : displayUnit)}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -1612,9 +1616,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               {/* Dynamic Auto-Khata Feedback Pill */}
               {detectedExistingCustomer ? (
                 <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 animate-fadeIn">
-                  <span className="truncate">👤 {detectedExistingCustomer.name} (کھاتہ موجود ہے)</span>
+                  <span className="truncate">👤 {detectedExistingCustomer.name} {lang === 'ur' ? '(کھاتہ موجود ہے)' : '(Khata Active)'}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="font-mono text-emerald-700 dark:text-emerald-400">سابقہ ادھار: {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
+                    <span className="font-mono text-emerald-700 dark:text-emerald-400">{lang === 'ur' ? 'سابقہ ادھار:' : 'Previous Due:'} {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
                     {detectedExistingCustomer.currentBalance > 0 && (
                       <button
                         type="button"
@@ -1633,11 +1637,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               ) : (customerName.trim() || customerPhone.trim()) && paymentMethod === 'CREDIT' ? (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-700/60 text-[10px] font-bold text-blue-800 dark:text-blue-300 animate-fadeIn">
                   <span className="animate-pulse">✨</span>
-                  <span>نیا کھاتہ: بل فائنل ہونے پر ادھار کھاتہ بک میں خودکار بن جائے گا!</span>
+                  <span>{lang === 'ur' ? 'نیا کھاتہ: بل فائنل ہونے پر ادھار کھاتہ بک میں خودکار بن جائے گا!' : 'New Khata: Will be auto-created in KhataBook upon checkout!'}</span>
                 </div>
               ) : paymentMethod === 'CREDIT' ? (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/60 text-[10px] font-bold text-rose-800 dark:text-rose-300 animate-pulse">
-                  <span>📝 ادھار سیل: گاہک کا نام لکھیں، کھاتہ خودکار کھل جائے گا!</span>
+                  <span>{lang === 'ur' ? '📝 ادھار سیل: گاہک کا نام لکھیں، کھاتہ خودکار کھل جائے گا!' : '📝 Credit Sale: Enter customer name, khata will open automatically!'}</span>
                 </div>
               ) : null}
             </div>
@@ -1720,29 +1724,64 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Split Payment inputs if SPLIT mode */}
-        {paymentMethod === 'SPLIT' && (
-          <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 rounded-xl space-y-1 text-xs shrink-0">
-            <span className="font-bold text-amber-900 dark:text-amber-200 block text-[11px]">
-              {lang === 'ur' ? 'کیش و آن لائن تقسیم:' : 'Split Cash & Online:'}
-            </span>
+        {/* Credit & Down-payment / Split Payment Controls */}
+        {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && (
+          <div className="p-2 sm:p-2.5 bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/80 rounded-2xl space-y-1.5 text-xs shrink-0 animate-fadeIn">
+            <div className="flex items-center justify-between font-bold text-rose-950 dark:text-rose-200">
+              <span className="flex items-center gap-1.5 text-xs font-black">
+                <span>📝</span>
+                <span>{lang === 'ur' ? 'ادھار کھاتہ و موقع پر کیش وصولی:' : 'Credit & Cash Down-Payment:'}</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100">
+                {lang === 'ur' ? 'کھاتہ سیل' : 'Credit Sale'}
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-[10px] text-slate-500">نقد ادا (Cash):</span>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-0.5">
+                  {lang === 'ur' ? '💵 موقع پر نقد وصول (Paid Now):' : '💵 Cash Paid Now:'}
+                </span>
                 <input
                   type="number"
                   min="0"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-white dark:bg-slate-800 border rounded-lg px-2 py-0.5 text-xs font-mono font-bold"
+                  max={effectiveNetTotal}
+                  value={amountPaid === 0 ? '' : amountPaid}
+                  placeholder={lang === 'ur' ? '0 (مکمل ادھار)' : '0 (Full Credit)'}
+                  onChange={(e) => {
+                    const val = Math.max(0, parseFloat(e.target.value) || 0);
+                    setAmountPaid(val);
+                  }}
+                  className="w-full bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl px-2.5 py-1 text-sm font-mono font-black text-center text-emerald-800 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-500">باقی ادھار/آن لائن:</span>
-                <div className="font-mono font-bold text-rose-600 dark:text-rose-400 py-0.5">
+                <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 block mb-0.5">
+                  {lang === 'ur' ? '📋 کھاتے میں بقایا (To Khata):' : '📋 Balance to Khata:'}
+                </span>
+                <div className="w-full bg-white dark:bg-slate-900 border-2 border-rose-400 dark:border-rose-600 rounded-xl px-2.5 py-1 text-sm font-mono font-black text-center text-rose-600 dark:text-rose-400">
                   {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
                 </div>
               </div>
+            </div>
+
+            {/* Helper hint */}
+            <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-slate-900/60 p-1 rounded-lg border border-rose-200 dark:border-rose-900/50 flex items-center justify-between">
+              <span>
+                {amountPaid > 0 ? (
+                  lang === 'ur' ? (
+                    <>✨ <strong>{amountPaid.toLocaleString()} PKR</strong> دراز میں جمع، بقایا <strong>{Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR</strong> کھاتے میں۔</>
+                  ) : (
+                    <>✨ <strong>{amountPaid.toLocaleString()} PKR</strong> in Cash Drawer, balance <strong>{Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR</strong> to Khata.</>
+                  )
+                ) : (
+                  lang === 'ur' ? (
+                    <>⚠️ مکمل <strong>{effectiveNetTotal.toLocaleString()} PKR</strong> گاہک کے کھاتے میں درج ہو گا۔</>
+                  ) : (
+                    <>⚠️ Full <strong>{effectiveNetTotal.toLocaleString()} PKR</strong> will be added to Khata.</>
+                  )
+                )}
+              </span>
             </div>
           </div>
         )}
@@ -1829,11 +1868,23 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
           ) : (
             /* Non-cash modes (Online, Khata, Split) */
-            <div className="flex justify-between items-center p-2.5 bg-slate-900 text-white rounded-2xl border border-slate-800">
-              <span className="text-xs font-bold">{t('grandTotal')}:</span>
-              <span className="font-mono text-xl font-black text-emerald-400">
-                {effectiveNetTotal.toLocaleString()} PKR
-              </span>
+            <div className="p-2 sm:p-2.5 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">{t('grandTotal')}:</span>
+                <span className="font-mono text-lg sm:text-xl font-black text-emerald-400">
+                  {effectiveNetTotal.toLocaleString()} PKR
+                </span>
+              </div>
+              {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && amountPaid > 0 && (
+                <div className="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px] font-bold">
+                  <span className="text-emerald-400 font-mono">
+                    {lang === 'ur' ? 'نقد وصول:' : 'Paid:'} {amountPaid.toLocaleString()} PKR
+                  </span>
+                  <span className="text-rose-400 font-mono">
+                    {lang === 'ur' ? 'کھاتہ ادھار:' : 'Khata Due:'} {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -1849,7 +1900,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 }}
                 className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold active:scale-95 text-center shadow-xs whitespace-nowrap"
               >
-                برابر ({effectiveNetTotal})
+                {lang === 'ur' ? `برابر (${effectiveNetTotal})` : `Exact (${effectiveNetTotal})`}
               </button>
               {[500, 1000, 1500, 2000, 5000].map((note) => (
                 <button
@@ -2154,7 +2205,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-72 overflow-y-auto p-1.5 space-y-1">
               <div className="p-1 px-2 text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800 flex justify-between">
                 <span>{lang === 'ur' ? 'تلاش کے نتائج (انٹر یا کلک کریں):' : 'Search matches (Press Enter or click):'}</span>
-                <span>{searchResults.length} آئٹمز</span>
+                <span>{searchResults.length} {lang === 'ur' ? 'آئٹمز' : 'items'}</span>
               </div>
               {searchResults.length === 0 ? (
                 <div className="p-3 text-center text-xs text-slate-400">
@@ -2429,7 +2480,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 shrink-0 text-[11px] font-bold scrollbar-none">
         <span className="text-[10px] text-slate-400 font-bold shrink-0 pl-1 flex items-center gap-1">
           <Zap className="w-3 h-3 text-amber-500" />
-          <span>{lang === 'ur' ? 'ہاٹ کیز (کلک یا کی بورڈ):' : 'Hotkeys:'}</span>
+          <span>{lang === 'ur' ? 'ہاٹ کیز:' : 'Hotkeys:'}</span>
         </span>
 
         {/* F12 / Enter: Complete Bill */}
@@ -2438,10 +2489,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           onClick={handleCheckout}
           disabled={cart.length === 0}
           className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="بل مکمل و پرنٹ (F12 یا Alt+Enter)"
+          title={lang === 'ur' ? 'بل مکمل و پرنٹ (F12 یا Alt+Enter)' : 'Complete & Print (F12 or Alt+Enter)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F12</span>
-          <span>⚡ بل فائنل</span>
+          <span>{lang === 'ur' ? '⚡ بل فائنل' : '⚡ Complete'}</span>
         </button>
 
         {/* F1: Credit Khata */}
@@ -2465,10 +2516,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               ? 'bg-rose-600 text-white ring-2 ring-rose-400'
               : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100 dark:hover:bg-rose-950/40'
           }`}
-          title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked') : 'ادھار کھاتہ سیل (F1 یا Alt+U)'}
+          title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked') : (lang === 'ur' ? 'ادھار کھاتہ سیل (F1 یا Alt+U)' : 'Credit Sale (F1 or Alt+U)')}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F1</span>
-          <span>{!canGiveCredit() ? '🔒 ادھار (بلاک)' : '📝 ادھار کھاتہ'}</span>
+          <span>
+            {!canGiveCredit()
+              ? (lang === 'ur' ? '🔒 ادھار (بلاک)' : '🔒 Credit (Lock)')
+              : (lang === 'ur' ? '📝 ادھار کھاتہ' : '📝 Credit Khata')}
+          </span>
         </button>
 
         {/* F4: Cash Received */}
@@ -2483,10 +2538,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             tenderedInputRef.current?.select();
           }}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="نقد موصولی فیلڈ (F4 یا Alt+C)"
+          title={lang === 'ur' ? 'نقد موصولی فیلڈ (F4 یا Alt+C)' : 'Cash Tendered (F4 or Alt+C)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F4</span>
-          <span>💵 نقد موصول</span>
+          <span>{lang === 'ur' ? '💵 نقد موصول' : '💵 Cash Tender'}</span>
         </button>
 
         {/* F6: Hold Bill */}
@@ -2495,10 +2550,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           onClick={handleHoldBill}
           disabled={cart.length === 0}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 disabled:opacity-40 cursor-pointer"
-          title="موجودہ بل ہولڈ کریں (F6 یا Alt+H)"
+          title={lang === 'ur' ? 'موجودہ بل ہولڈ کریں (F6 یا Alt+H)' : 'Hold Bill (F6 or Alt+H)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F6</span>
-          <span>⏸️ بل ہولڈ</span>
+          <span>{lang === 'ur' ? '⏸️ بل ہولڈ' : '⏸️ Hold Bill'}</span>
         </button>
 
         {/* F7: Held Bills Queue */}
@@ -2506,10 +2561,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           type="button"
           onClick={() => setHeldBillsModalOpen(true)}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="ہولڈ شدہ بلز فہرست (F7 یا Alt+Q)"
+          title={lang === 'ur' ? 'ہولڈ شدہ بلز فہرست (F7 یا Alt+Q)' : 'Held Bills Queue (F7 or Alt+Q)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F7</span>
-          <span>📋 ہولڈ لسٹ ({heldBills.length})</span>
+          <span>{lang === 'ur' ? `📋 ہولڈ لسٹ (${heldBills.length})` : `📋 Held List (${heldBills.length})`}</span>
         </button>
 
         {/* F3: Custom Item */}
@@ -2517,10 +2572,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           type="button"
           onClick={() => setCustomItemModalOpen(true)}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="غیر فہرست شدہ آئٹم (F3 یا Alt+I)"
+          title={lang === 'ur' ? 'غیر فہرست شدہ آئٹم (F3 یا Alt+I)' : 'Custom Item (F3 or Alt+I)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F3</span>
-          <span>➕ نیا آئٹم</span>
+          <span>{lang === 'ur' ? '➕ نیا آئٹم' : '➕ Custom Item'}</span>
         </button>
 
         {/* F8: Delete Last Item */}
@@ -2531,16 +2586,16 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               const lastItem = cart[cart.length - 1];
               removeFromCart(lastItem.product.id);
               posSound.playClick();
-              setHoldToast(lang === 'ur' ? `آئٹم حذف ہو گئی (${lastItem.product.nameUr})` : 'Item deleted');
+              setHoldToast(lang === 'ur' ? `آئٹم حذف ہو گئی (${lastItem.product.nameUr})` : `Item removed (${lastItem.product.nameEn || lastItem.product.nameUr})`);
               setTimeout(() => setHoldToast(null), 2000);
             }
           }}
           disabled={cart.length === 0}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100 dark:hover:bg-rose-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 disabled:opacity-40 cursor-pointer"
-          title="آخری آئٹم ڈیلیٹ کریں (F8 یا Alt+D)"
+          title={lang === 'ur' ? 'آخری آئٹم ڈیلیٹ کریں (F8 یا Alt+D)' : 'Delete Last Item (F8 or Alt+D)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F8</span>
-          <span>❌ آئٹم کٹ</span>
+          <span>{lang === 'ur' ? '❌ آئٹم کٹ' : '❌ Remove'}</span>
         </button>
 
         {/* F2: Barcode Focus */}
@@ -2551,10 +2606,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             barcodeInputRef.current?.select();
           }}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="بارکوڈ اسکینر پر جائیں (F2 یا F9)"
+          title={lang === 'ur' ? 'بارکوڈ اسکینر پر جائیں (F2 یا F9)' : 'Focus Barcode (F2 or F9)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F2</span>
-          <span>🏷️ بارکوڈ</span>
+          <span>{lang === 'ur' ? '🏷️ بارکوڈ' : '🏷️ Barcode'}</span>
         </button>
 
         {/* F10: History */}
@@ -2562,10 +2617,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           type="button"
           onClick={() => setIsRecentBillsModalOpen(true)}
           className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
-          title="پچھلے بلز (F10 یا Alt+J)"
+          title={lang === 'ur' ? 'پچھلے بلز (F10 یا Alt+J)' : 'Bills History (F10 or Alt+J)'}
         >
           <span className="px-1 py-0.2 bg-black/25 rounded font-mono text-[9px] uppercase font-black">F10</span>
-          <span>📜 ہسٹری</span>
+          <span>{lang === 'ur' ? '📜 ہسٹری' : '📜 History'}</span>
         </button>
 
         {/* Laptop Fn Helper Hint */}
@@ -2640,39 +2695,42 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* POPULAR URDU GROCERY FAST CHIPS (1-Click instant search without typing) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 shrink-0 no-scrollbar" dir="rtl">
+      {/* POPULAR FAST GROCERY CHIPS (1-Click instant search without typing) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 shrink-0 no-scrollbar" dir={lang === 'ur' ? 'rtl' : 'ltr'}>
         <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap pl-1">
-          {lang === 'ur' ? '⚡ فوری اردو آئٹمز:' : 'Fast Items:'}
+          {lang === 'ur' ? '⚡ فوری آئٹمز:' : '⚡ Quick Items:'}
         </span>
         {[
-          { label: 'چینی', icon: '🍬' },
-          { label: 'آٹا', icon: '🌾' },
-          { label: 'گھی', icon: '🧈' },
-          { label: 'تیل', icon: '🫒' },
-          { label: 'صابن', icon: '🧼' },
-          { label: 'دال', icon: '🥣' },
-          { label: 'چاول', icon: '🍚' },
-          { label: 'بسکٹ', icon: '🍪' },
-          { label: 'دودھ', icon: '🥛' },
-          { label: 'پتی', icon: '☕' },
-          { label: 'مٹھائی', icon: '🧁' },
-          { label: 'شربت', icon: '🧃' },
-        ].map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => {
-              posSound.playClick();
-              setSearchQuery(item.label);
-              setSearchSuggestionsOpen(true);
-            }}
-            className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 transition-all"
-          >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+          { labelUr: 'چینی', labelEn: 'Sugar', icon: '🍬' },
+          { labelUr: 'آٹا', labelEn: 'Flour', icon: '🌾' },
+          { labelUr: 'گھی', labelEn: 'Ghee', icon: '🧈' },
+          { labelUr: 'تیل', labelEn: 'Cooking Oil', icon: '🫒' },
+          { labelUr: 'صابن', labelEn: 'Soap', icon: '🧼' },
+          { labelUr: 'دال', labelEn: 'Lentils', icon: '🥣' },
+          { labelUr: 'چاول', labelEn: 'Rice', icon: '🍚' },
+          { labelUr: 'بسکٹ', labelEn: 'Biscuits', icon: '🍪' },
+          { labelUr: 'دودھ', labelEn: 'Milk', icon: '🥛' },
+          { labelUr: 'پتی', labelEn: 'Tea', icon: '☕' },
+          { labelUr: 'مٹھائی', labelEn: 'Sweets', icon: '🧁' },
+          { labelUr: 'شربت', labelEn: 'Juice', icon: '🧃' },
+        ].map((item) => {
+          const displayLabel = lang === 'ur' ? item.labelUr : item.labelEn;
+          return (
+            <button
+              key={item.labelUr}
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setSearchQuery(displayLabel);
+                setSearchSuggestionsOpen(true);
+              }}
+              className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-850 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 transition-all"
+            >
+              <span>{item.icon}</span>
+              <span>{displayLabel}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* MOBILE TAB CONTROLS (Only visible on mobile / tablet screens < lg) */}
@@ -3333,11 +3391,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                         <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-500 text-[11px]">گاہک کا نام:</span>
+                            <span className="text-slate-500 text-[11px]">{lang === 'ur' ? 'گاہک کا نام:' : 'Customer Name:'}</span>
                             <span className="font-bold text-slate-900 dark:text-white">{ord.customerName}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-500 text-[11px]">واٹس ایپ فون:</span>
+                            <span className="text-slate-500 text-[11px]">{lang === 'ur' ? 'واٹس ایپ فون:' : 'WhatsApp Phone:'}</span>
                             <a
                               href={`https://wa.me/${ord.customerPhone.replace(/[^0-9]/g, '')}`}
                               target="_blank"
@@ -3350,7 +3408,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                           </div>
                           {ord.customerAddress && (
                             <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200 dark:border-slate-700">
-                              <span className="text-slate-500">پتہ برائے ڈیلیوری:</span>
+                              <span className="text-slate-500">{lang === 'ur' ? 'پتہ برائے ڈیلیوری:' : 'Delivery Address:'}</span>
                               <span className="font-medium text-slate-700 dark:text-slate-300">{ord.customerAddress}</span>
                             </div>
                           )}
@@ -3360,7 +3418,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         {ord.rawMessage && (
                           <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 text-xs">
                             <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold block mb-0.5">
-                              💬 کسٹمر کا اصل واٹس ایپ میسج:
+                              {lang === 'ur' ? '💬 کسٹمر کا اصل واٹس ایپ میسج:' : '💬 Customer WhatsApp Message:'}
                             </span>
                             <p className="font-nastaliq text-[13px] leading-snug text-slate-800 dark:text-slate-200" dir="rtl">
                               "{ord.rawMessage}"
@@ -3375,10 +3433,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                           <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
                             <tr>
                               <th className="p-2 text-center w-8">#</th>
-                              <th className="p-2">سامان کی تفصیل (آئٹم)</th>
-                              <th className="p-2 text-center w-20">تعداد / وزن</th>
-                              <th className="p-2 text-left w-24">ریٹ (PKR)</th>
-                              <th className="p-2 text-left w-28">کل رقم (PKR)</th>
+                              <th className="p-2">{lang === 'ur' ? 'سامان کی تفصیل (آئٹم)' : 'Product Item'}</th>
+                              <th className="p-2 text-center w-20">{lang === 'ur' ? 'تعداد / وزن' : 'Quantity'}</th>
+                              <th className="p-2 text-left w-24">{lang === 'ur' ? 'ریٹ (PKR)' : 'Rate (PKR)'}</th>
+                              <th className="p-2 text-left w-28">{lang === 'ur' ? 'کل رقم (PKR)' : 'Total (PKR)'}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -4171,7 +4229,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
             className="flex flex-col cursor-pointer"
           >
             <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-              <span>🛒 {cartTotals.itemCount} آئٹم</span>
+              <span>🛒 {cartTotals.itemCount} {lang === 'ur' ? 'آئٹم' : 'Items'}</span>
               <span className="text-amber-400 font-black">• {lang === 'ur' ? 'کارٹ دیکھیں' : 'View Cart'}</span>
             </div>
             <div className="font-mono text-base font-black text-emerald-400">
@@ -4187,7 +4245,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               title="بل ہولڈ کریں"
             >
               <Pause className="w-3.5 h-3.5" />
-              <span>ہولڈ</span>
+              <span>{lang === 'ur' ? 'ہولڈ' : 'Hold'}</span>
             </button>
 
             <button
@@ -4354,7 +4412,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 }}
                 className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500"
               >
-                <option value="">-- گاہک منتخب کریں --</option>
+                <option value="">-- {lang === 'ur' ? 'گاہک منتخب کریں' : 'Select Customer'} --</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.phone}) - {lang === 'ur' ? 'بقایا:' : 'Bal:'} {c.currentBalance.toLocaleString()} PKR
@@ -4398,7 +4456,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                   {/* Presets */}
                   {cust.currentBalance > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400">فوری انتخاب:</span>
+                      <span className="text-[10px] font-bold text-slate-400">{lang === 'ur' ? 'فوری انتخاب:' : 'Quick Select:'}</span>
                       <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
@@ -4461,15 +4519,15 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                   {/* Real-time Balance Preview */}
                   <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
                     <div className="flex justify-between text-slate-500">
-                      <span>سابقہ کل ادھار:</span>
+                      <span>{lang === 'ur' ? 'سابقہ کل ادھار:' : 'Previous Balance:'}</span>
                       <span className="font-mono font-bold">{cust.currentBalance.toLocaleString()} PKR</span>
                     </div>
                     <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                      <span>جمع کی جارہی رقم:</span>
+                      <span>{lang === 'ur' ? 'جمع کی جارہی رقم:' : 'Deposit Amount:'}</span>
                       <span className="font-mono font-black">-{posKhataPayAmount.toLocaleString()} PKR</span>
                     </div>
                     <div className="flex justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black text-sm">
-                      <span>جمع کے بعد باقی بقایا رہے گا:</span>
+                      <span>{lang === 'ur' ? 'جمع کے بعد باقی بقایا رہے گا:' : 'Remaining After Deposit:'}</span>
                       <span className={`font-mono text-base ${remaining === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {remaining.toLocaleString()} PKR
                       </span>
@@ -4490,7 +4548,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                       className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl font-black text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>رقم جمع کریں و رسید نکالیں</span>
+                      <span>{lang === 'ur' ? 'رقم جمع کریں و رسید نکالیں' : 'Deposit & Generate Receipt'}</span>
                     </button>
                   </div>
                 </form>
@@ -4507,7 +4565,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
             <div className="p-4 bg-emerald-600 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5" />
-                <h3 className="font-black text-sm">ادھار وصولی رسید (Payment Slip)</h3>
+                <h3 className="font-black text-sm">{lang === 'ur' ? 'ادھار وصولی رسید (Payment Slip)' : 'Khata Recovery Payment Slip'}</h3>
               </div>
               <button
                 type="button"
@@ -4535,34 +4593,34 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
 
               <div className="space-y-1.5 py-1 text-[11px] border-b pb-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">رسید نمبر:</span>
+                  <span className="text-slate-500">{lang === 'ur' ? 'رسید نمبر:' : 'Receipt No:'}</span>
                   <span className="font-mono font-bold">{posKhataCompletedReceipt.receiptNo}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">تاریخ و وقت:</span>
+                  <span className="text-slate-500">{lang === 'ur' ? 'تاریخ و وقت:' : 'Date & Time:'}</span>
                   <span className="font-mono">{new Date(posKhataCompletedReceipt.date).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">گاہک کا نام:</span>
+                  <span className="text-slate-500">{lang === 'ur' ? 'گاہک کا نام:' : 'Customer Name:'}</span>
                   <span className="font-bold text-slate-900">{posKhataCompletedReceipt.customerName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">موبائل نمبر:</span>
+                  <span className="text-slate-500">{lang === 'ur' ? 'موبائل نمبر:' : 'Phone Number:'}</span>
                   <span className="font-mono font-bold">{posKhataCompletedReceipt.customerPhone}</span>
                 </div>
               </div>
 
               <div className="space-y-2 py-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-600">سابقہ کل ادھار:</span>
+                  <span className="text-slate-600">{lang === 'ur' ? 'سابقہ کل ادھار:' : 'Previous Balance:'}</span>
                   <span className="font-mono font-bold">{posKhataCompletedReceipt.previousBalance.toLocaleString()} PKR</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-emerald-600 bg-emerald-50 p-2 rounded-xl">
-                  <span>وصول شدہ رقم (جمع):</span>
+                  <span>{lang === 'ur' ? 'وصول شدہ رقم (جمع):' : 'Amount Paid (Deposit):'}</span>
                   <span className="font-mono font-black">{posKhataCompletedReceipt.amountPaid.toLocaleString()} PKR</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-slate-900 border-t pt-2">
-                  <span>نیا باقی بقایا رقم:</span>
+                  <span>{lang === 'ur' ? 'نیا باقی بقایا رقم:' : 'New Remaining Balance:'}</span>
                   <span className={`font-mono ${posKhataCompletedReceipt.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                     {posKhataCompletedReceipt.remainingBalance.toLocaleString()} PKR
                   </span>
@@ -4570,7 +4628,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               </div>
 
               <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-dashed">
-                <p>بروقت ادائیگی پر آپ کا شکریہ!</p>
+                <p>{lang === 'ur' ? 'بروقت ادائیگی پر آپ کا شکریہ!' : 'Thank you for your timely payment!'}</p>
                 <p className="font-mono">JK Developers Pakistan • 0300-8998381</p>
               </div>
             </div>
@@ -4582,7 +4640,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
               >
                 <Printer className="w-4 h-4 text-emerald-400" />
-                <span>پرنٹ رسید (Print)</span>
+                <span>{lang === 'ur' ? 'پرنٹ رسید (Print)' : 'Print Receipt'}</span>
               </button>
 
               <button
@@ -4607,7 +4665,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
                 className="flex-1 py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>واٹس ایپ رسید</span>
+                <span>{lang === 'ur' ? 'واٹس ایپ رسید' : 'Send WhatsApp'}</span>
               </button>
             </div>
           </div>
