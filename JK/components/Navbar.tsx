@@ -152,103 +152,103 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'restaurant', labelUr: 'ریسٹورنٹ و کیفے', labelEn: 'Restaurant (KOT)', icon: '🍽️' },
   ];
 
-  // Modules for the colorful toolbar (Modern OneShop Box Tile Style)
+  // Modules for the colorful toolbar (Modern OneShop Square Box Tile Style)
   const navItems = [
     {
       id: 'billsHistory',
-      label: lang === 'ur' ? 'بلز ہسٹری (History)' : 'Bills & Returns',
+      label: lang === 'ur' ? 'بلز ہسٹری' : 'Bills History',
       icon: History,
       shortcut: 'F2',
       bgClass: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500',
-      activeClass: 'bg-blue-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-blue-600 text-white ring-2 ring-white shadow-xl shadow-blue-950/70 border-white',
     },
     {
       id: 'audit',
-      label: lang === 'ur' ? 'اسٹاک آڈٹ (Audit)' : 'Stock Audit',
+      label: lang === 'ur' ? 'اسٹاک آڈٹ' : 'Stock Audit',
       icon: ShieldCheck,
       shortcut: 'F3',
       bgClass: 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500',
-      activeClass: 'bg-indigo-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-indigo-600 text-white ring-2 ring-white shadow-xl shadow-indigo-950/70 border-white',
     },
     {
       id: 'inventory',
-      label: lang === 'ur' ? 'اسٹاک و اشیاء (Inventory)' : 'Inventory',
+      label: lang === 'ur' ? 'اسٹاک اشیاء' : 'Inventory',
       icon: Boxes,
       shortcut: 'F4',
       bgClass: 'bg-teal-600 hover:bg-teal-500 text-white border-teal-500',
-      activeClass: 'bg-teal-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-teal-600 text-white ring-2 ring-white shadow-xl shadow-teal-950/70 border-white',
     },
     {
       id: 'reports',
-      label: lang === 'ur' ? 'مالیاتی رپورٹس (Reports)' : 'Financial Reports',
+      label: lang === 'ur' ? 'رپورٹس و نفع' : 'Reports & P&L',
       icon: BarChart3,
       shortcut: 'F5',
       bgClass: 'bg-red-600 hover:bg-red-500 text-white border-red-500',
-      activeClass: 'bg-red-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-red-600 text-white ring-2 ring-white shadow-xl shadow-red-950/70 border-white',
     },
     {
       id: 'roznamcha',
-      label: lang === 'ur' ? 'روزنامچہ (Cash Book)' : 'Daily Cash Book',
+      label: lang === 'ur' ? 'روزنامچہ' : 'Cash Book',
       icon: BookOpen,
       shortcut: 'F6',
       bgClass: 'bg-sky-600 hover:bg-sky-500 text-white border-sky-500',
-      activeClass: 'bg-sky-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-sky-600 text-white ring-2 ring-white shadow-xl shadow-sky-950/70 border-white',
     },
     {
       id: 'khata',
-      label: lang === 'ur' ? 'ادھار کھاتہ (Khata)' : 'Customer Accounts',
+      label: lang === 'ur' ? 'ادھار کھاتہ' : 'Khata Ledger',
       icon: Users,
       shortcut: 'F7',
       bgClass: 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500',
-      activeClass: 'bg-rose-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-rose-600 text-white ring-2 ring-white shadow-xl shadow-rose-950/70 border-white',
     },
     {
       id: 'grn',
-      label: lang === 'ur' ? 'خریداری (GRN)' : 'Purchase GRN',
+      label: lang === 'ur' ? 'خریداری مال' : 'Purchase GRN',
       icon: Truck,
       shortcut: 'F8',
       bgClass: 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500',
-      activeClass: 'bg-amber-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-amber-600 text-white ring-2 ring-white shadow-xl shadow-amber-950/70 border-white',
     },
     {
       id: 'vendors',
-      label: lang === 'ur' ? 'سپلائرز (Vendors)' : 'Suppliers & Vendors',
+      label: lang === 'ur' ? 'سپلائرز' : 'Suppliers',
       icon: Building2,
       shortcut: 'F9',
       bgClass: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500',
-      activeClass: 'bg-purple-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-purple-600 text-white ring-2 ring-white shadow-xl shadow-purple-950/70 border-white',
     },
     {
       id: 'staff',
-      label: lang === 'ur' ? 'اسٹاف (Staff)' : 'Staff Management',
+      label: lang === 'ur' ? 'اسٹاف ممبرز' : 'Staff & Users',
       icon: UserPlus,
       shortcut: 'F10',
       bgClass: 'bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-500',
-      activeClass: 'bg-yellow-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-yellow-600 text-white ring-2 ring-white shadow-xl shadow-yellow-950/70 border-white',
     },
     {
       id: 'aiChatboard',
-      label: lang === 'ur' ? 'AI اسسٹنٹ (Chat)' : 'AI Assistant',
+      label: lang === 'ur' ? 'AI اسسٹنٹ' : 'AI Assistant',
       icon: Bot,
       shortcut: 'AI',
       bgClass: 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white border-fuchsia-500',
-      activeClass: 'bg-fuchsia-600 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-fuchsia-600 text-white ring-2 ring-white shadow-xl shadow-fuchsia-950/70 border-white',
     },
     {
       id: 'whatsapp',
-      label: lang === 'ur' ? 'واٹس ایپ (WhatsApp)' : 'WhatsApp Orders',
+      label: lang === 'ur' ? 'واٹس ایپ' : 'WhatsApp',
       icon: MessageSquare,
       shortcut: 'WA',
       bgClass: 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-500',
-      activeClass: 'bg-emerald-700 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-emerald-700 text-white ring-2 ring-white shadow-xl shadow-emerald-950/70 border-white',
     },
     {
       id: 'settings',
-      label: lang === 'ur' ? 'سیٹنگز (Settings)' : 'System Settings',
+      label: lang === 'ur' ? 'سیٹنگز' : 'Settings',
       icon: Settings,
       shortcut: 'F11',
       bgClass: 'bg-slate-700 hover:bg-slate-600 text-white border-slate-500',
-      activeClass: 'bg-slate-700 text-white ring-2 ring-white shadow-lg border-white',
+      activeClass: 'bg-slate-700 text-white ring-2 ring-white shadow-xl shadow-slate-950/70 border-white',
     },
   ];
 
@@ -568,64 +568,39 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
 
-          {/* Dynamic Business Profile Preset Switcher (Hidden when collapsed) */}
-          {!isHeaderCollapsed && (
-            <div className="hidden 2xl:flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
-              <span className="text-[11px] text-slate-400 font-medium px-2 flex items-center gap-1">
-                <Store className="w-3 h-3 text-slate-400" />
-                {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
-              </span>
-              {presets.map((p) => {
-                const isActive = activePreset === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setPreset(p.id)}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                      isActive
-                        ? 'bg-emerald-600 text-white shadow-md'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>{p.icon}</span>
-                    <span>{lang === 'ur' ? p.labelUr : p.labelEn}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Navigation Bar (Modern OneShop Box Tile Style): Pinned Master POS Button + Colorful Modules Ribbon */}
+          {/* Navigation Bar (Chakor Square Box Tiles): Pinned Master POS Button + Colorful Modules Ribbon */}
           <div className="flex items-center gap-2 max-w-full flex-1 min-w-0">
-            {/* 1. PINNED MASTER POS BUTTON (NEVER SCROLLED - ALWAYS VISIBLE SQUARE BOX TILE) */}
+            {/* 1. PINNED MASTER POS BUTTON (ALWAYS VISIBLE CHAKOR SQUARE BOX TILE) */}
             <button
               type="button"
               onClick={() => handleTabClick('pos')}
-              className={`h-10 sm:h-11 px-3 sm:px-4 rounded-lg font-black text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 border-t border-t-white/30 border-b-2 border-b-black/40 border-x border-x-white/10 shadow-md active:translate-y-0.5 ${
+              className={`min-w-[80px] sm:min-w-[88px] h-[54px] sm:h-[60px] p-1.5 rounded-xl font-black text-xs flex flex-col justify-between transition-all shrink-0 border-t border-t-white/30 border-b-2 border-b-black/50 border-x border-x-white/10 shadow-md active:translate-y-0.5 select-none ${
                 activeTab === 'pos'
-                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white ring-2 ring-white shadow-lg shadow-emerald-950/80 -translate-y-0.5 border-white'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white ring-2 ring-white shadow-xl shadow-emerald-950/80 -translate-y-0.5 border-white'
+                  : 'bg-emerald-700 hover:bg-emerald-600 text-white'
               }`}
               title={lang === 'ur' ? 'کاؤنٹر بلنگ سکرین (F1) - براہِ راست بل بنائیں' : 'POS Billing Counter (F1)'}
             >
-              <div className="w-6 h-6 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
-                <ShoppingBag className="w-3.5 h-3.5 text-emerald-200" />
+              <div className="flex items-center justify-between w-full px-0.5">
+                <div className="w-5 h-5 rounded bg-black/25 flex items-center justify-center shrink-0 border border-white/15">
+                  <ShoppingBag className="w-3.5 h-3.5 text-emerald-200" />
+                </div>
+                <span className="px-1.5 py-0.2 rounded bg-black/40 text-emerald-300 font-mono text-[9.5px] sm:text-[10px] font-black border border-white/20 shadow-inner">
+                  F1
+                </span>
               </div>
-              <span className="tracking-wide font-black whitespace-nowrap">
-                {lang === 'ur' ? 'کاؤنٹر بلنگ (POS)' : 'POS Billing'}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-black/35 text-emerald-300 font-mono text-[10px] font-black border border-white/20 shadow-inner">
-                F1
+              <span className="text-[11px] sm:text-[12px] font-black tracking-tight leading-none text-center w-full truncate">
+                {lang === 'ur' ? 'کاؤنٹر بلنگ' : 'POS Billing'}
               </span>
             </button>
 
-            {/* 2. COLORFUL MODULES SLIDER CAROUSEL (SQUARE/RECTANGULAR BOX TILES) */}
+            {/* 2. COLORFUL MODULES SLIDER CAROUSEL (CHAKOR SQUARE BOX TILES) */}
             <div className="relative flex items-center max-w-full flex-1 min-w-0">
               {/* Scroll Left Button */}
               <button
                 type="button"
                 onClick={() => scrollNav('left')}
-                className="flex items-center justify-center w-7 h-10 sm:w-8 sm:h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all mr-1 z-10"
+                className="flex items-center justify-center w-7 h-[54px] sm:w-8 sm:h-[60px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all mr-1 z-10"
                 title={lang === 'ur' ? 'پچھلے آپشنز دیکھیں (Scroll Left)' : 'Scroll Left'}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -648,22 +623,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`h-10 sm:h-11 px-3 sm:px-3.5 rounded-lg text-xs sm:text-[13px] font-black flex items-center gap-2 whitespace-nowrap transition-all border-t border-t-white/25 border-b-2 border-b-black/35 border-x border-x-white/10 shadow-sm shrink-0 active:translate-y-0.5 ${
+                      className={`relative min-w-[76px] sm:min-w-[84px] h-[54px] sm:h-[60px] p-1.5 rounded-xl font-black text-xs flex flex-col justify-between transition-all border-t border-t-white/25 border-b-2 border-b-black/40 border-x border-x-white/10 shadow-sm shrink-0 active:translate-y-0.5 select-none ${
                         isActive
                           ? `${item.activeClass} -translate-y-0.5 ring-2 ring-white shadow-lg`
                           : `${item.bgClass} hover:brightness-110`
                       }`}
-                      title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : ''}
+                      title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : item.label}
                     >
-                      <div className="w-6 h-6 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
-                        <Icon className="w-3.5 h-3.5" />
+                      <div className="flex items-center justify-between w-full px-0.5">
+                        <div className="w-5 h-5 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        {item.shortcut && (
+                          <span className="px-1.5 py-0.2 rounded bg-black/35 text-white/95 font-mono text-[9px] sm:text-[9.5px] font-black border border-white/15 shadow-inner">
+                            {item.shortcut}
+                          </span>
+                        )}
                       </div>
-                      <span className="font-bold">{item.label}</span>
-                      {item.shortcut && (
-                        <span className="px-1.5 py-0.5 rounded bg-black/30 text-white/95 font-mono text-[9.5px] font-black border border-white/15 shadow-inner">
-                          {item.shortcut}
+                      <div className="w-full flex items-center justify-center gap-0.5">
+                        <span className="font-bold text-[10.5px] sm:text-[11.5px] tracking-tight leading-none truncate text-center">
+                          {item.label}
                         </span>
-                      )}
+                        {isLocked && <Lock className="w-2.5 h-2.5 text-amber-200 shrink-0" />}
+                      </div>
                       {item.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
                         <span
                           onClick={(e) => {
@@ -671,13 +653,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                             posSound.playClick();
                             setIsWhatsAppOrdersModalOpen(true);
                           }}
-                          className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse hover:scale-105 cursor-pointer shadow-sm"
+                          className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse hover:scale-105 cursor-pointer shadow-md"
                           title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
                         >
                           {pendingWhatsAppOrdersCount}
                         </span>
                       )}
-                      {isLocked && <Lock className="w-3 h-3 text-amber-200 ml-0.5" />}
                     </button>
                   );
                 })}
@@ -687,7 +668,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <button
                 type="button"
                 onClick={() => scrollNav('right')}
-                className="flex items-center justify-center w-7 h-10 sm:w-8 sm:h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all ml-1 z-10"
+                className="flex items-center justify-center w-7 h-[54px] sm:w-8 sm:h-[60px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all ml-1 z-10"
                 title={lang === 'ur' ? 'اگلے آپشنز دیکھیں (Scroll Right)' : 'Scroll Right'}
               >
                 <ChevronRight className="w-4 h-4" />
@@ -695,28 +676,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
         </div>
-
-        {/* Mobile / Tablet Preset Selector Bar (Hidden when collapsed) */}
-        {!isHeaderCollapsed && (
-          <div className="2xl:hidden px-3 py-1.5 bg-slate-950/90 border-t border-slate-800/80 flex items-center gap-1 overflow-x-auto text-xs animate-in fade-in duration-150">
-            <span className="text-[10px] text-slate-400 whitespace-nowrap">
-              {lang === 'ur' ? 'ماڈل:' : 'Niche:'}
-            </span>
-            {presets.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setPreset(p.id)}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
-                  activePreset === p.id
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                {p.icon} {lang === 'ur' ? p.labelUr : p.labelEn}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Admin & Multi-Counter Cashier Session Modal */}
         {showRoleModal && (
