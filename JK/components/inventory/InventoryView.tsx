@@ -85,6 +85,15 @@ export const InventoryView: React.FC = () => {
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
+    const rawQ = (searchQuery || '').trim();
+    const q = rawQ.toLowerCase();
+    const normQ = q
+      .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+      .replace(/[يى]/g, 'ی')
+      .replace(/[ك]/g, 'ک')
+      .replace(/[هۃھ]/g, 'ہ')
+      .replace(/[آإأٱ]/g, 'ا');
+
     return products.filter((p) => {
       const pCat = lang === 'ur' ? (p.categoryUr || p.categoryEn) : (p.categoryEn || p.categoryUr);
       const catMatch =
@@ -93,13 +102,24 @@ export const InventoryView: React.FC = () => {
         p.categoryUr === filterCategory ||
         p.categoryEn === filterCategory;
 
-      const q = (searchQuery || '').toLowerCase().trim();
+      const nameEn = (p.nameEn || '').toLowerCase();
+      const nameUr = (p.nameUr || '').toLowerCase();
+      const normNameUr = nameUr
+        .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+        .replace(/[يى]/g, 'ی')
+        .replace(/[ك]/g, 'ک')
+        .replace(/[هۃھ]/g, 'ہ')
+        .replace(/[آإأٱ]/g, 'ا');
+
       const textMatch =
-        !q ||
-        (p.nameEn || '').toLowerCase().includes(q) ||
-        (p.nameUr || '').toLowerCase().includes(q) ||
-        (p.barcode || '').includes(q) ||
-        (p.sku || '').toLowerCase().includes(q);
+        !rawQ ||
+        nameEn.includes(q) ||
+        nameUr.includes(q) ||
+        (normQ && normNameUr.includes(normQ)) ||
+        (p.barcode || '').includes(rawQ) ||
+        (p.sku || '').toLowerCase().includes(q) ||
+        (p.categoryUr || '').toLowerCase().includes(q) ||
+        (p.categoryEn || '').toLowerCase().includes(q);
 
       const stockMatch = !lowStockOnly || p.stock <= p.minStockAlert;
 
@@ -315,9 +335,23 @@ export const InventoryView: React.FC = () => {
 
   const handleSaveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProduct || !editingProduct.nameUr || !editingProduct.nameEn) return;
+    if (!editingProduct) return;
 
-    saveProduct(editingProduct as any);
+    const nameUrTrim = (editingProduct.nameUr || '').trim();
+    const nameEnTrim = (editingProduct.nameEn || '').trim();
+
+    if (!nameUrTrim && !nameEnTrim) {
+      alert(lang === 'ur' ? 'برائے مہربانی آئٹم کا نام درج کریں (اردو یا انگلش)' : 'Please enter product name (Urdu or English)');
+      return;
+    }
+
+    const finalProduct = {
+      ...editingProduct,
+      nameUr: nameUrTrim || nameEnTrim,
+      nameEn: nameEnTrim || nameUrTrim,
+    };
+
+    saveProduct(finalProduct as any);
     setModalOpen(false);
     setEditingProduct(null);
   };
@@ -1075,11 +1109,10 @@ export const InventoryView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    نام (اردو نستعلیق)*:
+                    {lang === 'ur' ? 'آئٹم نام (اردو):' : 'Item Name (Urdu):'}
                   </label>
                   <input
                     type="text"
-                    required
                     value={editingProduct.nameUr || ''}
                     onChange={(e) => setEditingProduct({ ...editingProduct, nameUr: e.target.value })}
                     placeholder="مثلاً: سفید چینی اعلٰی کوالٹی"
@@ -1089,11 +1122,10 @@ export const InventoryView: React.FC = () => {
 
                 <div>
                   <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Name (English)*:
+                    {lang === 'ur' ? 'آئٹم نام (انگلش):' : 'Item Name (English):'}
                   </label>
                   <input
                     type="text"
-                    required
                     value={editingProduct.nameEn || ''}
                     onChange={(e) => setEditingProduct({ ...editingProduct, nameEn: e.target.value })}
                     placeholder="e.g. Refined White Sugar"

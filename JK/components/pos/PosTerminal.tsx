@@ -707,7 +707,15 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   // Filtered products (Matches specific portion when selected, and ALL products when 'all' is selected)
   const filteredProducts = useMemo(() => {
-    const q = (deferredSearchQuery || '').toLowerCase().trim();
+    const rawQ = (deferredSearchQuery || '').trim();
+    const q = rawQ.toLowerCase();
+    const normQ = q
+      .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+      .replace(/[يى]/g, 'ی')
+      .replace(/[ك]/g, 'ک')
+      .replace(/[هۃھ]/g, 'ہ')
+      .replace(/[آإأٱ]/g, 'ا');
+
     const hasCat = selectedCategory !== 'all';
 
     return products.filter((p) => {
@@ -722,12 +730,25 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         }
       }
 
-      if (!q) return true;
+      if (!rawQ) return true;
+
+      const nameEn = (p.nameEn || '').toLowerCase();
+      const nameUr = (p.nameUr || '').toLowerCase();
+      const normNameUr = nameUr
+        .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+        .replace(/[يى]/g, 'ی')
+        .replace(/[ك]/g, 'ک')
+        .replace(/[هۃھ]/g, 'ہ')
+        .replace(/[آإأٱ]/g, 'ا');
+
       return (
-        (p.nameEn || '').toLowerCase().includes(q) ||
-        (p.nameUr || '').toLowerCase().includes(q) ||
-        (p.barcode || '').includes(q) ||
-        (p.sku || '').toLowerCase().includes(q)
+        nameEn.includes(q) ||
+        nameUr.includes(q) ||
+        (normQ && normNameUr.includes(normQ)) ||
+        (p.barcode || '').includes(rawQ) ||
+        (p.sku || '').toLowerCase().includes(q) ||
+        (p.categoryUr || '').toLowerCase().includes(q) ||
+        (p.categoryEn || '').toLowerCase().includes(q)
       );
     });
   }, [products, selectedCategory, deferredSearchQuery, lang]);
@@ -745,16 +766,36 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   // Global search suggestions with fast early exit at 25 items for 0ms typing
   const searchResults = useMemo(() => {
-    const q = (deferredSearchQuery || '').toLowerCase().trim();
-    if (!q) return [];
+    const rawQ = (deferredSearchQuery || '').trim();
+    if (!rawQ) return [];
+    const q = rawQ.toLowerCase();
+    const normQ = q
+      .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+      .replace(/[يى]/g, 'ی')
+      .replace(/[ك]/g, 'ک')
+      .replace(/[هۃھ]/g, 'ہ')
+      .replace(/[آإأٱ]/g, 'ا');
+
     const results: Product[] = [];
     for (let i = 0; i < products.length; i++) {
       const p = products[i];
+      const nameEn = (p.nameEn || '').toLowerCase();
+      const nameUr = (p.nameUr || '').toLowerCase();
+      const normNameUr = nameUr
+        .replace(/[\u064B-\u065F\u0670\u200C]/g, '')
+        .replace(/[يى]/g, 'ی')
+        .replace(/[ك]/g, 'ک')
+        .replace(/[هۃھ]/g, 'ہ')
+        .replace(/[آإأٱ]/g, 'ا');
+
       if (
-        (p.nameEn && p.nameEn.toLowerCase().includes(q)) ||
-        (p.nameUr && p.nameUr.toLowerCase().includes(q)) ||
-        (p.barcode && p.barcode.includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q))
+        nameEn.includes(q) ||
+        nameUr.includes(q) ||
+        (normQ && normNameUr.includes(normQ)) ||
+        (p.barcode && p.barcode.includes(rawQ)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.categoryUr && p.categoryUr.toLowerCase().includes(q)) ||
+        (p.categoryEn && p.categoryEn.toLowerCase().includes(q))
       ) {
         results.push(p);
         if (results.length >= 25) break;
@@ -2150,12 +2191,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               onFocus={() => {
                 if (searchQuery.trim()) setSearchSuggestionsOpen(true);
               }}
-              placeholder={lang === 'ur' ? 'آئٹم کا نام یا لفظ تلاش کریں...' : 'Search product name or keyword...'}
-              className="w-full pl-9 pr-20 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-xs"
+              placeholder={lang === 'ur' ? 'آئٹم کا نام، برانڈ یا کوڈ تلاش کریں...' : 'Search item name, brand or code...'}
+              className="w-full pl-9 pr-14 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-xs"
             />
           </form>
 
-          {/* Quick buttons inside search input: Clear, Voice Mic, Virtual Urdu Keyboard */}
+          {/* Quick buttons inside search input: Clear, Voice Mic */}
           <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
             {searchQuery && (
               <button
@@ -2182,22 +2223,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               title="آواز سے بول کر تلاش کریں (Voice Search)"
             >
               <Mic className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                posSound.playClick();
-                setUrduKeyboardOpen(!urduKeyboardOpen);
-              }}
-              className={`px-1.5 py-0.5 rounded text-[11px] font-black transition-all ${
-                urduKeyboardOpen
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300'
-              }`}
-              title="آن سکرین اردو کی بورڈ کھولیں"
-            >
-              اردو
             </button>
           </div>
 
@@ -2226,7 +2251,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   >
                     <div>
                       <div className="font-bold text-xs text-slate-900 dark:text-white">
-                        {lang === 'ur' ? p.nameUr : p.nameEn}
+                        {p.nameUr && p.nameEn && p.nameUr !== p.nameEn
+                          ? `${lang === 'ur' ? p.nameUr : p.nameEn} (${lang === 'ur' ? p.nameEn : p.nameUr})`
+                          : p.nameUr || p.nameEn}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
                         {p.barcode} • {p.unit}
@@ -2585,11 +2612,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] text-slate-400 font-mono font-bold tracking-wider">{p.sku}</div>
                           <h4 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mt-0.5 line-clamp-2">
-                            {lang === 'ur' ? p.nameUr : p.nameEn}
+                            {lang === 'ur' ? (p.nameUr || p.nameEn) : (p.nameEn || p.nameUr)}
                           </h4>
-                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
-                            {lang === 'ur' ? p.nameEn : p.nameUr}
-                          </p>
+                          {(p.nameUr && p.nameEn && p.nameUr !== p.nameEn) && (
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 font-sans line-clamp-1 mt-0.5">
+                              {lang === 'ur' ? p.nameEn : p.nameUr}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
