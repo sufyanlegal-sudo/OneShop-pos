@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ShoppingBag,
   BookOpen,
@@ -80,7 +80,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     isCloudSyncing,
     lastCloudSyncTime,
     syncWithCloud,
+    usersDB,
   } = useShop();
+
+  const pendingUsersCount = useMemo(() => {
+    return (usersDB || []).filter(
+      (u) => !u.approved && u.email?.toLowerCase() !== 'jkdevelopers.pk@gmail.com'
+    ).length;
+  }, [usersDB]);
 
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
@@ -405,6 +412,25 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
           {/* Right: Quick Action Controls & Hero Control Center Button */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Super Admin Client Approvals Fast Button */}
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setIsSuperAdminModalOpen(true);
+              }}
+              className="h-7 sm:h-8 px-2.5 rounded-lg bg-gradient-to-r from-amber-950/80 to-emerald-950/80 hover:from-amber-900 hover:to-emerald-900 border border-amber-500/60 text-amber-300 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+              title="سپر ایڈمن کنٹرول و کلائنٹس لائسنس منظوری پینل"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-bold hidden md:inline">سپر ایڈمن</span>
+              {pendingUsersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-mono font-black text-[9px] animate-pulse">
+                  {pendingUsersCount}
+                </span>
+              )}
+            </button>
+
             {/* 1. Quick Language Switch (Urdu / English) */}
             <button
               type="button"

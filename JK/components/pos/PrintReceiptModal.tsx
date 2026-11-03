@@ -129,10 +129,29 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   const handlePrint = () => {
     const prevZoom = zoomScale;
     setZoomScale(100);
+
+    // Inject exact dynamic @page rule for pixel-perfect printing on thermal vs standard printers
+    let styleEl = document.getElementById('dynamic-page-print-css') as HTMLStyleElement;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'dynamic-page-print-css';
+      document.head.appendChild(styleEl);
+    }
+
+    if (format === 'thermal80') {
+      styleEl.innerHTML = `@media print { @page { size: 80mm auto !important; margin: 0 !important; } html, body { width: 80mm !important; } }`;
+    } else if (format === 'thermal58') {
+      styleEl.innerHTML = `@media print { @page { size: 58mm auto !important; margin: 0 !important; } html, body { width: 58mm !important; } }`;
+    } else if (format === 'a4') {
+      styleEl.innerHTML = `@media print { @page { size: A4 portrait !important; margin: 8mm 10mm !important; } html, body { width: 100% !important; } }`;
+    } else if (format === 'a5') {
+      styleEl.innerHTML = `@media print { @page { size: A5 portrait !important; margin: 6mm 8mm !important; } html, body { width: 100% !important; } }`;
+    }
+
     setTimeout(() => {
       window.print();
       setZoomScale(prevZoom);
-    }, 100);
+    }, 120);
   };
 
   const isUrdu = receiptLang === 'ur';
@@ -329,47 +348,49 @@ ${developerCredit}`;
             </button>
           </div>
 
-          {/* Format selector buttons */}
-          <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl text-xs">
+          {/* Dual Printer Selector: Thermal POS vs Standard Normal Printer */}
+          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-700/70 text-xs">
             <button
               onClick={() => setFormat('thermal80')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
                 format === 'thermal80'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
+              title="80mm یا 58mm رول تھرمل پرنٹر"
             >
-              80mm تھرمل
-            </button>
-            <button
-              onClick={() => setFormat('thermal58')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                format === 'thermal58'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              58mm تھرمل
+              <span>🧾</span>
+              <span>تھرمل پرنٹر (Thermal 80mm)</span>
             </button>
             <button
               onClick={() => setFormat('a4')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
                 format === 'a4'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
+              title="عام A4 یا Letter لیزر/انک جیٹ پرنٹر"
             >
-              A4 فل پیج
+              <span>📄</span>
+              <span>سادہ پرنٹر (A4 فل پیج)</span>
             </button>
             <button
-              onClick={() => setFormat('a5')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                format === 'a5'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-300 hover:text-white'
+              onClick={() => setFormat(format === 'thermal58' ? 'thermal80' : 'thermal58')}
+              className={`px-2 py-1 rounded-lg text-[11px] font-mono transition-all ${
+                format === 'thermal58' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
+              title="چھوٹا 58mm پورٹیبل پرنٹر"
             >
-              A5 ہاف پیج
+              58mm
+            </button>
+            <button
+              onClick={() => setFormat(format === 'a5' ? 'a4' : 'a5')}
+              className={`px-2 py-1 rounded-lg text-[11px] font-mono transition-all ${
+                format === 'a5' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+              title="A5 ہاف پیج پرنٹ"
+            >
+              A5
             </button>
           </div>
 

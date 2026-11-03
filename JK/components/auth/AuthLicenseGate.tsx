@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useShop } from '@/context/ShopContext';
 import {
   ShieldAlert,
@@ -28,6 +29,11 @@ import {
   EyeOff,
 } from 'lucide-react';
 
+const SuperAdminModal = dynamic(
+  () => import('@/components/auth/SuperAdminModal').then((m) => m.SuperAdminModal),
+  { ssr: false }
+);
+
 interface AuthLicenseGateProps {
   children: React.ReactNode;
 }
@@ -41,10 +47,12 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     registerUser,
     superAdminLoginWithMasterKey,
     logoutUser,
+    isSuperAdminModalOpen,
     setIsSuperAdminModalOpen,
     fetchGoogleBackup,
     restoreFromGoogleCloud,
     syncWithCloud,
+    refreshUsersFromCloud,
     usersDB,
   } = useShop();
 
@@ -86,15 +94,31 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     message: string;
   } | null>(null);
 
-  // Hidden Super Admin Master Key States (NO visible public button)
+  // Super Admin Master Key States
   const [masterKeyModalOpen, setMasterKeyModalOpen] = useState(false);
   const [masterKeyInput, setMasterKeyInput] = useState('');
+  const [showMasterKey, setShowMasterKey] = useState(false);
   const [masterKeyError, setMasterKeyError] = useState('');
 
   const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
   const ADMIN_WHATSAPP = '+923008998381';
 
   const [isApprovedAndUnlocking, setIsApprovedAndUnlocking] = useState(false);
+
+  // Real-time synchronization of users from cloud every 2.5s
+  useEffect(() => {
+    refreshUsersFromCloud();
+    const interval = setInterval(() => {
+      refreshUsersFromCloud();
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const pendingCount = useMemo(() => {
+    return usersDB.filter(
+      (u) => !u.approved && u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()
+    ).length;
+  }, [usersDB]);
 
   // REAL-TIME AUTO UNLOCK: Continuously checks every 2.5s if Super Admin approved this user.
   // The moment Admin clicks "Approve", the client screen automatically unlocks and launches the POS!
@@ -672,6 +696,42 @@ ${u?.name || 'Store Owner'}`
               </div>
             )}
 
+            {/* Developer Super Admin Portal Access Card (JK Developers Pakistan) */}
+            <div className="p-3 bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-cyan-500/15 border-2 border-amber-500/50 rounded-2xl flex items-center justify-between gap-2 shadow-lg mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/40">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-amber-300">
+                      👑 سپر ایڈمن کنٹرول و منظوری
+                    </span>
+                    {pendingCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white font-black text-[10px] animate-pulse">
+                        ⚡ {pendingCount} نئے کلائنٹس منتظر
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-300">
+                    کلائنٹس کی فوری آن لائن منظوری، لائسنس کنٹرول اور کلاؤڈ نگرانی
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMasterKeyInput('');
+                  setMasterKeyError('');
+                  setMasterKeyModalOpen(true);
+                }}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-black text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5 shrink-0"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>سپر لاگ ان</span>
+              </button>
+            </div>
+
             {/* ------------------------------------------------------------- */}
             {/* TAB 1: CLIENT SIGN IN (MATCHING USER MOCKUP EXACTLY)           */}
             {/* ------------------------------------------------------------- */}
@@ -1079,18 +1139,27 @@ ${u?.name || 'Store Owner'}`
                 <label className="block text-[11px] font-bold text-slate-400 mb-1">
                   Master Security Key:
                 </label>
-                <input
-                  type="password"
-                  dir="ltr"
-                  value={masterKeyInput}
-                  onChange={(e) => {
-                    setMasterKeyInput(e.target.value);
-                    setMasterKeyError('');
-                  }}
-                  placeholder="Enter secret key..."
-                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs font-mono outline-none text-white focus:ring-2 focus:ring-emerald-500/40 text-left"
-                  autoFocus
-                />
+                <div className="relative">
+                  <input
+                    type={showMasterKey ? 'text' : 'password'}
+                    dir="ltr"
+                    value={masterKeyInput}
+                    onChange={(e) => {
+                      setMasterKeyInput(e.target.value);
+                      setMasterKeyError('');
+                    }}
+                    placeholder="Enter Master Security Key..."
+                    className="w-full px-3.5 py-2.5 pr-10 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs font-mono outline-none text-white focus:ring-2 focus:ring-emerald-500/40 text-left"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMasterKey(!showMasterKey)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showMasterKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {masterKeyError && (
@@ -1123,6 +1192,8 @@ ${u?.name || 'Store Owner'}`
           </div>
         </div>
       )}
+      {/* Super Admin Modal (allows immediate client approval directly from login screen) */}
+      <SuperAdminModal />
     </div>
   );
 };

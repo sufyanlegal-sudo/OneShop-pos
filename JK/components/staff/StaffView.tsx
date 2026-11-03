@@ -13,6 +13,8 @@ import {
   CreditCard,
   FileText,
   BadgeCheck,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -59,12 +61,33 @@ export const StaffView: React.FC = () => {
     setMonthlySalary(25000);
   };
 
+  // Check if salary for selected month is already paid
+  const isMonthSalaryAlreadyPaid = useMemo(() => {
+    if (!selectedStaffToPay || payType !== 'SALARY') return false;
+    return (selectedStaffToPay.payments || []).some(
+      (p) => p.paymentType === 'SALARY' && p.month === payMonth
+    );
+  }, [selectedStaffToPay, payType, payMonth]);
+
+  const currentMonthStr = useMemo(() => new Date().toISOString().slice(0, 7), []);
+
   // Handle Pay Salary
   const handlePaySalary = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStaffToPay || payAmount <= 0) return;
+    if (isMonthSalaryAlreadyPaid) {
+      alert(
+        lang === 'ur'
+          ? `⚠️ اس ملازم کی ماہ (${payMonth}) کی تنخواہ پہلے سے ادا ہو چکی ہے! دوبارہ انٹری نہیں ہو سکتی۔`
+          : `Salary for (${payMonth}) already paid!`
+      );
+      return;
+    }
 
-    payStaffSalary(selectedStaffToPay.id, payAmount, payMonth, payType, payNotes);
+    const res = payStaffSalary(selectedStaffToPay.id, payAmount, payMonth, payType, payNotes);
+    if (res && res.success === false) {
+      return;
+    }
     setShowPayModal(false);
     setPayAmount(0);
     setPayNotes('');
@@ -177,9 +200,27 @@ export const StaffView: React.FC = () => {
                 </p>
               </div>
 
+              {/* Current Month Status Badge */}
+              <div className="mt-2.5 flex items-center justify-between text-[11px] p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                <span className="text-slate-500 font-medium">
+                  {lang === 'ur' ? 'ماہانہ تنخواہ اسٹیٹس:' : 'Monthly Status:'}
+                </span>
+                {staff.payments?.some((p) => p.paymentType === 'SALARY' && p.month === currentMonthStr) ? (
+                  <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{lang === 'ur' ? 'ادا شدہ (Paid)' : 'Paid'}</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{lang === 'ur' ? 'واجب الادا (Pending)' : 'Unpaid'}</span>
+                  </span>
+                )}
+              </div>
+
               {/* Recent Payment Tag */}
               {staff.payments.length > 0 && (
-                <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-[11px] flex justify-between">
+                <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-[11px] flex justify-between">
                   <span className="text-slate-500">
                     {lang === 'ur' ? 'آخری ادائیگی:' : 'Last Paid:'} ({staff.payments[0].month})
                   </span>
@@ -411,6 +452,21 @@ export const StaffView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Duplicate Salary Warning */}
+              {isMonthSalaryAlreadyPaid && (
+                <div className="p-3 bg-rose-950/90 border border-rose-600 rounded-2xl text-rose-200 flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <span className="font-bold text-white block">
+                      {lang === 'ur' ? '⚠️ تنخواہ پہلے سے ادا شدہ ہے!' : '⚠️ Salary Already Paid!'}
+                    </span>
+                    {lang === 'ur'
+                      ? `اس ملازم کی ماہ (${payMonth}) کی تنخواہ کا اندراج پہلے ہی ہو چکا ہے۔ سسٹم ایک ملازم کی ایک ماہ میں دو بار تنخواہ داخل کرنے کی قطعی اجازت نہیں دیتا۔`
+                      : `Salary for (${payMonth}) is already recorded for this staff. Duplicate salary entry is blocked.`}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
                   {lang === 'ur' ? 'تفصیل یا رسید ریمارکس' : 'Remarks'}
@@ -434,9 +490,16 @@ export const StaffView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-950/50"
+                  disabled={isMonthSalaryAlreadyPaid}
+                  className={`flex-1 py-2.5 rounded-xl font-bold shadow-lg transition-all ${
+                    isMonthSalaryAlreadyPaid
+                      ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/50'
+                  }`}
                 >
-                  {lang === 'ur' ? 'ادائیگی کا اندراج کریں' : 'Confirm Payout'}
+                  {isMonthSalaryAlreadyPaid
+                    ? (lang === 'ur' ? '⛔ تنخواہ پہلے سے ادا شدہ' : '⛔ Already Paid')
+                    : (lang === 'ur' ? 'ادائیگی کا اندراج کریں' : 'Confirm Payout')}
                 </button>
               </div>
             </form>
