@@ -12,8 +12,42 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'OneShop POS | JK Developers Pakistan - ون شاپ پی او ایس',
-  description: 'OneShop POS - Enterprise Bilingual POS & ERP System by JK Developers Pakistan',
+  title: 'One Shop POS - Best Cloud POS Software in Pakistan | ون شاپ پی او ایس',
+  description: 'One Shop POS is a secure cloud-based point of sale system for supermarkets, retail shops, and businesses in Pakistan, developed by JK Developers Pakistan.',
+  keywords: [
+    'One Shop POS',
+    'POS Software Pakistan',
+    'Best Cloud POS Software in Pakistan',
+    'Supermarket POS Pakistan',
+    'Retail POS System Pakistan',
+    'JK Developers Pakistan',
+    'Best POS Software',
+    'Bilingual POS System',
+    'ون شاپ پی او ایس',
+    'پوائنٹ آف سیل سافٹ ویئر',
+    'کیش کاؤنٹر سافٹ ویئر',
+    'ادھار کھاتہ سافٹ ویئر',
+  ],
+  authors: [{ name: 'JK Developers Pakistan', url: 'https://one-shop-pos.vercel.app' }],
+  creator: 'JK Developers Pakistan',
+  publisher: 'JK Developers Pakistan',
+  metadataBase: new URL('https://one-shop-pos.vercel.app'),
+  alternates: {
+    canonical: 'https://one-shop-pos.vercel.app',
+  },
+  openGraph: {
+    title: 'One Shop POS - Best Cloud POS Software in Pakistan | ون شاپ پی او ایس',
+    description: 'One Shop POS is a secure cloud-based point of sale system for supermarkets, retail shops, and businesses in Pakistan, developed by JK Developers Pakistan.',
+    url: 'https://one-shop-pos.vercel.app',
+    siteName: 'One Shop POS',
+    locale: 'ur_PK',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'One Shop POS - Best Cloud POS Software in Pakistan | ون شاپ پی او ایس',
+    description: 'One Shop POS is a secure cloud-based point of sale system for supermarkets, retail shops, and businesses in Pakistan, developed by JK Developers Pakistan.',
+  },
   manifest: '/manifest.json',
   verification: {
     google: 'q6oMUpMYb30YKi5dd_34e9jQdfc9ir7glULvvhdUkxY',
@@ -21,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'OneShop POS',
+    title: 'One Shop POS',
   },
 };
 
@@ -33,7 +67,11 @@ export default function RootLayout({
   return (
     <html lang="ur" dir="rtl" className="h-full">
       <head>
+        <title>One Shop POS - Best Cloud POS Software in Pakistan | ون شاپ پی او ایس</title>
+        <meta name="description" content="One Shop POS is a secure cloud-based point of sale system for supermarkets, retail shops, and businesses in Pakistan, developed by JK Developers Pakistan." />
+        <meta name="keywords" content="One Shop POS, POS Software Pakistan, Best Cloud POS Software in Pakistan, Supermarket POS Pakistan, Retail POS System Pakistan, JK Developers Pakistan, ون شاپ پی او ایس" />
         <meta name="google-site-verification" content="q6oMUpMYb30YKi5dd_34e9jQdfc9ir7glULvvhdUkxY" />
+        <link rel="canonical" href="https://one-shop-pos.vercel.app" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
