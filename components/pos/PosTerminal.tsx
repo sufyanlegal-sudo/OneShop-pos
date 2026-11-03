@@ -1995,157 +1995,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
   return (
     <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden">
-      {/* 1. TOP HEADER STRIP: Active Counter, Cashier, Software Branding, WhatsApp Orders, Margin Pin */}
-      <div className="px-4 py-2 bg-slate-900/95 backdrop-blur-md text-white flex flex-wrap items-center justify-between text-xs rounded-2xl border border-slate-800 shadow-md gap-2.5">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Active Role & Counter Badge (Admin vs Cashier Mode Distinction) */}
-          <div className="flex items-center gap-2">
-            {currentRole === 'ADMIN' || currentRole === 'MANAGER' ? (
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-xl font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs flex items-center gap-1.5 shadow-sm">
-                  <span>👑</span>
-                  <span>{lang === 'ur' ? 'ایڈمن ٹرمینل (مکمل اختیارات)' : 'Admin Terminal (Full Access)'}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => switchRole('CASHIER')}
-                  className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[11px] font-bold border border-slate-700 transition-all flex items-center gap-1"
-                  title="کیشیئر موڈ پر سوئچ کریں"
-                >
-                  <span>🏢</span>
-                  <span>{lang === 'ur' ? 'کیشیئر موڈ' : 'Cashier Mode'}</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-xl font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 shadow-sm">
-                  <span>🏢</span>
-                  <span>{lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}</span>
-                  <span className="text-slate-300 font-sans">• {activeCashier?.name || 'کیشیئر'}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPinModalOpen(true)}
-                  className="px-2.5 py-1 rounded-xl bg-purple-950/70 hover:bg-purple-900 text-purple-300 text-[11px] font-bold border border-purple-700/60 transition-all flex items-center gap-1"
-                  title="ایڈمن لاگ ان پن درج کریں"
-                >
-                  <span>👑</span>
-                  <span>{lang === 'ur' ? 'ایڈمن لاگ ان' : 'Admin Login'}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-                    {/* Live Quick Metrics: سیل، فروخت، اسٹاک */}
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-slate-800/90 rounded-xl border border-slate-700/60 font-mono text-[11px]" title="آج کی کل سیل / فروخت">
-              <span className="text-slate-400 font-sans font-bold">{lang === 'ur' ? 'سیل:' : 'Sale:'}</span>
-              <span className="font-bold text-emerald-400">Rs. {todaySalesTotal.toLocaleString()}</span>
-              <span className="text-[10px] text-slate-500">({todayInvoices.length} {lang === 'ur' ? 'بل' : 'bills'})</span>
-            </span>
-
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-slate-800/90 rounded-xl border border-slate-700/60 font-mono text-[11px]" title="دکان کا کل فزیکل اسٹاک">
-              <span className="text-slate-400 font-sans font-bold">{lang === 'ur' ? 'اسٹاک:' : 'Stock:'}</span>
-              <span className={`font-bold ${totalStockCount === 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {totalStockCount.toLocaleString()} {lang === 'ur' ? (totalStockCount === 0 ? '(صفر)' : 'یونٹس') : 'Units'}
-              </span>
-            </span>
-          </div>
-
-          {/* Real-time Dynamic Online / Offline & Cloud Indicator */}
-          <div
-            className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-xl border transition-all ${
-              isOnline
-                ? 'text-emerald-300 bg-emerald-950/60 border-emerald-700/60'
-                : 'text-amber-300 bg-amber-950/70 border-amber-500/70'
-            }`}
-            title={
-              isOnline
-                ? (lang === 'ur' ? 'انٹرنیٹ اور گوگل کلاؤڈ سنک فعال ہے' : 'Online & Google Cloud Sync Active')
-                : (lang === 'ur' ? 'انٹرنیٹ کے بغیر تمام بلنگ اور اسٹاک 100% آف لائن فعال ہے' : '100% Offline Mode Active - Zero Internet Required')
-            }
-          >
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-            <span className="font-mono text-xs">
-              {isOnline
-                ? (lang === 'ur' ? '🟢 آن لائن • کلاؤڈ سنک فعال' : '🟢 Online • Cloud Sync')
-                : (lang === 'ur' ? '⚡ 100% آف لائن موڈ فعال' : '⚡ 100% Offline Active')}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs flex-wrap">
-          {/* WhatsApp Orders Notification Button */}
-          {pendingWhatsAppOrdersCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setIsWhatsAppOrdersModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95 animate-pulse"
-              title="واٹس ایپ پر موصول شدہ آرڈرز دیکھیں"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-slate-950" />
-              <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'واٹس ایپ آرڈرز' : 'WhatsApp Orders'}</span>
-            </button>
-          )}
-
-          {/* Quick Bill History & Fast Reprint Button for Cashier */}
-          <button
-            type="button"
-            onClick={() => setIsRecentBillsModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-sm active:scale-95"
-            title="پچھلے بلز دیکھیں اور ری پرنٹ نکالیں"
-          >
-            <History className="w-3.5 h-3.5 text-blue-100" />
-            <span>{lang === 'ur' ? '🧾 بل ہسٹری و ری پرنٹ' : 'Bills & Reprint'}</span>
-          </button>
-
-          {/* Quick Return & Exchange Button */}
-          <button
-            type="button"
-            onClick={() => setIsExchangeModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-750 text-blue-300 border border-blue-500/30 font-bold text-xs transition-all shadow-sm active:scale-95"
-            title="مال کی واپسی و ایکسچینج (Return & Exchange)"
-          >
-            <Repeat className="w-3.5 h-3.5 text-blue-400" />
-            <span>{lang === 'ur' ? '🔁 مال کا تبادلہ' : 'Exchange'}</span>
-          </button>
-
-          {/* Quick Stock & System Audit Button */}
-          <button
-            type="button"
-            onClick={() => onNavigate?.('audit')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-sm active:scale-95"
-            title={lang === 'ur' ? 'اسٹاک فزیکل آڈٹ اور سسٹم لاگز دیکھیں' : 'Stock & System Audit'}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-100" />
-            <span>{lang === 'ur' ? '📋 اسٹاک و سسٹم آڈٹ' : 'Audit'}</span>
-          </button>
-
-          {/* LAYOUT TOGGLE BUTTON: Show Items Dashboard vs Bill Only View */}
-          <button
-            type="button"
-            onClick={toggleCatalog}
-            className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap ${
-              showCatalog
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-            }`}
-            title={
-              showCatalog
-                ? (lang === 'ur' ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'Hide catalog, show bill only')
-                : (lang === 'ur' ? 'اشیاء ڈیش بورڈ ساتھ کھولیں' : 'Show items dashboard alongside bill')
-            }
-          >
-            {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
-            <span>
-              {showCatalog
-                ? (lang === 'ur' ? '🧾 صرف بلنگ موڈ' : 'Bill Only View')
-                : (lang === 'ur' ? '📦 اشیاء ڈیش بورڈ' : 'Show Items')}
-            </span>
-          </button>
-        </div>
-      </div>
-
       {/* Live Pending WhatsApp Order Alert Strip */}
       {pendingWhatsAppOrdersCount > 0 && (
         <div className="bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-500/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs text-slate-900 dark:text-white shadow-xs">
@@ -2822,39 +2671,56 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               </h3>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Quick switch to catalog button on mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* 1. Toggle Items Catalog / Dashboard (Small, Sleek Button) */}
               <button
                 type="button"
-                onClick={() => {
-                  setMobileTab('catalog');
-                  setShowCatalog(true);
-                }}
-                className="lg:hidden px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm"
+                onClick={toggleCatalog}
+                className={`h-7 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 border ${
+                  showCatalog
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                }`}
+                title={
+                  showCatalog
+                    ? (lang === 'ur' ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'Hide catalog, show bill only')
+                    : (lang === 'ur' ? 'اشیاء ڈیش بورڈ ساتھ کھولیں' : 'Show items dashboard alongside bill')
+                }
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>{lang === 'ur' ? '+ اشیاء منتخب کریں' : '+ Add Items'}</span>
+                {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+                <span className="text-[11px] font-bold">
+                  {showCatalog
+                    ? (lang === 'ur' ? 'صرف بل موڈ' : 'Bill Only')
+                    : (lang === 'ur' ? 'اشیاء ڈیش بورڈ' : 'Items Dashboard')}
+                </span>
               </button>
 
-              {/* Quick toggle catalog button if catalog is hidden */}
-              {!showCatalog && (
-                <button
-                  type="button"
-                  onClick={toggleCatalog}
-                  className="hidden lg:flex px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg items-center gap-1 transition-all border border-slate-700"
-                  title="اشیاء ڈیش بورڈ کھولیں"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-[11px]">{lang === 'ur' ? 'اشیاء ڈیش بورڈ کھولیں' : 'Show Items'}</span>
-                </button>
-              )}
+              {/* 2. Quick Bills History Icon Button */}
+              <button
+                type="button"
+                onClick={() => setIsRecentBillsModalOpen(true)}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 transition active:scale-95 shadow-xs"
+                title={lang === 'ur' ? 'بل ہسٹری و ری پرنٹ (F2)' : 'Bills History & Reprint'}
+              >
+                <History className="w-3.5 h-3.5" />
+              </button>
 
-              {/* Admin Live Margin Lock/Unlock Button */}
+              {/* 3. Quick Return & Exchange Icon Button */}
+              <button
+                type="button"
+                onClick={() => setIsExchangeModalOpen(true)}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-teal-600 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 transition active:scale-95 shadow-xs"
+                title={lang === 'ur' ? 'مال کا تبادلہ و واپسی' : 'Exchange / Return Item'}
+              >
+                <Repeat className="w-3.5 h-3.5" />
+              </button>
+
+              {/* 4. Admin Live Margin Lock/Unlock Button */}
               {isMarginUnlocked ? (
                 <button
                   type="button"
                   onClick={lockMargin}
-                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all"
+                  className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all"
                   title="Lock Live Margin Transparency"
                 >
                   <Unlock className="w-3.5 h-3.5 text-amber-300" />
@@ -2866,7 +2732,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => setPinModalOpen(true)}
-                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all"
+                  className="h-7 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all border border-slate-700"
                   title="Unlock Real-time Profit Margins (Admin PIN)"
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -2874,27 +2740,32 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 </button>
               )}
 
-              {/* Quick Hold Bill Button in Cart Header */}
+              {/* 5. Quick Hold Bill Button in Cart Header */}
               {cart.length > 0 && (
                 <button
                   type="button"
                   onClick={handleHoldBill}
-                  className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                  className="h-7 px-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-lg flex items-center gap-1 shadow-xs active:scale-95 transition-all"
                   title="موجودہ بل ہولڈ کریں (F6)"
                 >
                   <Pause className="w-3 h-3 fill-current" />
-                  <span className="text-[11px]">{lang === 'ur' ? 'بل ہولڈ (F6)' : 'Hold'}</span>
+                  <span className="text-[10px]">{lang === 'ur' ? 'ہولڈ' : 'Hold'}</span>
                 </button>
               )}
 
+              {/* 6. Quick Clear Cart Button */}
               {cart.length > 0 && (
                 <button
                   type="button"
-                  onClick={clearCart}
-                  className="p-1 text-slate-400 hover:text-rose-400 rounded transition-all"
+                  onClick={() => {
+                    if (confirm(lang === 'ur' ? 'کیا آپ تمام آئٹمز بل سے صاف کرنا چاہتے ہیں؟' : 'Clear all items?')) {
+                      clearCart();
+                    }
+                  }}
+                  className="w-7 h-7 bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition active:scale-95 border border-slate-700"
                   title={t('clearCart')}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
