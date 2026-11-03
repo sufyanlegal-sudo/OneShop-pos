@@ -431,8 +431,14 @@ export const SuperAdminModal: React.FC = () => {
                             <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               {user.approved ? (
                                 <button
-                                  onClick={() => toggleUserApproval(user.email)}
-                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs transition shadow-sm active:scale-95"
+                                  onClick={async () => {
+                                    if (confirm(`کیا آپ واقعی (${user.name || user.email}) کی رسائی روکنا (Revoke) چاہتے ہیں؟ سافٹ ویئر فوری طور پر اس کلائنٹ کے لیے لاک ہو جائے گا۔`)) {
+                                      await toggleUserApproval(user.email);
+                                      alert(`⛔ صارف (${user.name || user.email}) کی رسائی کامیابی سے روک دی گئی ہے۔ کلائنٹ کا سافٹ ویئر لاک ہو چکا ہے۔`);
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs transition shadow-sm active:scale-95 cursor-pointer"
+                                  title="رسائی معطل / بند کریں"
                                 >
                                   رسائی روکیں (Revoke)
                                 </button>
@@ -440,13 +446,14 @@ export const SuperAdminModal: React.FC = () => {
                                 <button
                                   onClick={async () => {
                                     await toggleUserApproval(user.email);
+                                    alert(`✓ صارف (${user.name || user.email}) کا اکاؤنٹ کامیابی سے منظور کر دیا گیا ہے! ان کا سافٹ ویئر فوری طور پر ان لاک ہو جائے گا۔`);
                                     if (user.phone) {
-                                      if (confirm(`صارف (${user.name}) کا لائسنس منظور ہو چکا ہے! کیا آپ انہیں واٹس ایپ پر بھی مطلع کرنا چاہتے ہیں؟`)) {
+                                      if (confirm(`صارف (${user.name || user.email}) کا لائسنس منظور ہو چکا ہے! کیا آپ انہیں واٹس ایپ پر بھی مطلع کرنا چاہتے ہیں؟`)) {
                                         handleSendApprovalWhatsApp(user);
                                       }
                                     }
                                   }}
-                                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs transition shadow-md active:scale-95 flex items-center gap-1"
+                                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs transition shadow-md active:scale-95 flex items-center gap-1 cursor-pointer"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   <span>✓ فوری منظور کریں</span>

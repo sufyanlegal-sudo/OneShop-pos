@@ -391,6 +391,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false } : u
               )
             );
+            storage.setCurrentUser(null);
+            setCurrentUserEmail(null);
+            alert('⚠️ آپ کے اکاؤنٹ کی رسائی ایڈمنسٹریٹر کی جانب سے معطل یا لاک کر دی گئی ہے۔ مزید معلومات کے لیے ہیلپ لائن (0300-8998381) سے رابطہ فرمائیں۔');
+            window.location.reload();
           }
         }
       } catch {
