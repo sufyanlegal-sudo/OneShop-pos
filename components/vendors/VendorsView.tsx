@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { printElement } from '@/lib/printService';
 import { Vendor } from '@/types';
 
 export const VendorsView: React.FC = () => {
@@ -477,7 +478,7 @@ export const VendorsView: React.FC = () => {
       {/* Vendor Ledger Modal */}
       {selectedVendorForLedger && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col text-white shadow-2xl relative overflow-hidden">
+          <div id="printable-vendor-ledger" className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col text-white shadow-2xl relative overflow-hidden">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-blue-400">
@@ -504,7 +505,13 @@ export const VendorsView: React.FC = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printElement('printable-vendor-ledger', {
+                      format: 'a4',
+                      isUrdu: lang === 'ur',
+                      title: `Supplier Ledger - ${selectedVendorForLedger.companyName}`,
+                    })
+                  }
                   className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5"
                 >
                   <FileText className="w-3.5 h-3.5" />

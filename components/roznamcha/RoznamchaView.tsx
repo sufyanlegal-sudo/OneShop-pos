@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
+import { printElement } from '@/lib/printService';
 import { RoznamchaEntry, RoznamchaType } from '@/types';
 
 export const RoznamchaView: React.FC = () => {
@@ -89,7 +90,11 @@ export const RoznamchaView: React.FC = () => {
   };
 
   const handlePrintRoznamcha = () => {
-    window.print();
+    printElement('printable-roznamcha-view', {
+      format: 'a4',
+      isUrdu: lang === 'ur',
+      title: 'Daily Cash Roznamcha',
+    });
   };
 
   const handleSendDailyReport = async () => {
@@ -126,7 +131,7 @@ export const RoznamchaView: React.FC = () => {
   }, [roznamcha, filterType]);
 
   return (
-    <div className="p-4 max-w-7xl mx-auto space-y-4">
+    <div id="printable-roznamcha-view" className="p-4 max-w-7xl mx-auto space-y-4">
       {/* Top Header Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">

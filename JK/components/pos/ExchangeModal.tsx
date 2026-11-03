@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
+import { printElement } from '@/lib/printService';
 import { Invoice, SaleReturn, SaleExchange, Product } from '@/types';
 
 interface ExchangeModalProps {
@@ -701,7 +702,7 @@ export const ExchangeModal: React.FC<ExchangeModalProps> = ({
         {/* COMPLETED EXCHANGE POPUP & RECEIPT */}
         {completedExchange && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 my-8 text-xs">
+            <div id="printable-pos-exchange-receipt" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 my-8 text-xs">
               <div className="text-center space-y-1 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 mx-auto flex items-center justify-center mb-1">
                   <Repeat className="w-6 h-6" />
@@ -790,7 +791,13 @@ export const ExchangeModal: React.FC<ExchangeModalProps> = ({
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printElement('printable-pos-exchange-receipt', {
+                      format: 'thermal80',
+                      isUrdu: true,
+                      title: `Exchange Receipt #${completedExchange.exchangeNo}`,
+                    })
+                  }
                   className="py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
                 >
                   <Printer className="w-3.5 h-3.5" />

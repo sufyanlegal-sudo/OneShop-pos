@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { printElement } from '@/lib/printService';
 import { GRN, GRNItem } from '@/types';
 
 export const GRNView: React.FC = () => {
@@ -915,7 +916,7 @@ export const GRNView: React.FC = () => {
             </button>
 
             {/* GRN Printable Voucher */}
-            <div className="space-y-4">
+            <div id="printable-grn-voucher" className="space-y-4">
               <div className="text-center border-b border-slate-300 pb-3">
                 <h2 className="text-xl font-black">{businessProfile.nameUr}</h2>
                 <p className="text-xs text-slate-600">{businessProfile.addressUr}</p>
@@ -1010,7 +1011,13 @@ export const GRNView: React.FC = () => {
               {/* Print Action Buttons */}
               <div className="no-print pt-3 flex gap-2">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printElement('printable-grn-voucher', {
+                      format: 'a4',
+                      isUrdu: lang === 'ur',
+                      title: `GRN Voucher #${activeGRNToPrint.grnNo}`,
+                    })
+                  }
                   className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md"
                 >
                   <Printer className="w-4 h-4" />

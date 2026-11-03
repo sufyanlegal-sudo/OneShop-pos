@@ -54,6 +54,7 @@ import { Product, PaymentMethod, Invoice, CurrencyDenominations, KhataPaymentRec
 import { VoiceAssistantModal } from '@/components/VoiceAssistantModal';
 import { PrintReceiptModal } from '@/components/pos/PrintReceiptModal';
 import { ExchangeModal } from '@/components/pos/ExchangeModal';
+import { printElement } from '@/lib/printService';
 import { posSound } from '@/lib/sound';
 
 interface PosTerminalProps {
@@ -4191,7 +4192,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
               </button>
             </div>
 
-            <div className="p-5 space-y-3 bg-white text-slate-900 text-xs font-medium">
+            <div id="printable-khata-receipt" className="p-5 space-y-3 bg-white text-slate-900 text-xs font-medium">
               <div className="text-center border-b pb-3 space-y-0.5">
                 <h2 className="font-black text-base text-slate-900">
                   {businessProfile.nameUr || businessProfile.nameEn}
@@ -4251,7 +4252,13 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
             <div className="p-3 bg-slate-100 dark:bg-slate-800 flex gap-2 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() =>
+                  printElement('printable-khata-receipt', {
+                    format: 'thermal80',
+                    isUrdu: lang === 'ur',
+                    title: `Khata Receipt #${posKhataCompletedReceipt.receiptNo}`,
+                  })
+                }
                 className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
               >
                 <Printer className="w-4 h-4 text-emerald-400" />

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { printElement } from '@/lib/printService';
 import QRCodeLib from 'qrcode';
 import JsBarcode from 'jsbarcode';
 
@@ -175,8 +176,12 @@ export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePrintLabels = () => {
-    window.print();
+  const handlePrintLabels = async () => {
+    await printElement('printable-label-wrapper', {
+      format: labelSize === 'a4_sheet' ? 'a4' : 'label',
+      isUrdu: lang === 'ur',
+      title: `Barcode Label - ${productName || 'Item'}`,
+    });
   };
 
   const handleGenerateRandomBarcode = () => {
@@ -450,6 +455,7 @@ export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({
               {lang === 'ur' ? '🔍 پرنٹ کا لائیو پری ویو (Live Print Preview):' : '🔍 Live Sticker Preview:'}
             </span>
 
+            <div id="printable-label-wrapper" className="flex items-center justify-center">
             {/* Single Sticker Card (50x30 / 40x25) */}
             {labelSize !== 'a4_sheet' ? (
               <div
@@ -500,7 +506,7 @@ export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({
               </div>
             ) : (
               /* A4 Sticker Sheet (Grid of 24 stickers) */
-              <div className="bg-white text-black p-3 rounded shadow-xl border border-gray-300 grid grid-cols-3 gap-2 w-full max-w-[320px] text-center text-[8px]">
+              <div id="printable-label" className="bg-white text-black p-3 rounded shadow-xl border border-gray-300 grid grid-cols-3 gap-2 w-full max-w-[320px] text-center text-[8px]">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="border border-gray-300 p-1 rounded flex flex-col items-center">
                     <span className="font-black truncate w-full text-[8px]">{productName.slice(0, 15)}</span>
@@ -510,6 +516,7 @@ export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({
                 ))}
               </div>
             )}
+            </div>
 
             <p className="no-print text-[10px] text-slate-500 mt-4 text-center">
               لیبل پرنٹر (Xprinter, Zebra, TSC) یا عام پرنٹر پر اسٹیکر پیپر لگا کر پرنٹ نکالیں۔

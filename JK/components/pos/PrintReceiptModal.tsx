@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Invoice, BusinessProfile } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { printElement } from '@/lib/printService';
 import QRCodeLib from 'qrcode';
 import JsBarcode from 'jsbarcode';
 
@@ -65,7 +66,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     const handleReceiptKeys = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        window.print();
+        handlePrint();
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -73,7 +74,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
     };
     window.addEventListener('keydown', handleReceiptKeys);
     return () => window.removeEventListener('keydown', handleReceiptKeys);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, format, receiptLang, zoomScale, invoice]);
 
   // Generate QR Code and Barcode images whenever modal opens or invoice changes
   useEffect(() => {
@@ -126,32 +127,18 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
   // ALL HOOKS MUST BE DECLARED ABOVE THIS LINE!
   if (!isOpen || !invoice || !mounted) return null;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const prevZoom = zoomScale;
     setZoomScale(100);
 
-    // Inject exact dynamic @page rule for pixel-perfect printing on thermal vs standard printers
-    let styleEl = document.getElementById('dynamic-page-print-css') as HTMLStyleElement;
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'dynamic-page-print-css';
-      document.head.appendChild(styleEl);
-    }
+    // Call our robust isolated POS print helper (solves blank print issues)
+    await printElement('printable-receipt', {
+      format,
+      isUrdu,
+      title: `${shopName} - #${invoice.invoiceNo}`,
+    });
 
-    if (format === 'thermal80') {
-      styleEl.innerHTML = `@media print { @page { size: 80mm auto !important; margin: 0 !important; } html, body { width: 80mm !important; } }`;
-    } else if (format === 'thermal58') {
-      styleEl.innerHTML = `@media print { @page { size: 58mm auto !important; margin: 0 !important; } html, body { width: 58mm !important; } }`;
-    } else if (format === 'a4') {
-      styleEl.innerHTML = `@media print { @page { size: A4 portrait !important; margin: 8mm 10mm !important; } html, body { width: 100% !important; } }`;
-    } else if (format === 'a5') {
-      styleEl.innerHTML = `@media print { @page { size: A5 portrait !important; margin: 6mm 8mm !important; } html, body { width: 100% !important; } }`;
-    }
-
-    setTimeout(() => {
-      window.print();
-      setZoomScale(prevZoom);
-    }, 120);
+    setZoomScale(prevZoom);
   };
 
   const isUrdu = receiptLang === 'ur';

@@ -29,6 +29,7 @@ import {
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuditLog, Product, BusinessPresetType } from '@/types';
+import { printElement } from '@/lib/printService';
 import { posSound } from '@/lib/sound';
 
 export const AuditView: React.FC = () => {
@@ -201,7 +202,11 @@ export const AuditView: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    printElement('printable-audit-section', {
+      format: 'a4',
+      isUrdu: lang === 'ur',
+      title: 'Stock Audit Sheet',
+    });
   };
 
   const getActionBadge = (action: AuditLog['action']) => {
@@ -518,8 +523,10 @@ export const AuditView: React.FC = () => {
             </div>
           </div>
 
-          {/* Printable Header */}
-          <div className="hidden print:block p-4 border-b-2 border-slate-900 text-center mb-4">
+          {/* Printable Container */}
+          <div id="printable-audit-section">
+            {/* Printable Header */}
+            <div className="hidden print:block p-4 border-b-2 border-slate-900 text-center mb-4">
             <h2 className="text-2xl font-black">{businessProfile.nameUr || businessProfile.nameEn}</h2>
             <p className="text-xs font-bold text-slate-600 mt-1">
               اسٹاک فزیکل آڈٹ و شمار شیٹ (Stock Audit & Verification Count Sheet) • تاریخ: {new Date().toLocaleDateString('ur-PK')}
@@ -677,6 +684,7 @@ export const AuditView: React.FC = () => {
                 OneShop POS • Enterprise Bilingual Inventory Audit
               </span>
             </div>
+          </div>
           </div>
         </div>
       )}

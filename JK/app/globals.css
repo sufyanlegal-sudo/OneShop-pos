@@ -70,11 +70,7 @@ body {
     size: auto;
   }
 
-  /* 1. Hide everything on page outside the print modal portal */
-  body > *:not(.print-modal-wrapper) {
-    display: none !important;
-  }
-
+  /* Ensure body & html are visible and flow normally without clipping */
   html, body {
     background: #ffffff !important;
     color: #000000 !important;
@@ -89,12 +85,13 @@ body {
     position: static !important;
   }
 
-  /* Hide UI elements */
+  /* Hide background chrome UI elements */
   .no-print, header, nav, button, footer, .modal-backdrop {
     display: none !important;
   }
 
   /* Unclip all modal wrapper & scroll layers so 100 to 1000 items never chop off */
+  .fixed.inset-0,
   .print-modal-wrapper,
   .print-modal-inner,
   .print-paper-area,
@@ -114,6 +111,8 @@ body {
     box-shadow: none !important;
     border: none !important;
     transform: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* ------------------------------------------------------------- */

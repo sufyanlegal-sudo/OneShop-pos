@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
+import { printElement } from '@/lib/printService';
 
 export const ReportsView: React.FC = () => {
   const { lang, t } = useLanguage();
@@ -254,11 +255,15 @@ export const ReportsView: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    printElement('printable-reports-view', {
+      format: 'a4',
+      isUrdu: lang === 'ur',
+      title: 'POS Reports & Analytics',
+    });
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div id="printable-reports-view" className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
@@ -1161,7 +1166,13 @@ export const ReportsView: React.FC = () => {
                 {lang === 'ur' ? 'کاؤنٹر شفٹ کلوزنگ Z-سلپ' : 'Counter Z-Report Slip'}
               </h3>
               <button
-                onClick={() => window.print()}
+                onClick={() =>
+                  printElement('printable-receipt', {
+                    format: 'thermal80',
+                    isUrdu: false,
+                    title: 'Counter Z-Report Slip',
+                  })
+                }
                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow"
               >
                 <Printer className="w-3.5 h-3.5" />
