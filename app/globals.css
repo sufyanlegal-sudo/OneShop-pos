@@ -119,11 +119,6 @@ body {
   /* ------------------------------------------------------------- */
   /* 1. NORMAL PRINTER A4 (عام لیزر جیٹ / انک جیٹ پرنٹر - فل پیج) */
   /* ------------------------------------------------------------- */
-  .print-format-a4 @page {
-    size: A4 portrait;
-    margin: 8mm 10mm;
-  }
-
   .a4-receipt {
     width: 100% !important;
     max-width: 100% !important;
@@ -131,7 +126,7 @@ body {
     min-height: 0 !important;
     height: auto !important;
     margin: 0 auto !important;
-    padding: 4mm 6mm !important;
+    padding: 6mm 8mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     border: none !important;
@@ -145,11 +140,6 @@ body {
   /* ------------------------------------------------------------- */
   /* 2. NORMAL PRINTER A5 (عام پرنٹر - ہاف پیج انوائس)              */
   /* ------------------------------------------------------------- */
-  .print-format-a5 @page {
-    size: A5 portrait;
-    margin: 6mm 8mm;
-  }
-
   .a5-receipt {
     width: 100% !important;
     max-width: 100% !important;
@@ -171,11 +161,6 @@ body {
   /* ------------------------------------------------------------- */
   /* 3. THERMAL 80MM RECEIPT (سٹینڈرڈ پی او ایس تھرمل پرنٹر)      */
   /* ------------------------------------------------------------- */
-  .print-format-thermal80 @page {
-    size: 80mm auto;
-    margin: 0;
-  }
-
   .thermal-80-receipt {
     width: 76mm !important;
     max-width: 76mm !important;
@@ -196,11 +181,6 @@ body {
   /* ------------------------------------------------------------- */
   /* 4. THERMAL 58MM RECEIPT (چھوٹا پورٹیبل تھرمل پرنٹر)          */
   /* ------------------------------------------------------------- */
-  .print-format-thermal58 @page {
-    size: 58mm auto;
-    margin: 0;
-  }
-
   .thermal-58-receipt {
     width: 50mm !important;
     max-width: 50mm !important;

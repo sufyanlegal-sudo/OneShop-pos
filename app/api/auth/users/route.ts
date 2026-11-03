@@ -175,7 +175,23 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, email, name, businessName, phone, password, approved } = body;
+    const { action, email, name, businessName, phone, password, masterKey } = body;
+
+    const MASTER_SECURITY_KEY = 'JK@8998381';
+
+    // Strict Cryptographic Authorization: TOGGLE_APPROVAL and DELETE_USER strictly require Super Admin Master Key
+    if (action === 'TOGGLE_APPROVAL' || action === 'DELETE_USER') {
+      if (!masterKey || masterKey.trim() !== MASTER_SECURITY_KEY) {
+        console.warn(`[SECURITY ALERT] Unauthorized access attempt to ${action} for ${email}`);
+        return NextResponse.json(
+          {
+            success: false,
+            message: '⛔ غیر مجاز رسائی مسترد! صرف جے کے ڈویلپرز سپر ایڈمن ہی کسی صارف کی منظوری دینے یا کینسل کرنے کے مجاز ہیں۔',
+          },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+    }
 
     if (!email) {
       return NextResponse.json({ success: false, message: 'Email is required' }, { status: 400, headers: noCacheHeaders });
@@ -196,6 +212,7 @@ export async function POST(req: Request) {
           businessName: (businessName || existing.businessName || 'Business Store').trim(),
           phone: (phone || existing.phone || '').trim(),
           password: password || existing.password,
+          approved: Boolean(existing.approved), // Retain current approval state, clients cannot self-approve
         };
         await saveToCloudGist(users);
         return NextResponse.json({
@@ -213,7 +230,7 @@ export async function POST(req: Request) {
         businessName: (businessName || 'Business Store').trim(),
         phone: (phone || '').trim(),
         password: password || undefined,
-        approved: approved !== undefined ? Boolean(approved) : false,
+        approved: false, // ALWAYS false upon registration. Requires manual approval with Super Admin Master Key.
         registeredAt: new Date().toISOString(),
       };
 
@@ -223,12 +240,12 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         registered: true,
-        approved: newUser.approved,
+        approved: false,
         user: newUser,
       }, { headers: noCacheHeaders });
     }
 
-    // 2. TOGGLE_APPROVAL (Super Admin approves / revokes)
+    // 2. TOGGLE_APPROVAL (Super Admin approves / revokes with verified Master Key)
     if (action === 'TOGGLE_APPROVAL') {
       const targetUser = users.find((u) => u.email.toLowerCase() === cleanEmail);
       if (!targetUser) {

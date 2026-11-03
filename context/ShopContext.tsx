@@ -371,6 +371,37 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isLoaded, currentUserEmail, usersDB]);
 
+  // Strict Server Verification: Constantly ensures user is legitimately approved on cloud server
+  useEffect(() => {
+    if (!isLoaded || !currentUserEmail || currentUserEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return;
+    const verifyApprovalStatus = async () => {
+      try {
+        const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}&_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        });
+        const data = await res.json();
+        if (data.success && data.found) {
+          if (!data.approved) {
+            setUsersDB((prev) =>
+              prev.map((u) =>
+                u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false } : u
+              )
+            );
+          }
+        }
+      } catch {
+        // Offline mode: allow local storage for legitimately active shop
+      }
+    };
+    verifyApprovalStatus();
+    const interval = setInterval(verifyApprovalStatus, 4000);
+    return () => clearInterval(interval);
+  }, [isLoaded, currentUserEmail]);
+
   // Real-time synchronization with Vercel WhatsApp Webhook server for incoming customer orders
   useEffect(() => {
     if (!isLoaded) return;
@@ -689,6 +720,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({
           action: 'TOGGLE_APPROVAL',
           email,
+          masterKey: MASTER_ADMIN_KEY,
         }),
       });
       await refreshUsersFromCloud();
@@ -755,6 +787,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({
           action: 'DELETE_USER',
           email,
+          masterKey: MASTER_ADMIN_KEY,
         }),
       });
       await refreshUsersFromCloud();
