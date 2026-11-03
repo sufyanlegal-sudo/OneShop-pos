@@ -35,10 +35,14 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
 import { Product } from '@/types';
 import { posSound } from '@/lib/sound';
+import { BarcodeGeneratorModal } from '@/components/barcode/BarcodeGeneratorModal';
 
 export const InventoryView: React.FC = () => {
   const { lang, t } = useLanguage();
   const { products, saveProduct, deleteProduct, activePreset, currentRole, switchRole } = useShop();
+
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [barcodeTargetProductId, setBarcodeTargetProductId] = useState<string>('');
 
   const [adminPinInput, setAdminPinInput] = useState('');
   const [adminPinError, setAdminPinError] = useState('');
@@ -467,18 +471,32 @@ export const InventoryView: React.FC = () => {
           <button
             type="button"
             onClick={() => {
+              setBarcodeTargetProductId('');
+              setBarcodeModalOpen(true);
+            }}
+            className="px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+            title="بغیر بارکوڈ والی اشیاء کے نئے بارکوڈ اور اسٹیکر تیار و پرنٹ کریں"
+          >
+            <QrCode className="w-4 h-4 text-slate-950" />
+            <span>{lang === 'ur' ? '🏷️ بارکوڈ و اسٹیکر جنریٹر' : 'Barcode & Sticker Generator'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
               setCameraModalOpen(true);
               setIsCameraActive(true);
             }}
-            className="px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
           >
             <Camera className="w-4 h-4" />
             <span>{lang === 'ur' ? 'کیمرہ اسکینر' : 'Camera Scan'}</span>
           </button>
 
           <button
+            type="button"
             onClick={handleOpenAdd}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{lang === 'ur' ? '+ نئی پروڈکٹ (لوکل انٹری)' : '+ Local New Item'}</span>
@@ -831,10 +849,21 @@ export const InventoryView: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleDuplicate(p)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                           title="Duplicate"
                         >
                           <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBarcodeTargetProductId(p.id);
+                            setBarcodeModalOpen(true);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                          title={lang === 'ur' ? 'بارکوڈ و اسٹیکر پرنٹ کریں' : 'Print Barcode Sticker'}
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => {
@@ -1250,13 +1279,28 @@ export const InventoryView: React.FC = () => {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Barcode:
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-600 dark:text-slate-300 block text-xs">
+                      {lang === 'ur' ? 'بارکوڈ (Barcode / SKU):' : 'Barcode / SKU:'}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const generated = '890' + Date.now().toString().slice(-9);
+                        setEditingProduct({ ...editingProduct, barcode: generated });
+                      }}
+                      className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 text-[11px] font-bold border border-emerald-300 dark:border-emerald-700 transition flex items-center gap-1 cursor-pointer"
+                      title={lang === 'ur' ? 'اگر پروڈکٹ پر بارکوڈ نہ ہو تو اس بٹن سے نیا بارکوڈ بنائیں' : 'Auto Generate Unique Barcode'}
+                    >
+                      <Zap className="w-3 h-3 text-amber-500" />
+                      <span>{lang === 'ur' ? '⚡ نیا بارکوڈ خودکار بنائیں' : 'Auto Generate Barcode'}</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={editingProduct.barcode || ''}
                     onChange={(e) => setEditingProduct({ ...editingProduct, barcode: e.target.value })}
+                    placeholder="890123456789"
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-mono outline-none"
                   />
                 </div>
@@ -1519,6 +1563,12 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Barcode & Sticker Generator Modal */}
+      <BarcodeGeneratorModal
+        isOpen={barcodeModalOpen}
+        onClose={() => setBarcodeModalOpen(false)}
+        initialProductId={barcodeTargetProductId}
+      />
     </div>
   );
 };
