@@ -998,6 +998,23 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 1. Grams Weight Handling
       if (isGram) {
         const gramsToAdd = options?.weightInGrams || (quantity > 20 ? quantity : quantity * 1000);
+        const existingIndex = prev.findIndex((item) => item.product.id === product.id && item.isGram);
+        if (existingIndex >= 0 && !options?.weightInGrams) {
+          const existing = prev[existingIndex];
+          const newGrams = (Number(existing.quantity) || 0) + gramsToAdd;
+          const total = Math.round(((ratePerKg * newGrams) / 1000) * 100) / 100;
+          const costTotal = Math.round(((costPerKg * newGrams) / 1000) * 100) / 100;
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...existing,
+            quantity: newGrams,
+            weightInGrams: newGrams,
+            total,
+            profit: total - costTotal,
+          };
+          return updated;
+        }
+
         const total = Math.round(((ratePerKg * gramsToAdd) / 1000) * 100) / 100;
         const costTotal = Math.round(((costPerKg * gramsToAdd) / 1000) * 100) / 100;
         return [
@@ -1031,6 +1048,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mlToAdd = options?.volumeInMl || (unit === 'ہاف لیٹر' ? 500 : (quantity > 10 ? quantity : quantity * 1000));
         const rPerL = options?.ratePerLiter || product.salePrice;
         const cPerL = product.costPrice;
+
+        const existingIndex = prev.findIndex((item) => item.product.id === product.id && item.isLiter);
+        if (existingIndex >= 0 && !options?.volumeInMl) {
+          const existing = prev[existingIndex];
+          const newMl = (Number(existing.quantity) || 0) + mlToAdd;
+          const total = Math.round(((rPerL * newMl) / 1000) * 100) / 100;
+          const costTotal = Math.round(((cPerL * newMl) / 1000) * 100) / 100;
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...existing,
+            quantity: newMl,
+            volumeInMl: newMl,
+            total,
+            profit: total - costTotal,
+          };
+          return updated;
+        }
+
         const total = Math.round(((rPerL * mlToAdd) / 1000) * 100) / 100;
         const costTotal = Math.round(((cPerL * mlToAdd) / 1000) * 100) / 100;
         return [
@@ -1058,10 +1093,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ];
       }
 
-      // 3. Normal / Packaged Items (Allows infinite items: 100, 500, 1000+ distinct lines in the bill)
+      // 3. Normal / Packaged Items (Increment quantity & total when scanned repeatedly!)
       const chosenUnit = unit || product.unit;
+      const variant = options?.packagedVariant || variationDetails;
       const price = options?.customPrice !== undefined ? options.customPrice : product.salePrice;
       const cost = product.costPrice;
+
+      const existingIndex = prev.findIndex(
+        (item) =>
+          item.product.id === product.id &&
+          (item.unit === chosenUnit || item.selectedUnit === chosenUnit) &&
+          item.packagedVariant === variant &&
+          !item.isGram &&
+          !item.isLiter
+      );
+
+      if (existingIndex >= 0) {
+        const existing = prev[existingIndex];
+        const newQty = (Number(existing.quantity) || 0) + quantity;
+        const effectiveRate = existing.unitPrice || price;
+        const effectiveCost = existing.costPrice || cost;
+        const total = Math.round((newQty * effectiveRate) * 100) / 100;
+        const profit = Math.round(((effectiveRate - effectiveCost) * newQty) * 100) / 100;
+
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...existing,
+          quantity: newQty,
+          total,
+          profit,
+        };
+        return updated;
+      }
+
       const total = Math.round((quantity * price) * 100) / 100;
       const profit = Math.round(((price - cost) * quantity) * 100) / 100;
       const isKg = product.unit?.toLowerCase() === 'kg' || product.unit === 'کلو';
