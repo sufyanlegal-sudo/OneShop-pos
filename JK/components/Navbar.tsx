@@ -153,6 +153,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   ];
 
   // Modules for the colorful toolbar (Modern OneShop Square Box Tile Style)
+  const masterPosItem = {
+    id: 'pos',
+    label: lang === 'ur' ? 'کاؤنٹر بلنگ' : 'POS Billing',
+    icon: ShoppingBag,
+    shortcut: 'F1',
+    bgClass: 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500',
+    activeClass: 'bg-emerald-600 text-white ring-2 ring-white shadow-xl shadow-emerald-950/80 border-white',
+  };
+
   const navItems = [
     {
       id: 'billsHistory',
@@ -251,6 +260,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       activeClass: 'bg-slate-700 text-white ring-2 ring-white shadow-xl shadow-slate-950/70 border-white',
     },
   ];
+
+  const allModulesList = [masterPosItem, ...navItems];
 
   const handleTabClick = (tabId: string) => {
     posSound.playClick();
@@ -522,16 +533,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         )}
 
-        {/* Main Bar: Software Title (Compact when collapsed) */}
-        <div className={`px-4 flex flex-wrap items-center justify-between gap-3 transition-all ${isHeaderCollapsed ? 'py-1.5' : 'py-2.5'}`}>
-          {/* Software Title Only */}
+        {/* Main Bar: Software Title & Quick Info */}
+        <div className={`px-4 flex items-center justify-between gap-3 border-b border-slate-800/80 transition-all ${isHeaderCollapsed ? 'py-1.5' : 'py-2'}`}>
+          {/* Software Title */}
           <div className="flex items-center gap-3">
-            <div className={`rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg font-black text-white border border-emerald-400/30 transition-all ${isHeaderCollapsed ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-sm'}`}>
+            <div className={`rounded-xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg font-black text-white border border-emerald-400/30 transition-all ${isHeaderCollapsed ? 'w-8 h-8 text-xs' : 'w-9 h-9 text-xs'}`}>
               POS
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className={`font-black tracking-tight leading-tight text-white font-mono flex items-center gap-2 ${isHeaderCollapsed ? 'text-base' : 'text-xl'}`}>
+                <h1 className={`font-black tracking-tight leading-tight text-white font-mono flex items-center gap-2 ${isHeaderCollapsed ? 'text-sm' : 'text-base sm:text-lg'}`}>
                   <span>{businessProfile.softwareName || 'OneShop POS'}</span>
                 </h1>
                 <span className="text-[10px] uppercase font-mono font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800 shadow-sm">
@@ -541,10 +552,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <button
                     type="button"
                     onClick={toggleHeaderCollapsed}
-                    className="flex items-center gap-1.5 h-10 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border-t border-t-white/20 border-b-2 border-b-black/40 border-x border-x-white/10 font-bold text-xs transition active:translate-y-0.5 shadow-sm"
+                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-xs transition active:scale-95 shadow-sm"
                     title={lang === 'ur' ? 'اوپر والا ایریا کھولیں' : 'Expand Top Area'}
                   >
-                    <span>{lang === 'ur' ? 'اوپر کھولیں (Expand)' : 'Expand Top'}</span>
+                    <span>{lang === 'ur' ? 'اوپر کھولیں' : 'Expand Top'}</span>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -559,7 +570,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 )}
               </div>
               {!isHeaderCollapsed && (
-                <p className="text-[11px] text-slate-400 font-medium">
+                <p className="text-[10.5px] text-slate-400 font-medium">
                   {lang === 'ur'
                     ? 'جے کے ڈویلپرز پاکستان • مکمل ریٹیل و ہول سیل پی او ایس سسٹم (03008998381)'
                     : 'Powered by JK Developers Pakistan • Multi-Counter Enterprise POS (03008998381)'}
@@ -568,120 +579,124 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
 
-          {/* Navigation Bar (Chakor Square Box Tiles): Pinned Master POS Button + Colorful Modules Ribbon */}
-          <div className="flex items-center gap-2 max-w-full flex-1 min-w-0">
-            {/* 1. PINNED MASTER POS BUTTON (TEXT ON TOP, SHORT KEY & ICON BELOW) */}
-            <button
-              type="button"
-              onClick={() => handleTabClick('pos')}
-              className={`min-w-[80px] sm:min-w-[88px] h-[54px] sm:h-[60px] p-1.5 rounded-xl font-black text-xs flex flex-col justify-between transition-all shrink-0 border-t border-t-white/30 border-b-2 border-b-black/50 border-x border-x-white/10 shadow-md active:translate-y-0.5 select-none ${
-                activeTab === 'pos'
-                  ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white ring-2 ring-white shadow-xl shadow-emerald-950/80 -translate-y-0.5 border-white'
-                  : 'bg-emerald-700 hover:bg-emerald-600 text-white'
-              }`}
-              title={lang === 'ur' ? 'کاؤنٹر بلنگ سکرین (F1) - براہِ راست بل بنائیں' : 'POS Billing Counter (F1)'}
-            >
-              {/* Top: Module Title */}
-              <span className="text-[11px] sm:text-[12px] font-black tracking-tight leading-none text-center w-full truncate pt-0.5">
-                {lang === 'ur' ? 'کاؤنٹر بلنگ' : 'POS Billing'}
-              </span>
-
-              {/* Bottom: Icon & Short Key */}
-              <div className="flex items-center justify-between w-full px-1 pb-0.5">
-                <div className="w-5 h-5 rounded bg-black/25 flex items-center justify-center shrink-0 border border-white/15">
-                  <ShoppingBag className="w-3.5 h-3.5 text-emerald-200" />
-                </div>
-                <span className="px-2 py-0.5 rounded bg-black/40 text-emerald-300 font-mono text-[9.5px] sm:text-[10px] font-black border border-white/20 shadow-inner">
-                  F1
-                </span>
-              </div>
-            </button>
-
-            {/* 2. COLORFUL MODULES SLIDER CAROUSEL (TEXT ON TOP, SHORT KEY & ICON BELOW) */}
-            <div className="relative flex items-center max-w-full flex-1 min-w-0">
-              {/* Scroll Left Button */}
-              <button
-                type="button"
-                onClick={() => scrollNav('left')}
-                className="flex items-center justify-center w-7 h-[54px] sm:w-8 sm:h-[60px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all mr-1 z-10"
-                title={lang === 'ur' ? 'پچھلے آپشنز دیکھیں (Scroll Left)' : 'Scroll Left'}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {/* Carousel Slider */}
-              <nav
-                ref={navSliderRef}
-                className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth no-scrollbar flex-1"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {navItems
-                  .filter((item) => item.id !== 'aiChatboard' || currentRole === 'ADMIN')
-                  .map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  const isLocked = !hasAccess(item.id);
-
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleTabClick(item.id)}
-                      className={`relative min-w-[76px] sm:min-w-[84px] h-[54px] sm:h-[60px] p-1.5 rounded-xl font-black text-xs flex flex-col justify-between transition-all border-t border-t-white/25 border-b-2 border-b-black/40 border-x border-x-white/10 shadow-sm shrink-0 active:translate-y-0.5 select-none ${
-                        isActive
-                          ? `${item.activeClass} -translate-y-0.5 ring-2 ring-white shadow-lg`
-                          : `${item.bgClass} hover:brightness-110`
-                      }`}
-                      title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : item.label}
-                    >
-                      {/* Top: Module Title */}
-                      <div className="w-full flex items-center justify-center gap-0.5 pt-0.5">
-                        <span className="font-bold text-[10.5px] sm:text-[11.5px] tracking-tight leading-none truncate text-center">
-                          {item.label}
-                        </span>
-                        {isLocked && <Lock className="w-2.5 h-2.5 text-amber-200 shrink-0" />}
-                      </div>
-
-                      {/* Bottom: Icon & Short Key */}
-                      <div className="flex items-center justify-between w-full px-1 pb-0.5">
-                        <div className="w-5 h-5 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        {item.shortcut && (
-                          <span className="px-2 py-0.5 rounded bg-black/35 text-white/95 font-mono text-[9px] sm:text-[9.5px] font-black border border-white/15 shadow-inner">
-                            {item.shortcut}
-                          </span>
-                        )}
-                      </div>
-
-                      {item.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            posSound.playClick();
-                            setIsWhatsAppOrdersModalOpen(true);
-                          }}
-                          className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse hover:scale-105 cursor-pointer shadow-md"
-                          title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
-                        >
-                          {pendingWhatsAppOrdersCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {/* Scroll Right Button */}
-              <button
-                type="button"
-                onClick={() => scrollNav('right')}
-                className="flex items-center justify-center w-7 h-[54px] sm:w-8 sm:h-[60px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all ml-1 z-10"
-                title={lang === 'ur' ? 'اگلے آپشنز دیکھیں (Scroll Right)' : 'Scroll Right'}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Quick Counter Info on Right */}
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
+            <span className="px-2 py-1 rounded bg-slate-800/80 text-emerald-300 border border-slate-700 font-bold">
+              {lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}
+            </span>
           </div>
+        </div>
+
+        {/* 1. TOP RIBBON TABS (NAMES STRIP - EXACTLY LIKE EXCEL RIBBON EXAMPLE) */}
+        <div
+          className="bg-slate-900 border-b border-slate-700/80 px-4 pt-1 flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {allModulesList
+            .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
+            .map((m) => {
+              const isActive = activeTab === m.id;
+              const Icon = m.icon;
+              return (
+                <button
+                  key={`tab-${m.id}`}
+                  type="button"
+                  onClick={() => handleTabClick(m.id)}
+                  className={`px-3 sm:px-4 py-1.5 text-xs sm:text-[13px] rounded-t-md transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none border-t-2 ${
+                    isActive
+                      ? 'bg-slate-850 text-emerald-400 border-emerald-400 font-black shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border-transparent font-bold'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
+        </div>
+
+        {/* 2. DEDICATED SEPARATE SHORTCUT BOXES TOOLBAR (CHAKOR SQUARE SHORTCUT BOXES BELOW) */}
+        <div className="bg-slate-950/90 px-4 py-1.5 flex items-center gap-2 border-b border-slate-800 shadow-inner">
+          {/* Scroll Left Button */}
+          <button
+            type="button"
+            onClick={() => scrollNav('left')}
+            className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all mr-1 z-10"
+            title={lang === 'ur' ? 'پچھلے شارٹ کٹس (Scroll Left)' : 'Scroll Left'}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Carousel Slider of Shortcut Boxes */}
+          <nav
+            ref={navSliderRef}
+            className="flex items-center gap-2 overflow-x-auto py-0.5 scroll-smooth no-scrollbar flex-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {allModulesList
+              .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
+              .map((m) => {
+                const Icon = m.icon;
+                const isActive = activeTab === m.id;
+                const isLocked = !hasAccess(m.id);
+
+                return (
+                  <button
+                    key={`box-${m.id}`}
+                    type="button"
+                    onClick={() => handleTabClick(m.id)}
+                    className={`relative min-w-[70px] sm:min-w-[78px] h-11 px-2 py-1 rounded-lg text-xs font-black flex flex-col justify-between items-center transition-all border shrink-0 active:translate-y-0.5 select-none shadow-xs cursor-pointer ${
+                      isActive
+                        ? `${m.activeClass} -translate-y-0.5 ring-2 ring-white shadow-md`
+                        : `${m.bgClass} hover:brightness-110 border-slate-700`
+                    }`}
+                    title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : `${m.label} (${m.shortcut})`}
+                  >
+                    {/* Top: Function Key Badge & Icon */}
+                    <div className="flex items-center justify-between w-full px-0.5">
+                      <div className="w-4 h-4 rounded bg-black/25 flex items-center justify-center shrink-0 border border-white/10">
+                        <Icon className="w-2.5 h-2.5 text-white/90" />
+                      </div>
+                      <span className="px-1.5 py-0.2 rounded bg-black/40 text-white font-mono text-[9px] font-black border border-white/15 shadow-inner">
+                        {m.shortcut}
+                      </span>
+                    </div>
+
+                    {/* Bottom: Label */}
+                    <div className="w-full flex items-center justify-center gap-0.5">
+                      <span className="font-bold text-[10px] sm:text-[10.5px] tracking-tight leading-none truncate text-center">
+                        {m.label}
+                      </span>
+                      {isLocked && <Lock className="w-2 h-2 text-amber-200 shrink-0" />}
+                    </div>
+
+                    {m.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          posSound.playClick();
+                          setIsWhatsAppOrdersModalOpen(true);
+                        }}
+                        className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] animate-pulse hover:scale-105 cursor-pointer shadow-md"
+                        title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
+                      >
+                        {pendingWhatsAppOrdersCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </nav>
+
+          {/* Scroll Right Button */}
+          <button
+            type="button"
+            onClick={() => scrollNav('right')}
+            className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all ml-1 z-10"
+            title={lang === 'ur' ? 'اگلے شارٹ کٹس (Scroll Right)' : 'Scroll Right'}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Admin & Multi-Counter Cashier Session Modal */}
