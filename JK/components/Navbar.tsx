@@ -152,103 +152,103 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'restaurant', labelUr: 'ریسٹورنٹ و کیفے', labelEn: 'Restaurant (KOT)', icon: '🍽️' },
   ];
 
-  // Modules for the colorful toolbar (Candela & Nebs POS Style)
+  // Modules for the colorful toolbar (Modern OneShop Box Tile Style)
   const navItems = [
     {
       id: 'billsHistory',
-      label: t('billsHistory'),
+      label: lang === 'ur' ? 'بلز ہسٹری (History)' : 'Bills & Returns',
       icon: History,
       shortcut: 'F2',
-      bgClass: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400',
-      activeClass: 'bg-blue-500 text-white ring-4 ring-white shadow-xl shadow-blue-900/60 scale-105 border-white',
+      bgClass: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500',
+      activeClass: 'bg-blue-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'audit',
-      label: lang === 'ur' ? 'اسٹاک و سسٹم آڈٹ' : 'Stock & Audit',
+      label: lang === 'ur' ? 'اسٹاک آڈٹ (Audit)' : 'Stock Audit',
       icon: ShieldCheck,
       shortcut: 'F3',
-      bgClass: 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400',
-      activeClass: 'bg-indigo-500 text-white ring-4 ring-white shadow-xl shadow-indigo-900/60 scale-105 border-white',
+      bgClass: 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500',
+      activeClass: 'bg-indigo-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'inventory',
-      label: t('inventory'),
+      label: lang === 'ur' ? 'اسٹاک و اشیاء (Inventory)' : 'Inventory',
       icon: Boxes,
       shortcut: 'F4',
-      bgClass: 'bg-teal-600 hover:bg-teal-500 text-white border-teal-400',
-      activeClass: 'bg-teal-500 text-white ring-4 ring-white shadow-xl shadow-teal-900/60 scale-105 border-white',
+      bgClass: 'bg-teal-600 hover:bg-teal-500 text-white border-teal-500',
+      activeClass: 'bg-teal-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'reports',
-      label: t('reports'),
+      label: lang === 'ur' ? 'مالیاتی رپورٹس (Reports)' : 'Financial Reports',
       icon: BarChart3,
       shortcut: 'F5',
-      bgClass: 'bg-red-600 hover:bg-red-500 text-white border-red-400',
-      activeClass: 'bg-red-500 text-white ring-4 ring-white shadow-xl shadow-red-900/60 scale-105 border-white',
+      bgClass: 'bg-red-600 hover:bg-red-500 text-white border-red-500',
+      activeClass: 'bg-red-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'roznamcha',
-      label: t('roznamcha'),
+      label: lang === 'ur' ? 'روزنامچہ (Cash Book)' : 'Daily Cash Book',
       icon: BookOpen,
       shortcut: 'F6',
-      bgClass: 'bg-sky-600 hover:bg-sky-500 text-white border-sky-400',
-      activeClass: 'bg-sky-500 text-white ring-4 ring-white shadow-xl shadow-sky-900/60 scale-105 border-white',
+      bgClass: 'bg-sky-600 hover:bg-sky-500 text-white border-sky-500',
+      activeClass: 'bg-sky-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'khata',
-      label: t('khataLedger'),
+      label: lang === 'ur' ? 'ادھار کھاتہ (Khata)' : 'Customer Accounts',
       icon: Users,
       shortcut: 'F7',
-      bgClass: 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400',
-      activeClass: 'bg-rose-500 text-white ring-4 ring-white shadow-xl shadow-rose-900/60 scale-105 border-white',
+      bgClass: 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500',
+      activeClass: 'bg-rose-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'grn',
-      label: t('grnTitle'),
+      label: lang === 'ur' ? 'خریداری (GRN)' : 'Purchase GRN',
       icon: Truck,
       shortcut: 'F8',
-      bgClass: 'bg-amber-600 hover:bg-amber-500 text-white border-amber-400',
-      activeClass: 'bg-amber-500 text-white ring-4 ring-white shadow-xl shadow-amber-900/60 scale-105 border-white',
+      bgClass: 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500',
+      activeClass: 'bg-amber-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'vendors',
-      label: t('vendorsTitle'),
+      label: lang === 'ur' ? 'سپلائرز (Vendors)' : 'Suppliers & Vendors',
       icon: Building2,
       shortcut: 'F9',
-      bgClass: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400',
-      activeClass: 'bg-purple-500 text-white ring-4 ring-white shadow-xl shadow-purple-900/60 scale-105 border-white',
+      bgClass: 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500',
+      activeClass: 'bg-purple-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'staff',
-      label: t('staffTitle'),
+      label: lang === 'ur' ? 'اسٹاف (Staff)' : 'Staff Management',
       icon: UserPlus,
       shortcut: 'F10',
-      bgClass: 'bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-400',
-      activeClass: 'bg-yellow-500 text-white ring-4 ring-white shadow-xl shadow-yellow-900/60 scale-105 border-white',
+      bgClass: 'bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-500',
+      activeClass: 'bg-yellow-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'aiChatboard',
-      label: lang === 'ur' ? 'AI رپورٹ چیٹ' : 'AI Chatboard',
+      label: lang === 'ur' ? 'AI اسسٹنٹ (Chat)' : 'AI Assistant',
       icon: Bot,
       shortcut: 'AI',
-      bgClass: 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white border-fuchsia-400',
-      activeClass: 'bg-fuchsia-500 text-white ring-4 ring-white shadow-xl shadow-fuchsia-900/60 scale-105 border-white',
+      bgClass: 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white border-fuchsia-500',
+      activeClass: 'bg-fuchsia-600 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'whatsapp',
-      label: t('whatsappBot'),
+      label: lang === 'ur' ? 'واٹس ایپ (WhatsApp)' : 'WhatsApp Orders',
       icon: MessageSquare,
       shortcut: 'WA',
-      bgClass: 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-400',
-      activeClass: 'bg-emerald-600 text-white ring-4 ring-white shadow-xl shadow-emerald-900/60 scale-105 border-white',
+      bgClass: 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-500',
+      activeClass: 'bg-emerald-700 text-white ring-2 ring-white shadow-lg border-white',
     },
     {
       id: 'settings',
-      label: t('settings'),
+      label: lang === 'ur' ? 'سیٹنگز (Settings)' : 'System Settings',
       icon: Settings,
-      shortcut: 'F10',
-      bgClass: 'bg-cyan-800 hover:bg-cyan-700 text-white border-cyan-500',
-      activeClass: 'bg-cyan-700 text-white ring-4 ring-white shadow-xl shadow-cyan-900/60 scale-105 border-white',
+      shortcut: 'F11',
+      bgClass: 'bg-slate-700 hover:bg-slate-600 text-white border-slate-500',
+      activeClass: 'bg-slate-700 text-white ring-2 ring-white shadow-lg border-white',
     },
   ];
 
@@ -541,10 +541,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <button
                     type="button"
                     onClick={toggleHeaderCollapsed}
-                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-slate-950 border border-cyan-500/50 font-bold text-[11px] transition active:scale-95 shadow-sm"
-                    title="اوپر والا ایریا کھولیں"
+                    className="flex items-center gap-1.5 h-10 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border-t border-t-white/20 border-b-2 border-b-black/40 border-x border-x-white/10 font-bold text-xs transition active:translate-y-0.5 shadow-sm"
+                    title={lang === 'ur' ? 'اوپر والا ایریا کھولیں' : 'Expand Top Area'}
                   >
-                    <span>{lang === 'ur' ? 'اوپر کھولیں' : 'Expand Top'}</span>
+                    <span>{lang === 'ur' ? 'اوپر کھولیں (Expand)' : 'Expand Top'}</span>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -595,33 +595,37 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           )}
 
-          {/* Navigation Bar (Candela & Nebs Style): Pinned Master POS Button + Colorful Modules Ribbon */}
+          {/* Navigation Bar (Modern OneShop Box Tile Style): Pinned Master POS Button + Colorful Modules Ribbon */}
           <div className="flex items-center gap-2 max-w-full flex-1 min-w-0">
-            {/* 1. PINNED MASTER POS BUTTON (NEVER SCROLLED - ALWAYS VISIBLE LIKE CANDELA / NEBS) */}
+            {/* 1. PINNED MASTER POS BUTTON (NEVER SCROLLED - ALWAYS VISIBLE SQUARE BOX TILE) */}
             <button
               type="button"
               onClick={() => handleTabClick('pos')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md shrink-0 border-2 active:scale-95 ${
+              className={`h-10 sm:h-11 px-3 sm:px-4 rounded-lg font-black text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 border-t border-t-white/30 border-b-2 border-b-black/40 border-x border-x-white/10 shadow-md active:translate-y-0.5 ${
                 activeTab === 'pos'
-                  ? 'bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 text-white border-white ring-4 ring-emerald-400/40 shadow-xl shadow-emerald-950/70 scale-105'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400/80 shadow-md'
+                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white ring-2 ring-white shadow-lg shadow-emerald-950/80 -translate-y-0.5 border-white'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
               }`}
               title={lang === 'ur' ? 'کاؤنٹر بلنگ سکرین (F1) - براہِ راست بل بنائیں' : 'POS Billing Counter (F1)'}
             >
-              <ShoppingBag className="w-4 h-4 text-emerald-100" />
-              <span className="tracking-wide font-black">{t('posTerminal')}</span>
-              <span className="px-1.5 py-0.2 rounded bg-black/25 text-emerald-200 font-mono text-[10px] font-black border border-white/20">
+              <div className="w-6 h-6 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
+                <ShoppingBag className="w-3.5 h-3.5 text-emerald-200" />
+              </div>
+              <span className="tracking-wide font-black whitespace-nowrap">
+                {lang === 'ur' ? 'کاؤنٹر بلنگ (POS)' : 'POS Billing'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-black/35 text-emerald-300 font-mono text-[10px] font-black border border-white/20 shadow-inner">
                 F1
               </span>
             </button>
 
-            {/* 2. COLORFUL MODULES SLIDER CAROUSEL */}
+            {/* 2. COLORFUL MODULES SLIDER CAROUSEL (SQUARE/RECTANGULAR BOX TILES) */}
             <div className="relative flex items-center max-w-full flex-1 min-w-0">
               {/* Scroll Left Button */}
               <button
                 type="button"
                 onClick={() => scrollNav('left')}
-                className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-90 transition-all mr-1 z-10"
+                className="flex items-center justify-center w-7 h-10 sm:w-8 sm:h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all mr-1 z-10"
                 title={lang === 'ur' ? 'پچھلے آپشنز دیکھیں (Scroll Left)' : 'Scroll Left'}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -644,17 +648,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-black flex items-center gap-1.5 whitespace-nowrap transition-all border shadow-md shrink-0 active:scale-95 ${
+                      className={`h-10 sm:h-11 px-3 sm:px-3.5 rounded-lg text-xs sm:text-[13px] font-black flex items-center gap-2 whitespace-nowrap transition-all border-t border-t-white/25 border-b-2 border-b-black/35 border-x border-x-white/10 shadow-sm shrink-0 active:translate-y-0.5 ${
                         isActive
-                          ? item.activeClass
-                          : `${item.bgClass} shadow-sm`
+                          ? `${item.activeClass} -translate-y-0.5 ring-2 ring-white shadow-lg`
+                          : `${item.bgClass} hover:brightness-110`
                       }`}
                       title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : ''}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <div className="w-6 h-6 rounded bg-black/20 flex items-center justify-center shrink-0 border border-white/10">
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold">{item.label}</span>
                       {item.shortcut && (
-                        <span className="px-1.5 py-0.2 rounded bg-black/25 text-white/90 font-mono text-[9.5px] font-bold">
+                        <span className="px-1.5 py-0.5 rounded bg-black/30 text-white/95 font-mono text-[9.5px] font-black border border-white/15 shadow-inner">
                           {item.shortcut}
                         </span>
                       )}
@@ -665,7 +671,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                             posSound.playClick();
                             setIsWhatsAppOrdersModalOpen(true);
                           }}
-                          className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse hover:scale-110 cursor-pointer"
+                          className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse hover:scale-105 cursor-pointer shadow-sm"
                           title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
                         >
                           {pendingWhatsAppOrdersCount}
@@ -681,7 +687,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <button
                 type="button"
                 onClick={() => scrollNav('right')}
-                className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-90 transition-all ml-1 z-10"
+                className="flex items-center justify-center w-7 h-10 sm:w-8 sm:h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-md shrink-0 active:scale-95 transition-all ml-1 z-10"
                 title={lang === 'ur' ? 'اگلے آپشنز دیکھیں (Scroll Right)' : 'Scroll Right'}
               >
                 <ChevronRight className="w-4 h-4" />
