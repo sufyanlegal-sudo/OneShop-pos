@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+const noCacheHeaders = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+  'Surrogate-Control': 'no-store',
+};
+
 export interface ServerUserLicense {
   email: string;
   name: string;
@@ -45,10 +56,11 @@ let lastFetchTime = 0;
 
 async function fetchFromCloudGist(): Promise<ServerUserLicense[]> {
   try {
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}?_t=${Date.now()}`, {
       headers: {
         Authorization: `token ${GITHUB_TOKEN}`,
         'User-Agent': 'JK-POS-App',
+        'Accept': 'application/vnd.github.v3+json',
       },
       cache: 'no-store',
     });
@@ -76,6 +88,7 @@ async function fetchFromCloudGist(): Promise<ServerUserLicense[]> {
 
 async function saveToCloudGist(users: ServerUserLicense[]): Promise<boolean> {
   memoryCache = users;
+  lastFetchTime = Date.now();
   try {
     const payload = {
       files: {
@@ -108,17 +121,14 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const checkEmail = searchParams.get('email');
 
-    // Always fetch fresh data from cloud if older than 2 seconds
-    let users = memoryCache;
-    if (Date.now() - lastFetchTime > 2000) {
-      users = await fetchFromCloudGist();
-    }
+    // Always fetch fresh data directly from Cloud Gist (no stale cache)
+    const users = await fetchFromCloudGist();
 
     if (checkEmail) {
       const cleanEmail = checkEmail.trim().toLowerCase();
       const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
       if (!user) {
-        return NextResponse.json({ success: false, found: false });
+        return NextResponse.json({ success: false, found: false }, { headers: noCacheHeaders });
       }
       return NextResponse.json({
         success: true,
@@ -132,19 +142,31 @@ export async function GET(req: Request) {
           approved: user.approved,
           registeredAt: user.registeredAt,
         },
-      });
+      }, { headers: noCacheHeaders });
     }
+
+    // Sanitize users: Never expose passwords in public API responses
+    const sanitizedUsers = users.map((u) => ({
+      email: u.email,
+      name: u.name,
+      businessName: u.businessName || u.shopName || '',
+      shopName: u.shopName || u.businessName || '',
+      phone: u.phone || '',
+      approved: Boolean(u.approved),
+      registeredAt: u.registeredAt,
+      approvedAt: u.approvedAt,
+    }));
 
     return NextResponse.json({
       success: true,
-      users,
-      total: users.length,
+      users: sanitizedUsers,
+      total: sanitizedUsers.length,
       timestamp: new Date().toISOString(),
-    });
+    }, { headers: noCacheHeaders });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: 'Server error: ' + error.message },
-      { status: 500 }
+      { status: 500, headers: noCacheHeaders }
     );
   }
 }
@@ -156,7 +178,7 @@ export async function POST(req: Request) {
     const { action, email, name, businessName, phone, password, approved } = body;
 
     if (!email) {
-      return NextResponse.json({ success: false, message: 'Email is required' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Email is required' }, { status: 400, headers: noCacheHeaders });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -164,14 +186,25 @@ export async function POST(req: Request) {
 
     // 1. REGISTER
     if (action === 'REGISTER') {
-      const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
-      if (existing) {
+      const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+      if (existingIdx >= 0) {
+        // Update user details if re-registering or updating phone/shop
+        const existing = users[existingIdx];
+        users[existingIdx] = {
+          ...existing,
+          name: (name || existing.name || cleanEmail.split('@')[0]).trim(),
+          businessName: (businessName || existing.businessName || 'Business Store').trim(),
+          phone: (phone || existing.phone || '').trim(),
+          password: password || existing.password,
+        };
+        await saveToCloudGist(users);
         return NextResponse.json({
           success: true,
           exists: true,
-          approved: existing.approved,
-          message: 'User already registered',
-        });
+          approved: users[existingIdx].approved,
+          user: users[existingIdx],
+          message: 'User registered and synchronized',
+        }, { headers: noCacheHeaders });
       }
 
       const newUser: ServerUserLicense = {
@@ -192,7 +225,7 @@ export async function POST(req: Request) {
         registered: true,
         approved: newUser.approved,
         user: newUser,
-      });
+      }, { headers: noCacheHeaders });
     }
 
     // 2. TOGGLE_APPROVAL (Super Admin approves / revokes)
@@ -211,7 +244,7 @@ export async function POST(req: Request) {
         };
         const updatedUsers = [createdUser, ...users];
         await saveToCloudGist(updatedUsers);
-        return NextResponse.json({ success: true, approved: true });
+        return NextResponse.json({ success: true, approved: true }, { headers: noCacheHeaders });
       }
 
       const newApprovalState = !targetUser.approved;
@@ -231,25 +264,25 @@ export async function POST(req: Request) {
         success: true,
         approved: newApprovalState,
         email: cleanEmail,
-      });
+      }, { headers: noCacheHeaders });
     }
 
     // 3. DELETE_USER
     if (action === 'DELETE_USER') {
       if (cleanEmail === DEFAULT_SUPER_ADMIN.email.toLowerCase()) {
-        return NextResponse.json({ success: false, message: 'Super admin cannot be deleted' }, { status: 400 });
+        return NextResponse.json({ success: false, message: 'Super admin cannot be deleted' }, { status: 400, headers: noCacheHeaders });
       }
       const updatedUsers = users.filter((u) => u.email.toLowerCase() !== cleanEmail);
       await saveToCloudGist(updatedUsers);
-      return NextResponse.json({ success: true, deleted: true });
+      return NextResponse.json({ success: true, deleted: true }, { headers: noCacheHeaders });
     }
 
-    return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400, headers: noCacheHeaders });
   } catch (error: any) {
     console.error('API auth users POST error:', error);
     return NextResponse.json(
       { success: false, message: 'Error processing request: ' + error.message },
-      { status: 500 }
+      { status: 500, headers: noCacheHeaders }
     );
   }
 }

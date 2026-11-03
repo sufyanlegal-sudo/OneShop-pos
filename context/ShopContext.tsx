@@ -171,7 +171,7 @@ interface ShopContextType {
   // Staff Management
   addStaff: (staff: Omit<Staff, 'id' | 'payments'>) => Staff;
   updateStaff: (id: string, updates: Partial<Staff>) => void;
-  payStaffSalary: (staffId: string, amount: number, month: string, paymentType: 'SALARY' | 'ADVANCE' | 'BONUS', notes?: string) => void;
+  payStaffSalary: (staffId: string, amount: number, month: string, paymentType: 'SALARY' | 'ADVANCE' | 'BONUS', notes?: string) => { success: boolean; message: string };
   // Real-Time Cross-Device Cloud Sync
   isCloudSyncing: boolean;
   lastCloudSyncTime: string | null;
@@ -316,7 +316,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch global registered users from Cloud Server so Super Admin sees all registrations from all devices
   const refreshUsersFromCloud = async () => {
     try {
-      const res = await fetch('/api/auth/users');
+      const res = await fetch(`/api/auth/users?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.users)) {
         setUsersDB(data.users);
@@ -332,14 +338,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUsersFromCloud();
   }, [isLoaded]);
 
-  // If active user is awaiting approval, poll cloud server every 4 seconds to detect when Super Admin approves!
+  // If active user is awaiting approval, poll cloud server every 3 seconds to detect when Super Admin approves!
   useEffect(() => {
     if (!isLoaded || !currentUserEmail) return;
     const userRec = usersDB.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase());
     if (userRec && !userRec.approved) {
       const interval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}`);
+          const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}&_t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            },
+          });
           const data = await res.json();
           if (data.success && data.found && data.approved) {
             setUsersDB((prev) =>
@@ -354,7 +366,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch {
           // Ignore polling errors
         }
-      }, 4000);
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [isLoaded, currentUserEmail, usersDB]);
@@ -477,6 +489,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUserEmail(SUPER_ADMIN_EMAIL);
       storage.setCurrentUser(SUPER_ADMIN_EMAIL);
       setIsSuperAdminModalOpen(true);
+      refreshUsersFromCloud();
       return {
         success: true,
         message: 'خوش آمدید! JK Developers سپر ایڈمن کنٹرول حاصل ہو چکا ہے۔',
@@ -575,6 +588,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('Failed to dispatch registration alert:', err);
     }
+
+    try {
+      await refreshUsersFromCloud();
+    } catch {}
 
     return {
       status: 'SUCCESS' as const,
@@ -2243,7 +2260,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     notes = ''
   ) => {
     const staff = staffList.find((s) => s.id === staffId);
-    if (!staff || amount <= 0) return;
+    if (!staff || amount <= 0) return { success: false, message: 'غلط ملازم یا رقم درج کی گئی ہے۔' };
+
+    // STRICT DUPLICATE PREVENTION: Salary for any staff member can ONLY be entered ONCE per month!
+    if (paymentType === 'SALARY') {
+      const existingSalary = staff.payments?.find(
+        (p) => p.paymentType === 'SALARY' && p.month === month
+      );
+      if (existingSalary) {
+        const paidDate = new Date(existingSalary.date).toLocaleDateString('ur-PK');
+        const err = `⚠️ ملازم "${staff.name}" کی ماہ (${month}) کی تنخواہ (رقم: Rs. ${existingSalary.amount.toLocaleString()}) پہلے ہی بتاریخ ${paidDate} ادا ہو چکی ہے۔ اس ماہ کی تنخواہ دوبارہ درج نہیں ہو سکتی!`;
+        alert(err);
+        return { success: false, message: err };
+      }
+    }
 
     const payment: StaffPayment = {
       id: `sp-${Date.now()}`,
@@ -2288,6 +2318,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       amount,
       staffId
     );
+    return { success: true, message: 'تنخواہ کامیابی سے درج ہو گئی ہے۔' };
   };
 
   // Backup & Restore

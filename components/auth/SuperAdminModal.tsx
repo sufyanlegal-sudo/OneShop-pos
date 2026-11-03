@@ -36,19 +36,20 @@ export const SuperAdminModal: React.FC = () => {
   const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTab, setFilterTab] = useState<'pending' | 'approved' | 'all'>('pending');
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newBusiness, setNewBusiness] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Auto-sync with cloud database when open & every 3 seconds
+  // Auto-sync with cloud database when open & every 2 seconds
   useEffect(() => {
     if (!isSuperAdminModalOpen) return;
     refreshUsersFromCloud();
     const interval = setInterval(() => {
       refreshUsersFromCloud();
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isSuperAdminModalOpen]);
 
@@ -60,17 +61,32 @@ export const SuperAdminModal: React.FC = () => {
 
   if (!isSuperAdminModalOpen) return null;
 
-  const filteredUsers = usersDB.filter(
-    (u) =>
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.businessName && u.businessName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.phone && u.phone.includes(searchQuery))
-  );
-
   const totalClients = usersDB.length;
   const approvedClients = usersDB.filter((u) => u.approved).length;
-  const pendingClients = usersDB.filter((u) => !u.approved).length;
+  const pendingClients = usersDB.filter((u) => !u.approved && u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()).length;
+
+  const sortedAndFilteredUsers = usersDB
+    .filter((u) => {
+      if (filterTab === 'pending') return !u.approved && u.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase();
+      if (filterTab === 'approved') return u.approved;
+      return true;
+    })
+    .filter(
+      (u) =>
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.businessName && u.businessName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.phone && u.phone.includes(searchQuery))
+    )
+    .sort((a, b) => {
+      // Pending first
+      if (!a.approved && b.approved) return -1;
+      if (a.approved && !b.approved) return 1;
+      // Newest first
+      const dateA = new Date(a.registeredAt || 0).getTime();
+      const dateB = new Date(b.registeredAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   const handleAddNewClient = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,29 +188,79 @@ export const SuperAdminModal: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI Summary Cards */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-3">
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <span className="text-[10px] text-slate-500 font-bold block">کل رجسٹرڈ صارفین</span>
-            <span className="text-xl font-black font-mono text-slate-900 dark:text-white">
-              {totalClients}
-            </span>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <span className="text-[10px] text-emerald-600 font-bold block">منظور شدہ (Approved)</span>
-            <span className="text-xl font-black font-mono text-emerald-600">
-              {approvedClients}
-            </span>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <span className="text-[10px] text-amber-600 font-bold block">منظوری کے منتظر (Pending)</span>
-            <span className="text-xl font-black font-mono text-amber-600">
+        {/* Interactive Filter Tabs & KPI Cards */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-2.5">
+          <button
+            type="button"
+            onClick={() => setFilterTab('pending')}
+            className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+              filterTab === 'pending'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-400 shadow-md ring-2 ring-amber-500/30'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-amber-500/40'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <span className="text-xs font-bold text-amber-500">⚡ منظوری کے منتظر (Pending)</span>
+              {pendingClients > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-mono font-black text-[10px] animate-pulse">
+                  {pendingClients}
+                </span>
+              )}
+            </div>
+            <span className="text-2xl font-black font-mono text-amber-500">
               {pendingClients}
             </span>
-          </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterTab('approved')}
+            className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+              filterTab === 'approved'
+                ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-md ring-2 ring-emerald-500/30'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-emerald-500/40'
+            }`}
+          >
+            <span className="text-xs font-bold text-emerald-600 block mb-1">✓ منظور شدہ لائسنس (Approved)</span>
+            <span className="text-2xl font-black font-mono text-emerald-600">
+              {approvedClients}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterTab('all')}
+            className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+              filterTab === 'all'
+                ? 'bg-blue-500/15 border-blue-500 text-blue-400 shadow-md ring-2 ring-blue-500/30'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500/40'
+            }`}
+          >
+            <span className="text-xs font-bold text-slate-400 block mb-1">📋 تمام کلائنٹس (All Clients)</span>
+            <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+              {totalClients}
+            </span>
+          </button>
         </div>
+
+        {/* Pending Clients Notification Banner */}
+        {pendingClients > 0 && (
+          <div className="px-4 py-2 bg-gradient-to-r from-amber-600/20 via-rose-600/20 to-amber-600/20 border-b border-amber-500/40 flex items-center justify-between text-xs text-amber-200">
+            <div className="flex items-center gap-2">
+              <span className="animate-pulse text-base">⚡</span>
+              <span className="font-bold">
+                {pendingClients} نیا کلائنٹ منظوری کا منتظر ہے! فوری رسائی دینے کے لیے سبز بٹن "منظور کریں" پر کلک کریں۔
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilterTab('pending')}
+              className="text-[11px] underline font-bold hover:text-white"
+            >
+              صرف منتظر دکھائیں
+            </button>
+          </div>
+        )}
 
         {/* Add New Client Bar */}
         <form onSubmit={handleAddNewClient} className="p-3 bg-slate-100 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
@@ -275,7 +341,7 @@ export const SuperAdminModal: React.FC = () => {
             </button>
 
             <span className="text-[11px] text-slate-500">
-              نتائج: <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{filteredUsers.length}</span>
+              نتائج: <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{sortedAndFilteredUsers.length}</span>
             </span>
           </div>
         </div>
@@ -291,111 +357,138 @@ export const SuperAdminModal: React.FC = () => {
                   <th className="p-3">دکان / کاروبار</th>
                   <th className="p-3 text-center">موبائل</th>
                   <th className="p-3 text-center w-28">اسٹیٹس</th>
-                  <th className="p-3 text-center w-60">ایکشن (منظوری و رابطہ)</th>
+                  <th className="p-3 text-center w-64">ایکشن (منظوری و رابطہ)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredUsers.map((user, idx) => {
-                  const isMaster = user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-                  return (
-                    <tr
-                      key={user.email}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-850/80 transition"
-                    >
-                      <td className="p-3 text-center font-mono text-slate-400">{idx + 1}</td>
-                      <td className="p-3">
-                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span>{user.name || 'نامعلوم'}</span>
-                          {isMaster && (
-                            <span className="px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black text-[9.5px]">
-                              👑 ڈویلپر
+                {sortedAndFilteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400">
+                      {filterTab === 'pending'
+                        ? 'کوئی نیا کلائنٹ منظوری کے لیے پینڈنگ نہیں ہے۔ سب منظور شدہ ہیں!'
+                        : 'کوئی کلائنٹ ریکارڈ نہیں ملا۔'}
+                    </td>
+                  </tr>
+                ) : (
+                  sortedAndFilteredUsers.map((user, idx) => {
+                    const isMaster = user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+                    return (
+                      <tr
+                        key={user.email}
+                        className={`transition ${
+                          !user.approved
+                            ? 'bg-amber-500/10 hover:bg-amber-500/20 border-r-4 border-r-amber-500'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-850/80'
+                        }`}
+                      >
+                        <td className="p-3 text-center font-mono text-slate-400">{idx + 1}</td>
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span>{user.name || 'نامعلوم'}</span>
+                            {isMaster && (
+                              <span className="px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black text-[9.5px]">
+                                👑 ڈویلپر
+                              </span>
+                            )}
+                            {!user.approved && (
+                              <span className="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[9px] animate-pulse">
+                                نیا درخواست گزار
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-mono text-slate-500 block text-[11px]" dir="ltr">
+                            {user.email}
+                          </span>
+                          {user.registeredAt && (
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              رجسٹرڈ: {new Date(user.registeredAt).toLocaleString('ur-PK')}
                             </span>
                           )}
-                        </div>
-                        <span className="font-mono text-slate-500 block text-[11px]" dir="ltr">
-                          {user.email}
-                        </span>
-                        {user.registeredAt && (
-                          <span className="text-[10px] text-slate-400 block mt-0.5">
-                            رجسٹرڈ: {new Date(user.registeredAt).toLocaleDateString('ur-PK')}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
-                        {user.businessName || user.shopName || '-'}
-                      </td>
-                      <td className="p-3 text-center font-mono text-slate-600 dark:text-slate-400" dir="ltr">
-                        {user.phone || '-'}
-                      </td>
-                      <td className="p-3 text-center">
-                        {user.approved ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 font-black text-[11px] inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Approved</span>
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 font-black text-[11px] inline-flex items-center gap-1 animate-pulse">
-                            <Clock className="w-3 h-3" />
-                            <span>Pending</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        {isMaster ? (
-                          <span className="text-xs font-bold text-slate-400">ماسٹر ڈویلپر</span>
-                        ) : (
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                            {user.approved ? (
-                              <button
-                                onClick={() => toggleUserApproval(user.email)}
-                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs transition shadow-sm active:scale-95"
-                              >
-                                رسائی روکیں (Revoke)
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => toggleUserApproval(user.email)}
-                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition shadow-sm active:scale-95"
-                              >
-                                ✓ منظور کریں (Approve)
-                              </button>
-                            )}
+                        </td>
+                        <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
+                          {user.businessName || user.shopName || '-'}
+                        </td>
+                        <td className="p-3 text-center font-mono text-slate-600 dark:text-slate-400" dir="ltr">
+                          {user.phone || '-'}
+                        </td>
+                        <td className="p-3 text-center">
+                          {user.approved ? (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 font-black text-[11px] inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Approved</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 font-black text-[11px] inline-flex items-center gap-1 animate-pulse">
+                              <Clock className="w-3 h-3" />
+                              <span>Pending</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {isMaster ? (
+                            <span className="text-xs font-bold text-slate-400">ماسٹر ڈویلپر</span>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              {user.approved ? (
+                                <button
+                                  onClick={() => toggleUserApproval(user.email)}
+                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-xs transition shadow-sm active:scale-95"
+                                >
+                                  رسائی روکیں (Revoke)
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    await toggleUserApproval(user.email);
+                                    if (user.phone) {
+                                      if (confirm(`صارف (${user.name}) کا لائسنس منظور ہو چکا ہے! کیا آپ انہیں واٹس ایپ پر بھی مطلع کرنا چاہتے ہیں؟`)) {
+                                        handleSendApprovalWhatsApp(user);
+                                      }
+                                    }
+                                  }}
+                                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs transition shadow-md active:scale-95 flex items-center gap-1"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>✓ فوری منظور کریں</span>
+                                </button>
+                              )}
 
-                            {user.phone && (
+                              {user.phone && (
+                                <button
+                                  onClick={() => handleSendApprovalWhatsApp(user)}
+                                  className="p-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-lg transition shadow-xs"
+                                  title="صارف کو واٹس ایپ پر منظوری کی اطلاع بھیجیں"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               <button
-                                onClick={() => handleSendApprovalWhatsApp(user)}
-                                className="p-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-lg transition shadow-xs"
-                                title="صارف کو واٹس ایپ پر منظوری کی اطلاع بھیجیں"
+                                onClick={() => handleCopyClientLink(user.email)}
+                                className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition shadow-xs"
+                                title="کلائنٹ کے لیے لاگ ان لنک کاپی کریں (کوئی آٹو لاگ ان نہیں ہوگا)"
                               >
-                                <Phone className="w-3.5 h-3.5" />
+                                <LinkIcon className="w-3.5 h-3.5" />
                               </button>
-                            )}
 
-                            <button
-                              onClick={() => handleCopyClientLink(user.email)}
-                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition shadow-xs"
-                              title="کلائنٹ کے لیے لاگ ان لنک کاپی کریں (کوئی آٹو لاگ ان نہیں ہوگا)"
-                            >
-                              <LinkIcon className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                if (confirm(`کیا آپ واقعی ${user.email} کا ریکارڈ ڈیٹا بیس سے ڈیلیٹ کرنا چاہتے ہیں؟`)) {
-                                  deleteUserLicense(user.email);
-                                }
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-lg transition"
-                              title="ڈیلیٹ کریں"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                              <button
+                                onClick={() => {
+                                  if (confirm(`کیا آپ واقعی ${user.email} کا ریکارڈ ڈیٹا بیس سے ڈیلیٹ کرنا چاہتے ہیں؟`)) {
+                                    deleteUserLicense(user.email);
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-lg transition"
+                                title="ڈیلیٹ کریں"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
