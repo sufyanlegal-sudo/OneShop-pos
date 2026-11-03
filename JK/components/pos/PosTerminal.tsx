@@ -2136,7 +2136,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
         {/* Right-aligned Sleek Action Buttons in a Single Compact Row */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Quick Hold Bill Button */}
+          {/* 1. Products Catalog Grid Toggle (Small, sleek button) */}
+          <button
+            type="button"
+            onClick={toggleCatalog}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 border cursor-pointer whitespace-nowrap ${
+              showCatalog
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+            }`}
+            title={showCatalog ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'اشیاء ڈیش بورڈ ساتھ کھولیں'}
+          >
+            {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+            <span className="text-[11px] font-bold">
+              {showCatalog ? (lang === 'ur' ? 'صرف بل' : 'Bill Only') : (lang === 'ur' ? 'اشیاء گرڈ' : 'Items Grid')}
+            </span>
+          </button>
+
+          {/* 2. Quick Hold Bill Button */}
           {cart.length > 0 && (
             <button
               type="button"
@@ -2149,7 +2166,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </button>
           )}
 
-          {/* Dedicated Held Bills Queue Button */}
+          {/* 3. Dedicated Held Bills Queue Button */}
           {heldBills.length > 0 && (
             <button
               type="button"
@@ -2162,7 +2179,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </button>
           )}
 
-          {/* Quick Add Custom Item Button */}
+          {/* 4. Quick Add Custom Item Button */}
           <button
             type="button"
             onClick={() => setCustomItemModalOpen(true)}
@@ -2173,7 +2190,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <span>{lang === 'ur' ? '+ آئٹم (F3)' : '+ Item'}</span>
           </button>
 
-          {/* Quick Tools Floating Dropdown Menu (Clean & Compact) */}
+          {/* 5. Quick Tools Floating Dropdown Menu (Clean & Compact) */}
           <div ref={quickToolsRef} className="relative">
             <button
               type="button"
@@ -2663,97 +2680,43 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           } ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}
         >
           {/* Cart Header */}
-          <div className="p-3 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-emerald-400" />
-              <h3 className="font-black text-sm">
-                {lang === 'ur' ? 'فعال بلنگ کاؤنٹر (بل بنتا ہوا)' : 'Active Billing Counter'} ({cartTotals.itemCount})
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <h3 className="font-black text-xs sm:text-sm">
+                {lang === 'ur' ? 'بل کاؤنٹر (آئٹمز: ' : 'Active Bill ('} {cartTotals.itemCount})
               </h3>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* 1. Toggle Items Catalog / Dashboard (Small, Sleek Button) */}
-              <button
-                type="button"
-                onClick={toggleCatalog}
-                className={`h-7 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 border ${
-                  showCatalog
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
-                }`}
-                title={
-                  showCatalog
-                    ? (lang === 'ur' ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'Hide catalog, show bill only')
-                    : (lang === 'ur' ? 'اشیاء ڈیش بورڈ ساتھ کھولیں' : 'Show items dashboard alongside bill')
-                }
-              >
-                {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
-                <span className="text-[11px] font-bold">
-                  {showCatalog
-                    ? (lang === 'ur' ? 'صرف بل موڈ' : 'Bill Only')
-                    : (lang === 'ur' ? 'اشیاء ڈیش بورڈ' : 'Items Dashboard')}
-                </span>
-              </button>
-
-              {/* 2. Quick Bills History Icon Button */}
-              <button
-                type="button"
-                onClick={() => setIsRecentBillsModalOpen(true)}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 transition active:scale-95 shadow-xs"
-                title={lang === 'ur' ? 'بل ہسٹری و ری پرنٹ (F2)' : 'Bills History & Reprint'}
-              >
-                <History className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 3. Quick Return & Exchange Icon Button */}
-              <button
-                type="button"
-                onClick={() => setIsExchangeModalOpen(true)}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-teal-600 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 transition active:scale-95 shadow-xs"
-                title={lang === 'ur' ? 'مال کا تبادلہ و واپسی' : 'Exchange / Return Item'}
-              >
-                <Repeat className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 4. Admin Live Margin Lock/Unlock Button */}
+              {/* Admin Live Margin Indicator */}
               {isMarginUnlocked ? (
                 <button
                   type="button"
                   onClick={lockMargin}
-                  className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all"
-                  title="Lock Live Margin Transparency"
+                  className="h-6 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-md flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                  title="Lock Margin"
                 >
-                  <Unlock className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="text-[11px] font-mono">
+                  <Unlock className="w-3 h-3 text-amber-300" />
+                  <span className="font-mono">
                     {cartTotals.totalProfit.toLocaleString()} PKR
                   </span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setPinModalOpen(true)}
-                  className="h-7 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all border border-slate-700"
-                  title="Unlock Real-time Profit Margins (Admin PIN)"
-                >
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[10px]">{t('unlockMargin')}</span>
-                </button>
+                (currentRole === 'ADMIN' || currentRole === 'MANAGER') && (
+                  <button
+                    type="button"
+                    onClick={() => setPinModalOpen(true)}
+                    className="h-6 px-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[10.5px] rounded-md flex items-center gap-1 transition-all border border-slate-700 cursor-pointer"
+                    title="Unlock Profit Margins"
+                  >
+                    <Lock className="w-3 h-3" />
+                    <span>نفع</span>
+                  </button>
+                )
               )}
 
-              {/* 5. Quick Hold Bill Button in Cart Header */}
-              {cart.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleHoldBill}
-                  className="h-7 px-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-lg flex items-center gap-1 shadow-xs active:scale-95 transition-all"
-                  title="موجودہ بل ہولڈ کریں (F6)"
-                >
-                  <Pause className="w-3 h-3 fill-current" />
-                  <span className="text-[10px]">{lang === 'ur' ? 'ہولڈ' : 'Hold'}</span>
-                </button>
-              )}
-
-              {/* 6. Quick Clear Cart Button */}
+              {/* Quick Clear Cart Button */}
               {cart.length > 0 && (
                 <button
                   type="button"
@@ -2762,10 +2725,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                       clearCart();
                     }
                   }}
-                  className="w-7 h-7 bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition active:scale-95 border border-slate-700"
+                  className="h-6 px-2 bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white rounded-md flex items-center gap-1 transition active:scale-95 border border-slate-700 text-[10.5px] cursor-pointer"
                   title={t('clearCart')}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3" />
+                  <span>{lang === 'ur' ? 'صاف' : 'Clear'}</span>
                 </button>
               )}
             </div>
