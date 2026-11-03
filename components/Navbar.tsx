@@ -41,6 +41,9 @@ import {
   VolumeX,
   Cloud,
   RefreshCw,
+  SlidersHorizontal,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { posSound } from '@/lib/sound';
 import { useLanguage } from '@/context/LanguageContext';
@@ -96,6 +99,24 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showControlCenterModal, setShowControlCenterModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    posSound.playClick();
+    if (typeof document !== 'undefined') {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+        setIsFullscreen(false);
+      }
+    }
+  };
+
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('pos_header_collapsed') === 'true';
@@ -318,386 +339,282 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         )}
 
-        {/* Top Bar: Software Branding & Quick Tools (Collapsible for Max Screen Space) */}
-        {!isHeaderCollapsed && (
-          <div className="bg-slate-950/90 px-4 py-2 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="font-mono font-black text-emerald-400 tracking-wide text-xs">
-                  {businessProfile.softwareName || 'OneShop POS'}
+        {/* Top Bar: Clean Executive Software Header (Single Row) */}
+        <div className="bg-slate-950 px-3 sm:px-4 py-2 border-b border-slate-800 flex items-center justify-between gap-2 shadow-md">
+          {/* Left: Brand Identity & Support Contact */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-[1.5px] shadow-lg shadow-emerald-950/60 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                <span className="font-mono font-black text-[11px] sm:text-xs text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+                  POS
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                  Multi-Counter ERP
-                </span>
-              </div>
-
-              <div className="hidden md:flex items-center gap-3 text-slate-400 text-[11px]">
-                <span>
-                  Powered by <strong className="text-amber-400 font-sans">JK Developers Pakistan</strong>
-                </span>
-                <span>•</span>
-                <span className="text-emerald-400 font-mono font-bold">Helpline: 03008998381</span>
               </div>
             </div>
-
-            {/* Quick Buttons: Collapse Top, Barcode Generator, Backup, Support, Role, Language */}
-            <div className="flex items-center gap-2">
-              {/* Collapse Top Header Button */}
-              <button
-                type="button"
-                onClick={toggleHeaderCollapsed}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition shadow-md active:scale-95 border border-cyan-300"
-                title={lang === 'ur' ? 'اوپر والا ایریا بند کریں تاکہ بلنگ کیلئے بڑی اسکرین مل سکے' : 'Collapse Header for Max Screen Space'}
-              >
-                <ChevronUp className="w-4 h-4 stroke-[3]" />
-                <span>{lang === 'ur' ? 'اوپر بند کریں (Full Screen)' : 'Collapse Top'}</span>
-              </button>
-
-              {/* Barcode / QR Code Generator Button */}
-              <button
-                onClick={() => setShowBarcodeModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 font-bold transition-all shadow-sm"
-                title={lang === 'ur' ? 'بارکوڈ اور کیو آر کوڈ بنائیں / پرنٹ کریں' : 'Generate & Print Barcode / QR'}
-              >
-                <QrCode className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">
-                  {lang === 'ur' ? 'بارکوڈ و کیو آر جنریٹر' : 'Barcode/QR'}
+            <div className="leading-tight">
+              <div className="flex items-center gap-2">
+                <h1 className="font-black text-sm sm:text-base text-white font-mono tracking-tight flex items-center gap-1.5">
+                  <span>{businessProfile.softwareName || 'OneShop POS'}</span>
+                </h1>
+                <span className="text-[10px] font-mono font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  v2.0 PRO
                 </span>
-              </button>
-
-              {/* Gmail Backup Button */}
-              <button
-                onClick={() => setShowBackupModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-all"
-                title={lang === 'ur' ? 'جی میل پر ڈیٹا بیک اپ بھیجیں' : 'Backup to Gmail'}
-              >
-                <Mail className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">{lang === 'ur' ? 'جی میل بیک اپ' : 'Gmail Backup'}</span>
-              </button>
-
-              {/* JK Developers Pakistan Support Button */}
-              <button
-                onClick={() => setShowSupportModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold transition-all shadow-sm"
-                title="JK Developers Pakistan Official Support: 03008998381"
-              >
-                <Headphones className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-mono text-[11px] font-bold">JK Developers: 03008998381</span>
-              </button>
-
-              {/* Multi-Counter & Role Switcher */}
-              <button
-                onClick={() => {
-                  setRoleModalTab(currentRole === 'ADMIN' || currentRole === 'MANAGER' ? 'cashier' : 'admin');
-                  setShowRoleModal(true);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${
-                  currentRole === 'ADMIN' || currentRole === 'MANAGER'
-                    ? 'bg-purple-950/80 border-purple-600/70 text-purple-200 hover:bg-purple-900'
-                    : 'bg-emerald-950/80 border-emerald-600/70 text-emerald-200 hover:bg-emerald-900'
-                }`}
-                title={lang === 'ur' ? 'کاؤنٹر اور ایڈمن لاگ ان تبدیل کریں' : 'Switch Counter / Admin'}
-              >
-                {currentRole === 'ADMIN' || currentRole === 'MANAGER' ? (
-                  <>
-                    <Unlock className="w-3.5 h-3.5 text-purple-400" />
-                    <span>{lang === 'ur' ? '👑 ایڈمن موڈ' : '👑 Admin'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Monitor className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>
-                      {lang === 'ur'
-                        ? `کاؤنٹر #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'کیشیئر'})`
-                        : `Counter #${activeCounter} (${activeCashier?.name ? activeCashier.name.slice(0, 14) : 'Cashier'})`}
-                    </span>
-                  </>
-                )}
-              </button>
-
-              {/* Quick Pending WhatsApp Orders Button */}
-              {pendingWhatsAppOrdersCount > 0 && (
+                {/* Active Role & Counter Indicator */}
                 <button
                   type="button"
-                  onClick={() => setIsWhatsAppOrdersModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all animate-pulse"
-                  title={lang === 'ur' ? 'پینڈنگ واٹس ایپ آرڈرز دیکھیں اور بل بنائیں' : 'View Pending Orders'}
+                  onClick={() => {
+                    posSound.playClick();
+                    setRoleModalTab(currentRole === 'ADMIN' || currentRole === 'MANAGER' ? 'cashier' : 'admin');
+                    setShowRoleModal(true);
+                  }}
+                  className={`hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold border transition active:scale-95 ${
+                    currentRole === 'ADMIN' || currentRole === 'MANAGER'
+                      ? 'bg-purple-950/70 text-purple-300 border-purple-600/50 hover:bg-purple-900/60'
+                      : 'bg-emerald-950/70 text-emerald-300 border-emerald-600/50 hover:bg-emerald-900/60'
+                  }`}
+                  title={lang === 'ur' ? 'کاؤنٹر اور ایڈمن لاگ ان تبدیل کریں' : 'Switch Counter / Admin'}
                 >
-                  <Clock className="w-3.5 h-3.5 text-slate-950" />
-                  <span>{pendingWhatsAppOrdersCount} {lang === 'ur' ? 'پینڈنگ آرڈرز' : 'Pending'}</span>
+                  {currentRole === 'ADMIN' || currentRole === 'MANAGER' ? (
+                    <>
+                      <Unlock className="w-3 h-3 text-purple-400" />
+                      <span>👑 ایڈمن</span>
+                    </>
+                  ) : (
+                    <>
+                      <Monitor className="w-3 h-3 text-emerald-400" />
+                      <span>کاؤنٹر #{activeCounter}</span>
+                    </>
+                  )}
                 </button>
-              )}
-
-              {/* Live Cloud Two-Way Sync Button */}
-              <button
-                type="button"
-                disabled={isCloudSyncing}
-                onClick={handleManualCloudSync}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-black text-xs shadow-md transition-all active:scale-95 ${
-                  isCloudSyncing
-                    ? 'bg-cyan-950/90 border-cyan-400 text-cyan-300 animate-pulse'
-                    : 'bg-emerald-950/80 hover:bg-emerald-900 border-emerald-500/70 text-emerald-300'
-                }`}
-                title={lang === 'ur' ? 'موبائل اور کمپیوٹر کے درمیان ڈیٹا کلاؤڈ سے فوری سنک کریں' : 'Sync Data with Cloud'}
-              >
-                <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-bounce text-cyan-300' : 'text-cyan-400'}`} />
-                <span>
-                  {isCloudSyncing
-                    ? (lang === 'ur' ? 'سنک ہو رہا ہے...' : 'Syncing...')
-                    : (lang === 'ur' ? 'کلاؤڈ سنک' : 'Cloud Sync')}
+              </div>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                <span>Powered by JK Developers Pakistan</span>
+                <span className="text-slate-600">•</span>
+                <span
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowSupportModal(true);
+                  }}
+                  className="text-amber-400/90 hover:text-amber-300 cursor-pointer font-mono font-bold transition hover:underline"
+                  title="سپورٹ اور ہیلپ لائن کے لیے کلک کریں (0300-8998381)"
+                >
+                  03008998381
                 </span>
-                {lastCloudSyncTime && !isCloudSyncing && (
-                  <span className="text-[10px] text-emerald-400 font-mono hidden md:inline">✓</span>
-                )}
-              </button>
+              </p>
+            </div>
+          </div>
 
-              {/* 1-Click Language Switcher */}
-              <button
-                onClick={toggleLang}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-sm active:scale-95"
-                title="Toggle Urdu / English"
-              >
-                <Languages className="w-3.5 h-3.5" />
-                <span>{lang === 'ur' ? 'English' : 'اردو'}</span>
-              </button>
+          {/* Right: Quick Action Controls & Hero Control Center Button */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* 1. Quick Language Switch (Urdu / English) */}
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                toggleLang();
+              }}
+              className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600 font-bold text-xs flex items-center gap-1 transition active:scale-95 shadow-xs"
+              title={lang === 'ur' ? 'Switch to English' : 'اردو میں تبدیل کریں'}
+            >
+              <Languages className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="font-semibold text-[11px]">{lang === 'ur' ? 'English' : 'اردو'}</span>
+            </button>
 
-              {/* POS Mechanical Sound Effects Toggle Button */}
+            {/* 2. Quick Sound Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border transition active:scale-95 shadow-xs ${
+                soundActive
+                  ? 'bg-emerald-950/80 hover:bg-emerald-900 border-emerald-600/70 text-emerald-400'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-500'
+              }`}
+              title={soundActive ? (lang === 'ur' ? 'ساؤنڈ آن ہے (کلک کر کے بند کریں)' : 'Sound ON') : (lang === 'ur' ? 'ساؤنڈ آف ہے (آن کریں)' : 'Sound OFF')}
+            >
+              {soundActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* 3. Quick Cloud Sync */}
+            <button
+              type="button"
+              disabled={isCloudSyncing}
+              onClick={handleManualCloudSync}
+              className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg border font-bold text-xs flex items-center gap-1 transition active:scale-95 shadow-xs ${
+                isCloudSyncing
+                  ? 'bg-cyan-950/80 border-cyan-500 text-cyan-300 animate-pulse'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 hover:border-slate-600 text-slate-200'
+              }`}
+              title={lang === 'ur' ? 'کلاؤڈ سے ڈیٹا فوری سنک کریں' : 'Sync Data with Cloud'}
+            >
+              <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-bounce text-cyan-400' : 'text-cyan-400'}`} />
+              <span className="hidden md:inline text-[11px]">
+                {isCloudSyncing ? (lang === 'ur' ? 'سنک...' : 'Sync...') : (lang === 'ur' ? 'کلاؤڈ سنک' : 'Sync')}
+              </span>
+              {lastCloudSyncTime && !isCloudSyncing && (
+                <span className="text-[10px] text-emerald-400 font-mono">✓</span>
+              )}
+            </button>
+
+            {/* 4. Small Fullscreen Toggle Icon Button */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 flex items-center justify-center transition active:scale-95 shadow-xs"
+              title={lang === 'ur' ? 'فل اسکرین موڈ (Full Screen)' : 'Toggle Full Screen'}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 text-cyan-400" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-300" />}
+            </button>
+
+            {/* 5. Collapse / Expand Ribbon Icon Button */}
+            <button
+              type="button"
+              onClick={toggleHeaderCollapsed}
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border transition active:scale-95 shadow-xs ${
+                isHeaderCollapsed
+                  ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title={isHeaderCollapsed ? (lang === 'ur' ? 'ٹول بار کھولیں' : 'Expand Toolbar') : (lang === 'ur' ? 'ٹول بار بند کریں (بڑی اسکرین)' : 'Collapse Toolbar')}
+            >
+              {isHeaderCollapsed ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* 6. HERO: QUICK CONTROL CENTER & TOOLS MODAL BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                posSound.playClick();
+                setShowControlCenterModal(true);
+              }}
+              className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-lg bg-gradient-to-r from-teal-600 via-emerald-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/60 border border-emerald-400/40 transition active:scale-95"
+              title={lang === 'ur' ? 'کوئیک ٹولز و سسٹم کنٹرول سینٹر کھولیں' : 'Open Quick Tools & Control Center'}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-white" />
+              <span className="text-[11px] sm:text-[11.5px] font-bold">
+                {lang === 'ur' ? 'کوئیک ٹولز' : 'Quick Tools'}
+              </span>
+              {pendingWhatsAppOrdersCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping"></span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* TWO-TIER RIBBON & CHAKOR SHORTCUT BOXES (Collapsible for Max Screen Space) */}
+        {!isHeaderCollapsed && (
+          <div className="animate-in fade-in duration-150">
+            {/* 1. TOP RIBBON TABS (NAMES STRIP - EXACTLY LIKE EXCEL RIBBON EXAMPLE) */}
+            <div
+              className="bg-slate-900 border-b border-slate-700/80 px-4 pt-1 flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {allModulesList
+                .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
+                .map((m) => {
+                  const isActive = activeTab === m.id;
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={`tab-${m.id}`}
+                      type="button"
+                      onClick={() => handleTabClick(m.id)}
+                      className={`px-3 sm:px-4 py-1.5 text-xs sm:text-[13px] rounded-t-md transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none border-t-2 ${
+                        isActive
+                          ? 'bg-slate-850 text-emerald-400 border-emerald-400 font-black shadow-xs'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border-transparent font-bold'
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                      <span>{m.label}</span>
+                    </button>
+                  );
+                })}
+            </div>
+
+            {/* 2. DEDICATED SEPARATE SHORTCUT BOXES TOOLBAR (CHAKOR SQUARE SHORTCUT BOXES BELOW) */}
+            <div className="bg-slate-950/90 px-4 py-1.5 flex items-center gap-2 border-b border-slate-800 shadow-inner">
+              {/* Scroll Left Button */}
               <button
                 type="button"
-                onClick={handleToggleSound}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold transition-all shadow-sm active:scale-95 ${
-                  soundActive
-                    ? 'bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border-emerald-500/80 shadow-emerald-900/30'
-                    : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 border-slate-700'
-                }`}
-                title={lang === 'ur' ? (soundActive ? 'کلک اور ٹائپنگ ساؤنڈ آن ہے (کلک کر کے بند کریں)' : 'ساؤنڈ آف ہے (آن کریں)') : 'Toggle POS Sound Effects'}
+                onClick={() => scrollNav('left')}
+                className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all mr-1 z-10"
+                title={lang === 'ur' ? 'پچھلے شارٹ کٹس (Scroll Left)' : 'Scroll Left'}
               >
-                {soundActive ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[11px] font-mono hidden sm:inline">ساؤنڈ آن</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[11px] font-mono hidden sm:inline">ساؤنڈ آف</span>
-                  </>
-                )}
+                <ChevronLeft className="w-4 h-4" />
               </button>
 
-              {/* Super Admin Control Panel Trigger (Only for jkdevelopers.pk@gmail.com) */}
-              {isSuperAdmin && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsSuperAdminModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition-all active:scale-95"
-                    title="سپر ایڈمن کنٹرول پینل کھولیں"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                    <span>ایڈمن پینل</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logoutUser();
-                      window.location.reload();
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition-all"
-                    title="سپر ایڈمن موڈ فوری بند اور لاگ آؤٹ کریں"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>لاگ آؤٹ</span>
-                  </button>
-                </div>
-              )}
+              {/* Carousel Slider of Shortcut Boxes */}
+              <nav
+                ref={navSliderRef}
+                className="flex items-center gap-2 overflow-x-auto py-0.5 scroll-smooth no-scrollbar flex-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {allModulesList
+                  .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
+                  .map((m) => {
+                    const Icon = m.icon;
+                    const isActive = activeTab === m.id;
+                    const isLocked = !hasAccess(m.id);
 
-              {/* Logged in User Pill & Logout */}
-              {currentUserEmail && (
-                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
-                  <span className="text-emerald-400 font-mono text-[11px] truncate max-w-[130px]" dir="ltr">
-                    {currentUserEmail}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={logoutUser}
-                    className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
-                    title="لاگ آؤٹ کریں"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
+                    return (
+                      <button
+                        key={`box-${m.id}`}
+                        type="button"
+                        onClick={() => handleTabClick(m.id)}
+                        className={`relative min-w-[70px] sm:min-w-[78px] h-12 px-2 py-1 rounded-xl text-xs font-black flex flex-col justify-between items-center transition-all border shrink-0 active:translate-y-0.5 select-none shadow-sm cursor-pointer ${
+                          isActive
+                            ? `${m.activeClass} -translate-y-0.5 ring-2 ring-white shadow-md`
+                            : `${m.bgClass} hover:brightness-110 border-slate-700`
+                        }`}
+                        title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : `${m.label} (${m.shortcut})`}
+                      >
+                        {/* Top: Function Key Badge & Icon */}
+                        <div className="flex items-center justify-between w-full px-0.5">
+                          <div className="w-4 h-4 rounded bg-black/25 flex items-center justify-center shrink-0 border border-white/10">
+                            <Icon className="w-2.5 h-2.5 text-white/90" />
+                          </div>
+                          <span className="px-1.5 py-0.2 rounded bg-black/40 text-white font-mono text-[9px] font-black border border-white/15 shadow-inner">
+                            {m.shortcut}
+                          </span>
+                        </div>
+
+                        {/* Bottom: Label */}
+                        <div className="w-full flex items-center justify-center gap-0.5">
+                          <span className="font-bold text-[10px] sm:text-[10.5px] tracking-tight leading-none truncate text-center">
+                            {m.label}
+                          </span>
+                          {isLocked && <Lock className="w-2 h-2 text-amber-200 shrink-0" />}
+                        </div>
+
+                        {m.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              posSound.playClick();
+                              setIsWhatsAppOrdersModalOpen(true);
+                            }}
+                            className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] animate-pulse hover:scale-105 cursor-pointer shadow-md"
+                            title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
+                          >
+                            {pendingWhatsAppOrdersCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+              </nav>
+
+              {/* Scroll Right Button */}
+              <button
+                type="button"
+                onClick={() => scrollNav('right')}
+                className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all ml-1 z-10"
+                title={lang === 'ur' ? 'اگلے شارٹ کٹس (Scroll Right)' : 'Scroll Right'}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
-
-        {/* Main Bar: Software Title & Quick Info */}
-        <div className={`px-4 flex items-center justify-between gap-3 border-b border-slate-800/80 transition-all ${isHeaderCollapsed ? 'py-1.5' : 'py-2'}`}>
-          {/* Software Title */}
-          <div className="flex items-center gap-3">
-            <div className={`rounded-xl bg-gradient-to-br from-emerald-500 via-teal-600 to-slate-900 flex items-center justify-center shadow-lg font-black text-white border border-emerald-400/30 transition-all ${isHeaderCollapsed ? 'w-8 h-8 text-xs' : 'w-9 h-9 text-xs'}`}>
-              POS
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className={`font-black tracking-tight leading-tight text-white font-mono flex items-center gap-2 ${isHeaderCollapsed ? 'text-sm' : 'text-base sm:text-lg'}`}>
-                  <span>{businessProfile.softwareName || 'OneShop POS'}</span>
-                </h1>
-                <span className="text-[10px] uppercase font-mono font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800 shadow-sm">
-                  v2.0 PRO
-                </span>
-                {isHeaderCollapsed && (
-                  <button
-                    type="button"
-                    onClick={toggleHeaderCollapsed}
-                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-xs transition active:scale-95 shadow-sm"
-                    title={lang === 'ur' ? 'اوپر والا ایریا کھولیں' : 'Expand Top Area'}
-                  >
-                    <span>{lang === 'ur' ? 'اوپر کھولیں' : 'Expand Top'}</span>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {(currentRole === 'ADMIN' || currentRole === 'MANAGER') && !isHeaderCollapsed && (
-                  <button
-                    onClick={() => handleTabClick('settings')}
-                    className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-md transition-colors"
-                    title={lang === 'ur' ? 'سیٹنگز کھولیں' : 'Open Settings'}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-              {!isHeaderCollapsed && (
-                <p className="text-[10.5px] text-slate-400 font-medium">
-                  {lang === 'ur'
-                    ? 'جے کے ڈویلپرز پاکستان • مکمل ریٹیل و ہول سیل پی او ایس سسٹم (03008998381)'
-                    : 'Powered by JK Developers Pakistan • Multi-Counter Enterprise POS (03008998381)'}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Counter Info on Right */}
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
-            <span className="px-2 py-1 rounded bg-slate-800/80 text-emerald-300 border border-slate-700 font-bold">
-              {lang === 'ur' ? `کاؤنٹر #${activeCounter}` : `Counter #${activeCounter}`}
-            </span>
-          </div>
-        </div>
-
-        {/* 1. TOP RIBBON TABS (NAMES STRIP - EXACTLY LIKE EXCEL RIBBON EXAMPLE) */}
-        <div
-          className="bg-slate-900 border-b border-slate-700/80 px-4 pt-1 flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {allModulesList
-            .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
-            .map((m) => {
-              const isActive = activeTab === m.id;
-              const Icon = m.icon;
-              return (
-                <button
-                  key={`tab-${m.id}`}
-                  type="button"
-                  onClick={() => handleTabClick(m.id)}
-                  className={`px-3 sm:px-4 py-1.5 text-xs sm:text-[13px] rounded-t-md transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none border-t-2 ${
-                    isActive
-                      ? 'bg-slate-850 text-emerald-400 border-emerald-400 font-black shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border-transparent font-bold'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>{m.label}</span>
-                </button>
-              );
-            })}
-        </div>
-
-        {/* 2. DEDICATED SEPARATE SHORTCUT BOXES TOOLBAR (CHAKOR SQUARE SHORTCUT BOXES BELOW) */}
-        <div className="bg-slate-950/90 px-4 py-1.5 flex items-center gap-2 border-b border-slate-800 shadow-inner">
-          {/* Scroll Left Button */}
-          <button
-            type="button"
-            onClick={() => scrollNav('left')}
-            className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all mr-1 z-10"
-            title={lang === 'ur' ? 'پچھلے شارٹ کٹس (Scroll Left)' : 'Scroll Left'}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          {/* Carousel Slider of Shortcut Boxes */}
-          <nav
-            ref={navSliderRef}
-            className="flex items-center gap-2 overflow-x-auto py-0.5 scroll-smooth no-scrollbar flex-1"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {allModulesList
-              .filter((m) => m.id !== 'aiChatboard' || currentRole === 'ADMIN')
-              .map((m) => {
-                const Icon = m.icon;
-                const isActive = activeTab === m.id;
-                const isLocked = !hasAccess(m.id);
-
-                return (
-                  <button
-                    key={`box-${m.id}`}
-                    type="button"
-                    onClick={() => handleTabClick(m.id)}
-                    className={`relative min-w-[70px] sm:min-w-[78px] h-11 px-2 py-1 rounded-lg text-xs font-black flex flex-col justify-between items-center transition-all border shrink-0 active:translate-y-0.5 select-none shadow-xs cursor-pointer ${
-                      isActive
-                        ? `${m.activeClass} -translate-y-0.5 ring-2 ring-white shadow-md`
-                        : `${m.bgClass} hover:brightness-110 border-slate-700`
-                    }`}
-                    title={isLocked ? (lang === 'ur' ? 'کیشیئر کے لیے لاک (ایڈمن پن درکار ہے)' : 'Locked for cashier') : `${m.label} (${m.shortcut})`}
-                  >
-                    {/* Top: Function Key Badge & Icon */}
-                    <div className="flex items-center justify-between w-full px-0.5">
-                      <div className="w-4 h-4 rounded bg-black/25 flex items-center justify-center shrink-0 border border-white/10">
-                        <Icon className="w-2.5 h-2.5 text-white/90" />
-                      </div>
-                      <span className="px-1.5 py-0.2 rounded bg-black/40 text-white font-mono text-[9px] font-black border border-white/15 shadow-inner">
-                        {m.shortcut}
-                      </span>
-                    </div>
-
-                    {/* Bottom: Label */}
-                    <div className="w-full flex items-center justify-center gap-0.5">
-                      <span className="font-bold text-[10px] sm:text-[10.5px] tracking-tight leading-none truncate text-center">
-                        {m.label}
-                      </span>
-                      {isLocked && <Lock className="w-2 h-2 text-amber-200 shrink-0" />}
-                    </div>
-
-                    {m.id === 'whatsapp' && pendingWhatsAppOrdersCount > 0 && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          posSound.playClick();
-                          setIsWhatsAppOrdersModalOpen(true);
-                        }}
-                        className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] animate-pulse hover:scale-105 cursor-pointer shadow-md"
-                        title="پینڈنگ آرڈرز دیکھیں اور بل بنائیں"
-                      >
-                        {pendingWhatsAppOrdersCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-          </nav>
-
-          {/* Scroll Right Button */}
-          <button
-            type="button"
-            onClick={() => scrollNav('right')}
-            className="flex items-center justify-center w-7 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-xs shrink-0 active:scale-95 transition-all ml-1 z-10"
-            title={lang === 'ur' ? 'اگلے شارٹ کٹس (Scroll Right)' : 'Scroll Right'}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
 
         {/* Admin & Multi-Counter Cashier Session Modal */}
         {showRoleModal && (
@@ -929,6 +846,371 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   </form>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Quick Control Center & Essential Tools Modal */}
+        {showControlCenterModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl text-white shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh]">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950/90 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-[1px] shadow-lg shadow-emerald-950 flex items-center justify-center shrink-0">
+                    <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+                      <SlidersHorizontal className="w-5 h-5 text-emerald-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-white flex items-center gap-2">
+                      <span>{lang === 'ur' ? 'کوئیک ٹولز و سسٹم کنٹرول سینٹر' : 'Quick Tools & Control Center'}</span>
+                      <span className="text-[10px] uppercase font-mono font-black px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                        1-Click
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {lang === 'ur'
+                        ? 'تمام اہم یوٹیلیٹیز، بیک اپ، کلاؤڈ اور سیشن کنٹرول ایک ہی کلک پر دستیاب ہیں'
+                        : 'All essential utilities, cloud sync, backups and session settings in 1-click'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowControlCenterModal(false)}
+                  className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Grid of 1-Click Cards */}
+              <div className="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                {/* 1. Barcode & QR Generator */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    setShowBarcodeModal(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-emerald-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-emerald-300 transition">
+                        {lang === 'ur' ? 'بارکوڈ و کیو آر جنریٹر' : 'Barcode / QR Generator'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+                        {lang === 'ur' ? 'پرنٹ' : 'Print'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'پروڈکٹس کے بارکوڈ اور ریٹیل کیو آر اسٹیکر تیار و پرنٹ کریں' : 'Generate & print custom product barcode labels'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 2. Gmail Cloud Backup */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    setShowBackupModal(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-cyan-950 text-cyan-400 border border-cyan-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-cyan-300 transition">
+                        {lang === 'ur' ? 'جی میل ڈیٹا بیک اپ' : 'Gmail Cloud Backup'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+                        {lang === 'ur' ? 'محفوظ' : 'Secure'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'تمام کھاتہ جات اور انوینٹری ڈیٹا جی میل پر فوری بیک اپ بھیجیں' : 'Safely send full shop database backup to your Gmail'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 3. JK Support Helpline */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    setShowSupportModal(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-950 text-amber-400 border border-amber-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Headphones className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-amber-300 transition">
+                        {lang === 'ur' ? 'جے کے آفیشل ہیلپ لائن' : 'JK Official Helpline'}
+                      </span>
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">
+                        03008998381
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'جے کے ڈویلپرز پاکستان تکنیکی رہنمائی، واٹس ایپ و کال سپورٹ' : 'Direct developer phone, WhatsApp and technical assistance'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 4. Cloud Two-Way Sync */}
+                <button
+                  type="button"
+                  disabled={isCloudSyncing}
+                  onClick={() => {
+                    handleManualCloudSync();
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className={`w-10 h-10 rounded-xl bg-blue-950 text-blue-400 border border-blue-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition ${isCloudSyncing ? 'animate-bounce' : ''}`}>
+                    <Cloud className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-blue-300 transition">
+                        {lang === 'ur' ? 'کلاؤڈ ڈیٹا سنک' : 'Cloud Two-Way Sync'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800 font-mono">
+                        {isCloudSyncing ? (lang === 'ur' ? 'سنک جاری...' : 'Syncing...') : (lastCloudSyncTime ? 'Synced ✓' : 'Online')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'موبائل اور تمام کاؤنٹرز کا ڈیٹا فوری کلاؤڈ سرور سے ہم آہنگ کریں' : 'Instant 2-way live sync across multiple counters & mobile'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 5. Role & 10 Cashier Counters Switcher */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    setRoleModalTab(currentRole === 'ADMIN' || currentRole === 'MANAGER' ? 'cashier' : 'admin');
+                    setShowRoleModal(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-purple-950 text-purple-400 border border-purple-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Monitor className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-purple-300 transition">
+                        {lang === 'ur' ? 'کاؤنٹر و ایڈمن سیشن' : 'Counter & Admin Session'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
+                        {currentRole === 'ADMIN' ? '👑 Admin' : `Counter #${activeCounter}`}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? '10 کاؤنٹرز میں سے مطلوبہ کاؤنٹر یا ایڈمن پینل لاگ ان میں سوئچ کریں' : 'Switch active cashier counter or unlock full Admin mode'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 6. Sound Effects On/Off */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleToggleSound();
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-teal-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-teal-950 text-teal-400 border border-teal-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    {soundActive ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-teal-300 transition">
+                        {lang === 'ur' ? 'پی او ایس آواز و بیپ' : 'Audio Sound Effects'}
+                      </span>
+                      <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border ${soundActive ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        {soundActive ? (lang === 'ur' ? 'فعال (ON)' : 'ON') : (lang === 'ur' ? 'بند (OFF)' : 'OFF')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'بارکوڈ اسکین اور کی پیڈ کی میکینیکل کلک ساؤنڈ آن / آف کریں' : 'Barcode scanner beep and keypad mechanical sound effects'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 7. Language Switcher */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    toggleLang();
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-indigo-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-950 text-indigo-400 border border-indigo-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Languages className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-indigo-300 transition">
+                        {lang === 'ur' ? 'انٹرفیس زبان تبدیل کریں' : 'Switch Language'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800">
+                        {lang === 'ur' ? 'اردو' : 'English'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'مکمل سافٹ ویئر کو اردو / انگریزی زبان میں سوئچ کرنے کیلئے کلک کریں' : 'Switch complete software language to Urdu / English'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 8. Pending WhatsApp Orders */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    setIsWhatsAppOrdersModalOpen(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-rose-950 text-rose-400 border border-rose-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-rose-300 transition">
+                        {lang === 'ur' ? 'پینڈنگ واٹس ایپ آرڈرز' : 'Pending WhatsApp Orders'}
+                      </span>
+                      <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${pendingWhatsAppOrdersCount > 0 ? 'bg-amber-400 text-slate-950 border-amber-300 animate-pulse' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        {pendingWhatsAppOrdersCount} {lang === 'ur' ? 'آرڈرز' : 'Orders'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'گاہکوں کے واٹس ایپ آرڈرز کا جائزہ لیں اور فوری بل بنائیں' : 'Review pending customer WhatsApp orders & generate bill'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 9. Full System Settings */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    handleTabClick('settings');
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950/70 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-500/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-white group-hover:text-cyan-300 transition">
+                        {lang === 'ur' ? 'مکمل سسٹم سیٹنگز' : 'System Settings'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        Config
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {lang === 'ur' ? 'دکان کی پروفائل، پرنٹر سائز، بارکوڈ اور ٹیکس سیٹنگز' : 'Shop profile, thermal printer, tax and barcode configuration'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 10. Super Admin (if authorized) */}
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      posSound.playClick();
+                      setShowControlCenterModal(false);
+                      setIsSuperAdminModalOpen(true);
+                    }}
+                    className="p-3.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-600/70 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-900 text-amber-300 border border-emerald-500/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-amber-300">
+                          {lang === 'ur' ? 'سپر ایڈمن کنٹرول پینل' : 'Super Admin Master Panel'}
+                        </span>
+                        <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          Master
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 mt-1">
+                        {lang === 'ur' ? 'لائسنسنگ اور سسٹم ماسٹر کنفیگریشن تک خصوصی رسائی' : 'Licensing and core master system controls'}
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {/* 11. Sign Out */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    posSound.playClick();
+                    setShowControlCenterModal(false);
+                    logoutUser();
+                    window.location.reload();
+                  }}
+                  className="p-3.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 hover:border-rose-600 transition-all text-left flex items-start gap-3 group active:scale-98 shadow-sm cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-rose-950 text-rose-400 border border-rose-700/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <LogOut className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-rose-300">
+                        {lang === 'ur' ? 'لاگ آؤٹ و سیشن بند' : 'Sign Out / Close Session'}
+                      </span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800">
+                        Exit
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {currentUserEmail ? `${currentUserEmail} کا سیشن ختم کریں` : 'Sign out from current user account safely'}
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-slate-800 bg-slate-950/90 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span className="text-emerald-400 font-mono font-bold">OneShop POS v2.0 PRO</span>
+                  <span>•</span>
+                  <span className="text-slate-500">JK Developers Pakistan</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowControlCenterModal(false)}
+                  className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+                >
+                  {lang === 'ur' ? 'بند کریں (Close)' : 'Close'}
+                </button>
+              </div>
             </div>
           </div>
         )}
