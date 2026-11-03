@@ -1982,6 +1982,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         wholesalePrice: Number(prodData.wholesalePrice) || Number(prodData.salePrice) || 0,
         stock: Number(prodData.stock) || 0,
         minStockAlert: Number(prodData.minStockAlert) || 5,
+        expiryDate: prodData.expiryDate || undefined,
+        batchNumber: prodData.batchNumber || undefined,
+        hasExpiry: prodData.hasExpiry !== undefined ? prodData.hasExpiry : !!prodData.expiryDate,
       };
       const updated = [newProd, ...allProducts];
       setAllProducts(updated);

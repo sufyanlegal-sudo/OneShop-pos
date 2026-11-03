@@ -98,6 +98,9 @@ export interface Product {
   wholesaleRate?: number;
   stock: number;
   minStockAlert: number;
+  expiryDate?: string;
+  batchNumber?: string;
+  hasExpiry?: boolean;
   image?: string;
   hasVariations?: boolean;
   sizes?: string[];

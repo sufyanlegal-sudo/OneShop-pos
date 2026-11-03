@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   Lock,
   ShieldCheck,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -44,6 +46,7 @@ export const InventoryView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [expiringOnly, setExpiringOnly] = useState(false);
 
   // Pagination State for 60fps Mobile Performance
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -71,7 +74,7 @@ export const InventoryView: React.FC = () => {
   // Reset pagination when filter/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterCategory, lowStockOnly, pageSize]);
+  }, [searchQuery, filterCategory, lowStockOnly, expiringOnly, pageSize]);
 
   // Extract categories
   const categories = useMemo(() => {
@@ -122,10 +125,13 @@ export const InventoryView: React.FC = () => {
         (p.categoryEn || '').toLowerCase().includes(q);
 
       const stockMatch = !lowStockOnly || p.stock <= p.minStockAlert;
+      const expiryMatch =
+        !expiringOnly ||
+        (!!p.expiryDate && new Date(p.expiryDate).getTime() - Date.now() <= 60 * 86400000);
 
-      return catMatch && textMatch && stockMatch;
+      return catMatch && textMatch && stockMatch && expiryMatch;
     });
-  }, [products, filterCategory, searchQuery, lowStockOnly, lang]);
+  }, [products, filterCategory, searchQuery, lowStockOnly, expiringOnly, lang]);
 
   // Paginated Products (Renders 25-50 rows max to make mobile 100% smooth)
   const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
@@ -649,17 +655,32 @@ export const InventoryView: React.FC = () => {
           </select>
         </div>
 
-        <button
-          onClick={() => setLowStockOnly(!lowStockOnly)}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-            lowStockOnly
-              ? 'bg-rose-600 text-white shadow-sm'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-          }`}
-        >
-          <AlertTriangle className="w-3.5 h-3.5" />
-          <span>{t('lowStockAlerts')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setLowStockOnly(!lowStockOnly)}
+            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              lowStockOnly
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>{t('lowStockAlerts')}</span>
+          </button>
+
+          <button
+            onClick={() => setExpiringOnly(!expiringOnly)}
+            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              expiringOnly
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+            }`}
+            title={lang === 'ur' ? 'قریب الختم یا زائد المعیاد اشیاء دکھائیں' : 'Show Expiring / Expired Items'}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{lang === 'ur' ? 'ایکسپائری الرٹس' : 'Expiry Alerts'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Products Table (Renders 25-50 paginated rows max for lightning mobile speed) */}
@@ -698,9 +719,26 @@ export const InventoryView: React.FC = () => {
                         {p.nameUr}
                       </div>
                       {p.subUnit && (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
                           1 {p.unit} = {p.conversionFactor} {p.subUnit}
-                        </span>
+                        </div>
+                      )}
+                      {p.expiryDate && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border inline-flex items-center gap-1 ${
+                              new Date(p.expiryDate) < new Date()
+                                ? 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800 animate-pulse'
+                                : new Date(p.expiryDate).getTime() - Date.now() <= 30 * 86400000
+                                ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+                            }`}
+                          >
+                            <Calendar className="w-2.5 h-2.5" />
+                            <span>Exp: {p.expiryDate}</span>
+                            {p.batchNumber && <span>(Batch: {p.batchNumber})</span>}
+                          </span>
+                        </div>
                       )}
                     </td>
                     <td className="p-3 text-slate-500">
@@ -1387,6 +1425,79 @@ export const InventoryView: React.FC = () => {
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-mono outline-none"
                   />
                 </div>
+              </div>
+
+              {/* 📅 تاریخ ایکسپائری و بیچ نمبر (Expiry Date & Batch Tracking Box) */}
+              <div className="p-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/60 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editingProduct.hasExpiry || !!editingProduct.expiryDate}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setEditingProduct({
+                          ...editingProduct,
+                          hasExpiry: checked,
+                          expiryDate: checked
+                            ? editingProduct.expiryDate ||
+                              new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0]
+                            : undefined,
+                        });
+                      }}
+                      className="w-4 h-4 text-amber-600 rounded"
+                    />
+                    <span className="font-bold text-xs text-amber-900 dark:text-amber-200">
+                      {lang === 'ur'
+                        ? 'اس پروڈکٹ کی تاریخ ایکسپائری (Expiry Date) درج کریں'
+                        : 'Track Expiry Date for this Product'}
+                    </span>
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                    {lang === 'ur' ? 'اختیاری / ضرورت کے مطابق' : 'Optional'}
+                  </span>
+                </div>
+
+                {(editingProduct.hasExpiry || !!editingProduct.expiryDate) && (
+                  <div className="grid grid-cols-2 gap-3 pt-1 animate-in fade-in duration-150">
+                    <div>
+                      <label className="font-bold text-[11px] text-slate-700 dark:text-slate-300 block mb-1">
+                        {lang === 'ur' ? 'تاریخ تنسیخ / ایکسپائری (Expiry Date)*:' : 'Expiry Date*:'}
+                      </label>
+                      <input
+                        type="date"
+                        required={editingProduct.hasExpiry || !!editingProduct.expiryDate}
+                        value={editingProduct.expiryDate || ''}
+                        onChange={(e) =>
+                          setEditingProduct({
+                            ...editingProduct,
+                            expiryDate: e.target.value,
+                            hasExpiry: true,
+                          })
+                        }
+                        className="w-full bg-white dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded-xl px-3 py-1.5 font-mono font-bold text-xs outline-none text-amber-900 dark:text-amber-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 block mb-1">
+                        {lang === 'ur' ? 'بیچ نمبر (Batch No):' : 'Batch / Lot No:'}
+                      </label>
+                      <input
+                        type="text"
+                        value={editingProduct.batchNumber || ''}
+                        onChange={(e) =>
+                          setEditingProduct({
+                            ...editingProduct,
+                            batchNumber: e.target.value,
+                          })
+                        }
+                        placeholder="e.g. B-2026/01"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-3">
