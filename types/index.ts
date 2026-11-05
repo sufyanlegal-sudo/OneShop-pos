@@ -285,6 +285,8 @@ export interface GRNItem {
   totalCost: number;
   batchNo?: string;
   expiryDate?: string;
+  isReturn?: boolean; // True if this item was returned/rejected to supplier (منفی رقم)
+  returnReason?: string; // e.g. "ایکسپائری (Expired)", "لیکج (Leakage)", "ٹوٹ پھوٹ (Damage)", etc.
 }
 
 export interface GRN {
@@ -296,10 +298,11 @@ export interface GRN {
   biltyNo?: string;
   invoiceNo?: string;
   items: GRNItem[];
-  subtotal: number;
+  subtotal: number; // Gross total of received items
+  returnTotal?: number; // Total deducted for returned items (منفی کٹوتی)
   discount: number; // Flat Rs discount
   extraExpenses: number; // Freight / Labour
-  grandTotal: number;
+  grandTotal: number; // Net total = subtotal - returnTotal - discount + extraExpenses
   paidAmount: number;
   balanceAmount: number;
   paymentMethod: 'CASH' | 'BANK' | 'CREDIT' | 'PARTIAL';

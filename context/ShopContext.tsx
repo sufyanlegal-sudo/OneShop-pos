@@ -2272,15 +2272,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       developerBranding: 'JK Developers Pakistan',
     };
 
-    // 1. Update stock and cost prices for each item
+    // 1. Update stock and cost prices for each item (Received items increase stock, Returned items decrease stock)
     const updatedProducts = allProducts.map((prod) => {
-      const grnItem = newGRN.items.find((item) => item.productId === prod.id);
-      if (grnItem) {
+      const itemsForProd = newGRN.items.filter((item) => item.productId === prod.id);
+      if (itemsForProd.length > 0) {
+        let stockDelta = 0;
+        let lastCost = prod.costPrice;
+        let lastSale = prod.salePrice;
+        for (const it of itemsForProd) {
+          if (it.isReturn) {
+            stockDelta -= it.quantity; // Returned items reduce inventory
+          } else {
+            stockDelta += it.quantity; // Received items increase inventory
+            if (it.costPrice) lastCost = it.costPrice;
+            if (it.salePrice) lastSale = it.salePrice;
+          }
+        }
         return {
           ...prod,
-          stock: prod.stock + grnItem.quantity,
-          costPrice: grnItem.costPrice || prod.costPrice,
-          salePrice: grnItem.salePrice || prod.salePrice,
+          stock: Math.max(0, prod.stock + stockDelta),
+          costPrice: lastCost,
+          salePrice: lastSale,
         };
       }
       return prod;
@@ -2293,6 +2305,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (vendor) {
       const unpaidAmount = newGRN.grandTotal - newGRN.paidAmount;
       const newBalance = vendor.balance + unpaidAmount;
+      const returnTotal = newGRN.returnTotal || 0;
+      const returnDesc = returnTotal > 0 ? ` (واپسی کٹوتی: -Rs. ${returnTotal.toLocaleString()})` : '';
       const vendorKhataEntry: VendorKhataEntry = {
         id: `vk-${Date.now()}`,
         vendorId: vendor.id,
@@ -2300,7 +2314,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'PURCHASE',
         amount: newGRN.grandTotal,
         balanceAfter: newBalance,
-        description: `خریداری رسیدہ #${grnNo} - بل/بلٹی #${newGRN.biltyNo || newGRN.invoiceNo || 'N/A'} (ادا شدہ: ${newGRN.paidAmount})`,
+        description: `خریداری رسیدہ #${grnNo}${returnDesc} - بل/بلٹی #${newGRN.biltyNo || newGRN.invoiceNo || 'N/A'} (ادا شدہ: ${newGRN.paidAmount})`,
         grnId: newGRN.id,
       };
 

@@ -18,6 +18,10 @@ import {
   Boxes,
   PenTool,
   RefreshCw,
+  RotateCcw,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -55,6 +59,11 @@ export const GRNView: React.FC = () => {
   // Item selector mode: 'EXISTING' vs 'NEW'
   const [itemInputMode, setItemInputMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
   const [productSearchInput, setProductSearchInput] = useState('');
+
+  // Transaction type: 'RECEIVE' (مال وصولی) vs 'RETURN' (مال واپسی / ریٹرن کلیم)
+  const [itemTxType, setItemTxType] = useState<'RECEIVE' | 'RETURN'>('RECEIVE');
+  const [returnReasonPreset, setReturnReasonPreset] = useState<string>('لیکج (Leakage)');
+  const [customReturnReason, setCustomReturnReason] = useState<string>('');
 
   // Item selector state for existing product
   const [chosenProductId, setChosenProductId] = useState('');
@@ -100,11 +109,16 @@ export const GRNView: React.FC = () => {
     }
   };
 
-  // Add existing item to draft GRN
+  // Add existing item to draft GRN (handles both Receive and Return)
   const handleAddItem = () => {
     if (!chosenProductId || chosenQty <= 0) return;
     const prod = allProducts.find((p) => p.id === chosenProductId);
     if (!prod) return;
+
+    const isReturn = itemTxType === 'RETURN';
+    const finalReason = isReturn
+      ? (customReturnReason.trim() || returnReasonPreset || 'لیکج / ایکسپائری')
+      : undefined;
 
     const totalCost = chosenQty * chosenCost;
     const newItem: GRNItem = {
@@ -116,6 +130,8 @@ export const GRNView: React.FC = () => {
       salePrice: chosenSale || prod.salePrice,
       discount: 0,
       totalCost,
+      isReturn,
+      returnReason: finalReason,
     };
 
     setGrnItems([...grnItems, newItem]);
@@ -124,6 +140,7 @@ export const GRNView: React.FC = () => {
     setChosenCost(0);
     setChosenSale(0);
     setProductSearchInput('');
+    setCustomReturnReason('');
   };
 
   // Add brand new custom product to inventory AND draft GRN
@@ -158,7 +175,12 @@ export const GRNView: React.FC = () => {
       barcode,
     });
 
-    // 2. Add to GRN draft list
+    // 2. Add to GRN draft list (Received or Return)
+    const isReturn = itemTxType === 'RETURN';
+    const finalReason = isReturn
+      ? (customReturnReason.trim() || returnReasonPreset || 'لیکج / ایکسپائری')
+      : undefined;
+
     const totalCost = newProdQty * newProdCost;
     const newItem: GRNItem = {
       productId: createdProd.id,
@@ -169,6 +191,8 @@ export const GRNView: React.FC = () => {
       salePrice: finalSale,
       discount: 0,
       totalCost,
+      isReturn,
+      returnReason: finalReason,
     };
 
     setGrnItems([...grnItems, newItem]);
@@ -180,6 +204,7 @@ export const GRNView: React.FC = () => {
     setNewProdSale(0);
     setNewProdQty(1);
     setNewProdBarcode('');
+    setCustomReturnReason('');
     setItemInputMode('EXISTING');
   };
 
@@ -191,14 +216,25 @@ export const GRNView: React.FC = () => {
     setGrnItems(grnItems.filter((_, i) => i !== index));
   };
 
-  // Calculations for current draft
-  const draftSubtotal = useMemo(() => {
-    return grnItems.reduce((sum, item) => sum + item.totalCost, 0);
+  // Calculations for current draft: Received vs Returned (Negative Deduction)
+  const draftReceivedSubtotal = useMemo(() => {
+    return grnItems
+      .filter((item) => !item.isReturn)
+      .reduce((sum, item) => sum + item.totalCost, 0);
+  }, [grnItems]);
+
+  const draftReturnTotal = useMemo(() => {
+    return grnItems
+      .filter((item) => item.isReturn)
+      .reduce((sum, item) => sum + item.totalCost, 0);
   }, [grnItems]);
 
   const draftGrandTotal = useMemo(() => {
-    return Math.max(0, draftSubtotal - overallDiscount + Number(extraExpenses || 0));
-  }, [draftSubtotal, overallDiscount, extraExpenses]);
+    return Math.max(
+      0,
+      draftReceivedSubtotal - draftReturnTotal - overallDiscount + Number(extraExpenses || 0)
+    );
+  }, [draftReceivedSubtotal, draftReturnTotal, overallDiscount, extraExpenses]);
 
   // Handle Save GRN
   const handleSaveGRN = (e: React.FormEvent) => {
@@ -222,7 +258,8 @@ export const GRNView: React.FC = () => {
       biltyNo,
       invoiceNo,
       items: grnItems,
-      subtotal: draftSubtotal,
+      subtotal: draftReceivedSubtotal,
+      returnTotal: draftReturnTotal,
       discount: overallDiscount,
       extraExpenses,
       grandTotal: draftGrandTotal,
@@ -505,12 +542,43 @@ export const GRNView: React.FC = () => {
               {/* Add Item to GRN (Search Existing or Add New Manually) */}
               <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Package className="w-4 h-4" />
-                    <span>{lang === 'ur' ? 'مال وصولی میں پروڈکٹ شامل کریں:' : 'Add Product to GRN:'}</span>
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <Package className="w-4 h-4" />
+                      <span>{lang === 'ur' ? 'آئٹم کا اندراج:' : 'Add Product to GRN:'}</span>
+                    </span>
 
-                  {/* Mode Toggle Buttons */}
+                    {/* Transaction Type: Receive (وصولی) vs Return (واپسی / منفی رقم) */}
+                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setItemTxType('RECEIVE')}
+                        className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                          itemTxType === 'RECEIVE'
+                            ? 'bg-emerald-600 text-white shadow-sm font-black'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>{lang === 'ur' ? '📥 مال وصولی' : 'Receive'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setItemTxType('RETURN')}
+                        className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                          itemTxType === 'RETURN'
+                            ? 'bg-rose-600 text-white shadow-sm font-black'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-rose-300" />
+                        <span>{lang === 'ur' ? '↩️ مال واپسی (منفی کٹوتی)' : 'Return / Claim'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mode Toggle Buttons: Existing vs New Product */}
                   <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-bold">
                     <button
                       type="button"
@@ -542,6 +610,64 @@ export const GRNView: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* RETURN REASON SELECTOR & NOTICE (Shown when Return mode is selected) */}
+                {itemTxType === 'RETURN' && (
+                  <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 space-y-2 text-xs animate-fadeIn">
+                    <div className="flex items-center justify-between text-rose-300 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        <span>{lang === 'ur' ? 'سپلائر کو مال واپسی کی تفصیل (یہ رقم بل سے منفی ہوگی):' : 'Supplier Return & Damage Claim (Will be deducted from total):'}</span>
+                      </span>
+                      <span className="text-[10px] bg-rose-900 text-rose-200 px-2 py-0.5 rounded-full font-mono">
+                        منفی کٹوتی (Deduction)
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] font-bold text-rose-300 mb-1.5">
+                        {lang === 'ur' ? 'واپسی کی وجہ منتخب کریں یا لکھیں *:' : 'Reason for Return *:'}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          { id: 'EXPIRY', labelUr: '⚠️ ایکسپائری (Expired)' },
+                          { id: 'LEAKAGE', labelUr: '💧 لیکج (Leakage)' },
+                          { id: 'DAMAGE', labelUr: '🔨 ٹوٹ پھوٹ / ڈیمج (Damage)' },
+                          { id: 'DEFECTIVE', labelUr: '❌ خراب کوالٹی (Defective)' },
+                          { id: 'WRONG_ITEM', labelUr: '📦 غلط مال / پیکنگ (Wrong Item)' },
+                        ].map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setReturnReasonPreset(preset.labelUr);
+                              setCustomReturnReason(preset.labelUr);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              customReturnReason === preset.labelUr || returnReasonPreset === preset.labelUr
+                                ? 'bg-rose-600 text-white shadow-sm ring-1 ring-white/50'
+                                : 'bg-rose-900/40 hover:bg-rose-900/70 text-rose-200 border border-rose-700/60'
+                            }`}
+                          >
+                            {preset.labelUr}
+                          </button>
+                        ))}
+                      </div>
+
+                      <input
+                        type="text"
+                        value={customReturnReason}
+                        onChange={(e) => setCustomReturnReason(e.target.value)}
+                        placeholder={
+                          lang === 'ur'
+                            ? 'وجہ تفصیل سے لکھیں (مثلاً: دودھ کے 5 ڈبے لیکیج / 2 پیکٹ ایکسپائر ہو گئے)...'
+                            : 'Write detailed reason (e.g. 5 leaking packets / expired stock)...'
+                        }
+                        className="w-full px-3 py-1.5 bg-slate-950 border border-rose-500/60 rounded-xl text-white text-xs outline-none focus:ring-2 focus:ring-rose-500 font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* MODE 1: SEARCH & SELECT EXISTING PRODUCT */}
                 {itemInputMode === 'EXISTING' && (
@@ -583,7 +709,9 @@ export const GRNView: React.FC = () => {
 
                       <div>
                         <label className="block text-[11px] text-slate-400 mb-1">
-                          {lang === 'ur' ? 'تعداد / مقدار:' : 'Quantity:'}
+                          {itemTxType === 'RETURN'
+                            ? (lang === 'ur' ? 'واپس تعداد (Qty):' : 'Return Qty:')
+                            : (lang === 'ur' ? 'تعداد / مقدار:' : 'Quantity:')}
                         </label>
                         <input
                           type="number"
@@ -597,14 +725,18 @@ export const GRNView: React.FC = () => {
 
                       <div>
                         <label className="block text-[11px] text-slate-400 mb-1">
-                          {lang === 'ur' ? 'خرید ریٹ (Cost):' : 'Cost Price:'}
+                          {itemTxType === 'RETURN'
+                            ? (lang === 'ur' ? 'واپسی ریٹ (Cost):' : 'Return Rate:')
+                            : (lang === 'ur' ? 'خرید ریٹ (Cost):' : 'Cost Price:')}
                         </label>
                         <input
                           type="number"
                           value={chosenCost || ''}
                           onChange={(e) => setChosenCost(Number(e.target.value))}
                           placeholder="0"
-                          className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono font-bold outline-none text-emerald-400"
+                          className={`w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono font-bold outline-none ${
+                            itemTxType === 'RETURN' ? 'text-rose-400' : 'text-emerald-400'
+                          }`}
                         />
                       </div>
 
@@ -612,10 +744,23 @@ export const GRNView: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleAddItem}
-                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                          className={`w-full py-2 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all text-white ${
+                            itemTxType === 'RETURN'
+                              ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/50'
+                              : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/50'
+                          }`}
                         >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>{lang === 'ur' ? 'شامل کریں' : 'Add Item'}</span>
+                          {itemTxType === 'RETURN' ? (
+                            <>
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>{lang === 'ur' ? '↩️ واپسی شامل کریں' : 'Add Return'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>{lang === 'ur' ? 'شامل کریں' : 'Add Item'}</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -666,7 +811,9 @@ export const GRNView: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                       <div>
                         <label className="block text-[11px] text-slate-400 mb-1">
-                          {lang === 'ur' ? 'تعداد (وصول شدہ):' : 'Received Qty:'}
+                          {itemTxType === 'RETURN'
+                            ? (lang === 'ur' ? 'واپس تعداد:' : 'Return Qty:')
+                            : (lang === 'ur' ? 'تعداد (وصول شدہ):' : 'Received Qty:')}
                         </label>
                         <input
                           type="number"
@@ -752,57 +899,128 @@ export const GRNView: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleAddNewProductToGRN}
-                        className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                        className={`w-full py-2 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all ${
+                          itemTxType === 'RETURN'
+                            ? 'bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500'
+                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
+                        }`}
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>{lang === 'ur' ? 'نیا پروڈکٹ سیو کر کے مال میں شامل کریں' : 'Save New Product & Add to GRN'}</span>
+                        {itemTxType === 'RETURN' ? (
+                          <>
+                            <RotateCcw className="w-4 h-4" />
+                            <span>{lang === 'ur' ? '↩️ نیا پروڈکٹ بطور واپسی مال شامل کریں (منفی رقم)' : 'Add New Product as Return Claim'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            <span>{lang === 'ur' ? 'نیا پروڈکٹ سیو کر کے مال میں شامل کریں' : 'Save New Product & Add to GRN'}</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Items List Table */}
-              <div className="border border-slate-800 rounded-xl overflow-hidden">
+              {/* Items List Table (Supports both Received & Returned Items) */}
+              <div className="border border-slate-800 rounded-xl overflow-hidden shadow-inner">
                 <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                  <thead className="bg-slate-950 text-slate-300 font-bold border-b border-slate-800">
                     <tr>
-                      <th className="p-2 text-right">{lang === 'ur' ? 'پروڈکٹ کا نام' : 'Item'}</th>
-                      <th className="p-2 text-center">{lang === 'ur' ? 'تعداد' : 'Qty'}</th>
-                      <th className="p-2 text-left">{lang === 'ur' ? 'خرید قیمت' : 'Cost Rate'}</th>
-                      <th className="p-2 text-left">{lang === 'ur' ? 'کل رقم' : 'Total'}</th>
-                      <th className="p-2 text-center w-10"></th>
+                      <th className="p-2.5 text-center w-8">#</th>
+                      <th className="p-2.5 text-right">{lang === 'ur' ? 'پروڈکٹ کا نام و تفصیل' : 'Item Description'}</th>
+                      <th className="p-2.5 text-center">{lang === 'ur' ? 'نوعیت / قسم' : 'Type'}</th>
+                      <th className="p-2.5 text-center">{lang === 'ur' ? 'تعداد' : 'Qty'}</th>
+                      <th className="p-2.5 text-left">{lang === 'ur' ? 'خرید قیمت' : 'Cost Rate'}</th>
+                      <th className="p-2.5 text-left">{lang === 'ur' ? 'کل رقم' : 'Total'}</th>
+                      <th className="p-2.5 text-center w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
                     {grnItems.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-4 text-center text-slate-500">
-                          {lang === 'ur' ? 'ابھی کوئی آئٹم شامل نہیں کیا گیا' : 'No items added yet'}
+                        <td colSpan={7} className="p-5 text-center text-slate-500">
+                          {lang === 'ur' ? 'ابھی کوئی آئٹم شامل نہیں کیا گیا۔ اوپر سے پروڈکٹ منتخب کریں۔' : 'No items added yet'}
                         </td>
                       </tr>
                     ) : (
-                      grnItems.map((item, index) => (
-                        <tr key={index} className="hover:bg-slate-800/40">
-                          <td className="p-2 font-medium">{item.productName}</td>
-                          <td className="p-2 text-center font-mono">
-                            {item.quantity} {item.unit}
-                          </td>
-                          <td className="p-2 text-left font-mono">Rs. {item.costPrice}</td>
-                          <td className="p-2 text-left font-mono font-bold text-emerald-400">
-                            Rs. {item.totalCost.toLocaleString()}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(index)}
-                              className="text-rose-400 hover:text-rose-300 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      grnItems.map((item, index) => {
+                        const isReturn = item.isReturn;
+                        return (
+                          <tr
+                            key={index}
+                            className={`transition-colors ${
+                              isReturn
+                                ? 'bg-rose-950/30 hover:bg-rose-950/50 border-r-4 border-rose-500'
+                                : 'hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <td className="p-2.5 text-center font-mono text-slate-400">
+                              {index + 1}
+                            </td>
+                            <td className="p-2.5 font-medium">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={isReturn ? 'text-rose-200 font-bold' : 'text-slate-100 font-bold'}>
+                                  {item.productName}
+                                </span>
+                                {isReturn && item.returnReason && (
+                                  <span className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-rose-900/80 text-rose-200 border border-rose-700/60 flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3 text-rose-400" />
+                                    <span>{item.returnReason}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-center">
+                              {isReturn ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-rose-900 text-rose-100 border border-rose-700">
+                                  {lang === 'ur' ? '↩️ مال واپسی' : 'Return'}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                                  {lang === 'ur' ? '📥 مال وصولی' : 'Received'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-center font-mono font-bold">
+                              {isReturn ? (
+                                <span className="text-rose-400 font-black">
+                                  - {item.quantity} {item.unit}
+                                </span>
+                              ) : (
+                                <span className="text-slate-200">
+                                  {item.quantity} {item.unit}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-left font-mono">
+                              Rs. {item.costPrice.toLocaleString()}
+                            </td>
+                            <td className="p-2.5 text-left font-mono font-bold">
+                              {isReturn ? (
+                                <span className="text-rose-400 font-black tracking-tight">
+                                  - Rs. {item.totalCost.toLocaleString()}
+                                  <span className="text-[10px] ml-1 font-normal text-rose-300">(کٹوتی)</span>
+                                </span>
+                              ) : (
+                                <span className="text-emerald-400">
+                                  Rs. {item.totalCost.toLocaleString()}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(index)}
+                                className="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-slate-800 transition"
+                                title="خارج کریں"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -863,23 +1081,44 @@ export const GRNView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Total Summary Banner */}
-              <div className="bg-emerald-950/40 border border-emerald-500/30 p-3 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-emerald-300 font-bold">
-                    {lang === 'ur' ? 'کل خریداری رقم (Grand Total):' : 'Grand Total:'}
-                  </p>
-                  <p className="text-xl font-black text-white font-mono">
-                    Rs. {draftGrandTotal.toLocaleString()}
-                  </p>
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-amber-300 font-bold">
-                    {lang === 'ur' ? 'سپلائر کے کھاتے میں بقایا:' : 'To Vendor Khata:'}
-                  </p>
-                  <p className="text-xl font-black text-amber-400 font-mono">
-                    Rs. {Math.max(0, draftGrandTotal - paidAmount).toLocaleString()}
-                  </p>
+              {/* Total Summary Banner (Clear Breakdown of Received vs Returned vs Net) */}
+              <div className="bg-slate-950/90 border border-slate-800 p-3.5 rounded-2xl space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 block text-[11px] font-bold">
+                      {lang === 'ur' ? 'کل وصول شدہ مال:' : 'Gross Received:'}
+                    </span>
+                    <span className="font-mono font-black text-emerald-400 text-sm sm:text-base">
+                      Rs. {draftReceivedSubtotal.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="bg-rose-950/40 p-2.5 rounded-xl border border-rose-800/60">
+                    <span className="text-rose-300 block text-[11px] font-bold">
+                      {lang === 'ur' ? 'منفی: مال واپسی کٹوتی:' : 'Returns Deducted:'}
+                    </span>
+                    <span className="font-mono font-black text-rose-400 text-sm sm:text-base">
+                      - Rs. {draftReturnTotal.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-700/60">
+                    <span className="text-emerald-300 block text-[11px] font-black">
+                      {lang === 'ur' ? 'خالص کل بل (Grand Total):' : 'Grand Total:'}
+                    </span>
+                    <span className="font-mono font-black text-white text-sm sm:text-base">
+                      Rs. {draftGrandTotal.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="bg-amber-950/50 p-2.5 rounded-xl border border-amber-700/60">
+                    <span className="text-amber-300 block text-[11px] font-black">
+                      {lang === 'ur' ? 'سپلائر کھاتے میں بقایا:' : 'To Vendor Khata:'}
+                    </span>
+                    <span className="font-mono font-black text-amber-400 text-sm sm:text-base">
+                      Rs. {Math.max(0, draftGrandTotal - paidAmount).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -904,131 +1143,305 @@ export const GRNView: React.FC = () => {
         </div>
       )}
 
-      {/* Print GRN Modal */}
+      {/* Print GRN Modal - A4 Plain Printer Optimized */}
       {activeGRNToPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white text-slate-900 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative">
-            <button
-              onClick={() => setActiveGRNToPrint(null)}
-              className="no-print absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* GRN Printable Voucher */}
-            <div id="printable-grn-voucher" className="space-y-4">
-              <div className="text-center border-b border-slate-300 pb-3">
-                <h2 className="text-xl font-black">{businessProfile.nameUr}</h2>
-                <p className="text-xs text-slate-600">{businessProfile.addressUr}</p>
-                <p className="text-xs text-slate-500">فون: {businessProfile.phone}</p>
-                <div className="inline-block px-3 py-0.5 rounded-full bg-slate-100 border border-slate-300 text-xs font-bold mt-2">
-                  خریداری و مال وصولی رسیدہ (GRN Voucher)
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 text-xs gap-1">
-                <div>
-                  <span className="text-slate-500">GRN نمبر: </span>
-                  <span className="font-mono font-bold">{activeGRNToPrint.grnNo}</span>
-                </div>
-                <div className="text-left">
-                  <span className="text-slate-500">تاریخ: </span>
-                  <span>{new Date(activeGRNToPrint.date).toLocaleString('en-PK')}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl max-h-[95vh] flex flex-col shadow-2xl relative overflow-hidden my-auto">
+            {/* Top Bar (no-print) */}
+            <div className="no-print p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-600 rounded-xl">
+                  <Printer className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <span className="text-slate-500">سپلائر کا نام: </span>
-                  <span className="font-bold">{activeGRNToPrint.vendorName}</span>
-                </div>
-                <div className="text-left">
-                  <span className="text-slate-500">بلٹی / بل #: </span>
-                  <span className="font-mono">{activeGRNToPrint.biltyNo || activeGRNToPrint.invoiceNo || 'N/A'}</span>
-                </div>
-              </div>
-
-              {/* Items Table */}
-              <table className="w-full text-right text-xs border border-slate-200">
-                <thead className="bg-slate-100 font-bold border-b border-slate-200">
-                  <tr>
-                    <th className="p-2 text-right">آئٹم تفصیل</th>
-                    <th className="p-2 text-center">تعداد</th>
-                    <th className="p-2 text-left">خرید ریٹ</th>
-                    <th className="p-2 text-left">کل رقم</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {activeGRNToPrint.items.map((it, idx) => (
-                    <tr key={idx}>
-                      <td className="p-2 font-medium">{it.productName}</td>
-                      <td className="p-2 text-center font-mono">
-                        {it.quantity} {it.unit}
-                      </td>
-                      <td className="p-2 text-left font-mono">Rs. {it.costPrice}</td>
-                      <td className="p-2 text-left font-mono font-bold">
-                        Rs. {it.totalCost.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Totals */}
-              <div className="space-y-1 text-xs border-t border-slate-300 pt-2 font-medium">
-                <div className="flex justify-between">
-                  <span>سب ٹوٹل:</span>
-                  <span className="font-mono">Rs. {activeGRNToPrint.subtotal.toLocaleString()}</span>
-                </div>
-                {activeGRNToPrint.extraExpenses > 0 && (
-                  <div className="flex justify-between">
-                    <span>کرایہ / لیبر اخراجات:</span>
-                    <span className="font-mono">+ Rs. {activeGRNToPrint.extraExpenses.toLocaleString()}</span>
-                  </div>
-                )}
-                {activeGRNToPrint.discount > 0 && (
-                  <div className="flex justify-between text-rose-600">
-                    <span>رعایت (ڈسکاؤنٹ):</span>
-                    <span className="font-mono">- Rs. {activeGRNToPrint.discount.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-base font-black border-t border-slate-200 pt-1">
-                  <span>کل بل (Grand Total):</span>
-                  <span className="font-mono">Rs. {activeGRNToPrint.grandTotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-emerald-700">
-                  <span>ادا شدہ نقد رقم:</span>
-                  <span className="font-mono">Rs. {activeGRNToPrint.paidAmount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-amber-700 font-bold">
-                  <span>سپلائر کے کھاتے میں بقایا:</span>
-                  <span className="font-mono">Rs. {activeGRNToPrint.balanceAmount.toLocaleString()}</span>
+                  <h3 className="font-black text-sm sm:text-base">
+                    {lang === 'ur' ? 'مال وصولی و واپسی واؤچر پرنٹ (A4 Plain Printer)' : 'Print GRN & Return Voucher'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {lang === 'ur'
+                      ? 'سادہ A4 پرنٹر یا تھرمل پرنٹر پر پرنٹ نکالنے کے لیے نیچے بٹن دبائیں'
+                      : 'Optimized for Standard Plain A4 Paper Printers & Thermal Printers'}
+                  </p>
                 </div>
               </div>
 
-              {/* Mandatory Developer Branding */}
-              <div className="text-center border-t border-slate-300 pt-3 text-[11px] text-slate-500 font-mono">
-                OneShop POS • JK Developers Pakistan
-              </div>
-
-              {/* Print Action Buttons */}
-              <div className="no-print pt-3 flex gap-2">
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() =>
                     printElement('printable-grn-voucher', {
                       format: 'a4',
                       isUrdu: lang === 'ur',
-                      title: `GRN Voucher #${activeGRNToPrint.grnNo}`,
+                      title: `GRN-Voucher-${activeGRNToPrint.grnNo}`,
                     })
                   }
-                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>پرنٹ کریں</span>
+                  <span>{lang === 'ur' ? '🖨️ سادہ پرنٹر (A4 پرنٹ)' : 'Print (A4 Plain)'}</span>
                 </button>
+
                 <button
-                  onClick={() => setActiveGRNToPrint(null)}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold text-xs"
+                  type="button"
+                  onClick={() =>
+                    printElement('printable-grn-voucher', {
+                      format: 'thermal80',
+                      isUrdu: lang === 'ur',
+                      title: `GRN-Voucher-${activeGRNToPrint.grnNo}`,
+                    })
+                  }
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer border border-slate-700"
                 >
-                  بند کریں
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>{lang === 'ur' ? 'تھرمل 80mm' : 'Thermal 80mm'}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveGRNToPrint(null)}
+                  className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition"
+                  title="بند کریں"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Document Preview Area */}
+            <div className="p-4 sm:p-8 overflow-y-auto flex-1 bg-slate-100 flex justify-center">
+              {/* Actual Printable Document */}
+              <div
+                id="printable-grn-voucher"
+                className="a4-receipt w-full max-w-[210mm] bg-white text-black p-6 sm:p-8 text-xs font-sans border border-slate-300 shadow-md space-y-4"
+                dir={lang === 'ur' ? 'rtl' : 'ltr'}
+              >
+                {/* 1. Header with Store & Document Title */}
+                <div className="text-center border-b-2 border-black pb-4 space-y-1">
+                  <div className="text-xl sm:text-2xl font-black text-black">
+                    {lang === 'ur' ? (businessProfile.nameUr || 'ون شاپ پی او ایس') : (businessProfile.nameEn || 'OneShop POS')}
+                  </div>
+                  {businessProfile.taglineUr && (
+                    <p className="text-xs text-slate-600 font-semibold">{businessProfile.taglineUr}</p>
+                  )}
+                  <p className="text-xs text-slate-700">{businessProfile.addressUr || businessProfile.addressEn}</p>
+                  <p className="text-xs font-mono font-bold" dir="ltr">
+                    <span>فون: </span>
+                    <span className="phone-number">{businessProfile.phone}</span>
+                  </p>
+                  <div className="inline-block px-4 py-1 rounded-full bg-slate-100 border border-black font-black text-xs sm:text-sm mt-1 tracking-wide">
+                    {lang === 'ur'
+                      ? 'خریداری و مال وصولی و واپسی واؤچر (GRN & Return Voucher)'
+                      : 'GOODS RECEIVED & RETURN VOUCHER (GRN)'}
+                  </div>
+                </div>
+
+                {/* 2. Voucher & Supplier Info Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 bg-slate-50 border border-slate-300 rounded text-xs">
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'واؤچر نمبر:' : 'GRN #:'}</span>
+                    <span className="font-mono font-black text-sm">{activeGRNToPrint.grnNo}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'تاریخ و وقت:' : 'Date & Time:'}</span>
+                    <span className="font-mono">{new Date(activeGRNToPrint.date).toLocaleString(lang === 'ur' ? 'ur-PK' : 'en-PK')}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'سپلائر / وینڈر:' : 'Vendor Name:'}</span>
+                    <span className="font-black text-sm">{activeGRNToPrint.vendorName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'بلٹی / ٹرانسپورٹ #:' : 'Bilty #:'}</span>
+                    <span className="font-mono">{activeGRNToPrint.biltyNo || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'سپلائر بل / انوائس #:' : 'Vendor Invoice #:'}</span>
+                    <span className="font-mono">{activeGRNToPrint.invoiceNo || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 font-bold block">{lang === 'ur' ? 'ادائیگی کا طریقہ:' : 'Payment Mode:'}</span>
+                    <span className="font-bold">
+                      {activeGRNToPrint.paymentMethod === 'CREDIT'
+                        ? 'ادھار (To Khata)'
+                        : activeGRNToPrint.paymentMethod === 'CASH'
+                        ? 'نقد ادائیگی (Cash)'
+                        : activeGRNToPrint.paymentMethod === 'BANK'
+                        ? 'بینک ٹرانسفر'
+                        : 'جزوی نقد'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Section 1: Received Items Table */}
+                {(() => {
+                  const receivedItems = activeGRNToPrint.items.filter((i) => !i.isReturn);
+                  const returnedItems = activeGRNToPrint.items.filter((i) => i.isReturn);
+                  const receivedSubtotal = receivedItems.reduce((s, i) => s + i.totalCost, 0);
+                  const returnTotal = returnedItems.reduce((s, i) => s + i.totalCost, 0);
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Received Items */}
+                      <div className="space-y-1.5">
+                        <div className="font-black text-xs text-slate-800 flex items-center justify-between border-b border-black pb-1">
+                          <span>{lang === 'ur' ? '📥 وصول شدہ سامان کی تفصیل (Received Goods):' : 'Goods Received Items:'}</span>
+                          <span className="font-mono">{receivedItems.length} {lang === 'ur' ? 'اشیاء' : 'items'}</span>
+                        </div>
+
+                        <table className="w-full text-right text-xs border border-black border-collapse">
+                          <thead className="bg-slate-100 font-black border-b border-black">
+                            <tr>
+                              <th className="p-2 text-center w-8 border-l border-black">#</th>
+                              <th className="p-2 text-right border-l border-black">{lang === 'ur' ? 'تفصیل پروڈکٹ' : 'Item Description'}</th>
+                              <th className="p-2 text-center w-20 border-l border-black">{lang === 'ur' ? 'پیکنگ' : 'Unit'}</th>
+                              <th className="p-2 text-center w-24 border-l border-black">{lang === 'ur' ? 'تعداد' : 'Qty'}</th>
+                              <th className="p-2 text-left w-24 border-l border-black font-mono">{lang === 'ur' ? 'خرید ریٹ' : 'Rate'}</th>
+                              <th className="p-2 text-left w-28 font-mono">{lang === 'ur' ? 'کل رقم (PKR)' : 'Total'}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-300">
+                            {receivedItems.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="p-3 text-center text-slate-500 italic">
+                                  {lang === 'ur' ? 'کوئی نیا مال وصول نہیں کیا گیا (صرف واپسی واؤچر)' : 'No received items'}
+                                </td>
+                              </tr>
+                            ) : (
+                              receivedItems.map((it, idx) => (
+                                <tr key={idx} className="border-b border-slate-200">
+                                  <td className="p-2 text-center font-mono border-l border-slate-200">{idx + 1}</td>
+                                  <td className="p-2 font-bold border-l border-slate-200">{it.productName}</td>
+                                  <td className="p-2 text-center border-l border-slate-200">{it.unit}</td>
+                                  <td className="p-2 text-center font-mono font-bold border-l border-slate-200">{it.quantity}</td>
+                                  <td className="p-2 text-left font-mono border-l border-slate-200">Rs. {it.costPrice.toLocaleString()}</td>
+                                  <td className="p-2 text-left font-mono font-black">Rs. {it.totalCost.toLocaleString()}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                          {receivedItems.length > 0 && (
+                            <tfoot>
+                              <tr className="bg-slate-50 font-black border-t border-black">
+                                <td colSpan={5} className="p-2 text-right">{lang === 'ur' ? 'کل وصول شدہ مال کی رقم:' : 'Gross Received Total:'}</td>
+                                <td className="p-2 text-left font-mono font-black">Rs. {receivedSubtotal.toLocaleString()}</td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+
+                      {/* Section 2: Returned Items Table (Rendered whenever returns exist) */}
+                      {returnedItems.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="font-black text-xs text-rose-800 flex items-center justify-between border-b-2 border-rose-600 pb-1">
+                            <span className="flex items-center gap-1.5">
+                              <span>⚠️</span>
+                              <span>{lang === 'ur' ? '↩️ واپس شدہ سامان و کٹوتی کلیمز (Returns, Expiry & Leakage Claims):' : 'Returned Goods & Rejection Claims:'}</span>
+                            </span>
+                            <span className="font-mono text-rose-700 font-bold">{returnedItems.length} {lang === 'ur' ? 'واپس اشیاء' : 'items returned'}</span>
+                          </div>
+
+                          <table className="w-full text-right text-xs border border-rose-600 border-collapse">
+                            <thead className="bg-rose-50 text-rose-950 font-black border-b border-rose-600">
+                              <tr>
+                                <th className="p-2 text-center w-8 border-l border-rose-300">#</th>
+                                <th className="p-2 text-right border-l border-rose-300">{lang === 'ur' ? 'واپس شدہ پروڈکٹ' : 'Returned Item'}</th>
+                                <th className="p-2 text-right border-l border-rose-300">{lang === 'ur' ? 'واپسی کی وجہ (لیکج، ایکسپائری وغیرہ)' : 'Reason (Expiry/Leakage)'}</th>
+                                <th className="p-2 text-center w-20 border-l border-rose-300">{lang === 'ur' ? 'واپس تعداد' : 'Qty'}</th>
+                                <th className="p-2 text-left w-24 border-l border-rose-300 font-mono">{lang === 'ur' ? 'ریٹ' : 'Rate'}</th>
+                                <th className="p-2 text-left w-32 font-mono text-rose-700">{lang === 'ur' ? 'منفی کٹوتی رقم' : 'Deducted'}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-rose-200">
+                              {returnedItems.map((it, idx) => (
+                                <tr key={idx} className="bg-rose-50/40">
+                                  <td className="p-2 text-center font-mono border-l border-rose-200">{idx + 1}</td>
+                                  <td className="p-2 font-black text-slate-900 border-l border-rose-200">{it.productName}</td>
+                                  <td className="p-2 font-bold text-rose-800 border-l border-rose-200">{it.returnReason || 'لیکج / ایکسپائری'}</td>
+                                  <td className="p-2 text-center font-mono font-black text-rose-700 border-l border-rose-200">- {it.quantity} {it.unit}</td>
+                                  <td className="p-2 text-left font-mono border-l border-rose-200">Rs. {it.costPrice.toLocaleString()}</td>
+                                  <td className="p-2 text-left font-mono font-black text-rose-700">- Rs. {it.totalCost.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-rose-100 text-rose-900 font-black border-t border-rose-600">
+                                <td colSpan={5} className="p-2 text-right">{lang === 'ur' ? 'کل مال واپسی کی کٹوتی (Total Deducted):' : 'Total Return Deduction:'}</td>
+                                <td className="p-2 text-left font-mono font-black text-rose-900">- Rs. {returnTotal.toLocaleString()}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* 4. Accounts Breakdown Summary Box */}
+                      <div className="flex justify-end pt-2">
+                        <div className="w-full sm:w-80 border-2 border-black p-3 space-y-1.5 text-xs bg-slate-50 rounded">
+                          <div className="flex justify-between font-bold">
+                            <span>{lang === 'ur' ? 'وصول شدہ مال کی رقم:' : 'Gross Received:'}</span>
+                            <span className="font-mono">Rs. {receivedSubtotal.toLocaleString()}</span>
+                          </div>
+
+                          {returnTotal > 0 && (
+                            <div className="flex justify-between font-black text-rose-700 border-b border-rose-200 pb-1">
+                              <span>{lang === 'ur' ? 'منفی: واپس شدہ مال کی کٹوتی:' : 'Less: Return Claims:'}</span>
+                              <span className="font-mono">- Rs. {returnTotal.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          {activeGRNToPrint.discount > 0 && (
+                            <div className="flex justify-between font-bold text-rose-600">
+                              <span>{lang === 'ur' ? 'منفی: مجموعی رعایت (ڈسکاؤنٹ):' : 'Less: Discount:'}</span>
+                              <span className="font-mono">- Rs. {activeGRNToPrint.discount.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          {activeGRNToPrint.extraExpenses > 0 && (
+                            <div className="flex justify-between font-bold">
+                              <span>{lang === 'ur' ? 'جمع: کرایہ و لیبر اخراجات:' : 'Add: Freight / Labour:'}</span>
+                              <span className="font-mono">+ Rs. {activeGRNToPrint.extraExpenses.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between font-black text-sm border-t-2 border-black pt-1.5 text-black">
+                            <span>{lang === 'ur' ? 'خالص کل بل (Grand Total):' : 'NET GRAND TOTAL:'}</span>
+                            <span className="font-mono">Rs. {activeGRNToPrint.grandTotal.toLocaleString()}</span>
+                          </div>
+
+                          <div className="flex justify-between font-bold text-emerald-800">
+                            <span>{lang === 'ur' ? 'ادا شدہ نقد رقم:' : 'Paid Amount:'}</span>
+                            <span className="font-mono">Rs. {activeGRNToPrint.paidAmount.toLocaleString()}</span>
+                          </div>
+
+                          <div className="flex justify-between font-black text-amber-900 bg-amber-100 p-1 rounded border border-amber-400">
+                            <span>{lang === 'ur' ? 'سپلائر کے کھاتے میں بقایا:' : 'Balance to Khata:'}</span>
+                            <span className="font-mono">Rs. {activeGRNToPrint.balanceAmount.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 5. Formal Signatures Section */}
+                      <div className="grid grid-cols-2 gap-8 pt-8 text-center text-xs">
+                        <div className="border-t-2 border-dashed border-black pt-2">
+                          <p className="font-bold">{lang === 'ur' ? 'دستخط وصول کنندہ / خریدار دکان دار' : 'Store Receiver Signature'}</p>
+                          <p className="text-[10px] text-slate-500">{activeGRNToPrint.receivedBy || 'ایڈمن'}</p>
+                        </div>
+                        <div className="border-t-2 border-dashed border-black pt-2">
+                          <p className="font-bold">{lang === 'ur' ? 'دستخط سپلائر / مال بردار ڈرائیور' : 'Supplier / Driver Signature'}</p>
+                          <p className="text-[10px] text-slate-500">{activeGRNToPrint.vendorName}</p>
+                        </div>
+                      </div>
+
+                      {/* 6. Footer Developer Branding & Helpline */}
+                      <div className="border-t border-slate-300 pt-3 text-center text-[10px] text-slate-600 font-mono flex items-center justify-center gap-2" dir="ltr">
+                        <span>★ OneShop POS v2.0 PRO ★</span>
+                        <span>•</span>
+                        <span>JK Developers Pakistan</span>
+                        <span>•</span>
+                        <span>Helpline: <bdi className="phone-number font-black">0300-8998381</bdi></span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
