@@ -110,6 +110,18 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
   const [isApprovedAndUnlocking, setIsApprovedAndUnlocking] = useState(false);
 
+  // Computed: whether the screen is currently in Pending Approval mode (or in Login/Register mode)
+  const isPendingApproval = Boolean(
+    pendingUser ||
+    (currentUserEmail && isApprovedUser === false && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (currentUserEmail && !loginEmail && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setLoginEmail(currentUserEmail);
+    }
+  }, [currentUserEmail]);
+
   // Background user database sync
   useEffect(() => {
     refreshUsersFromCloud();
@@ -186,6 +198,22 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         if (data.success && data.found && data.approved) {
           clearInterval(interval);
           setIsApprovedAndUnlocking(true);
+          try {
+            const sessRes = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'LOGIN',
+                email: targetEmail,
+              }),
+            });
+            const sessData = await sessRes.json();
+            if (sessData.sessionToken) {
+              localStorage.setItem('pos_session_token', sessData.sessionToken);
+              localStorage.setItem('pos_current_user', targetEmail);
+              setIsServerVerified(true);
+            }
+          } catch {}
           loginUser({ email: targetEmail });
           try {
             await syncWithCloud(targetEmail);
@@ -640,7 +668,7 @@ ${u?.name || 'Store Owner'}`
           {/* ========================================================================= */}
           {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
           {/* ========================================================================= */}
-          {(pendingUser || (currentUserEmail && !isApprovedUser)) && (
+          {isPendingApproval ? (
             <div className="space-y-4 animate-in fade-in zoom-in-95 text-right">
               {isApprovedAndUnlocking ? (
                 <div className="bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 p-6 rounded-2xl shadow-xl text-center space-y-3 animate-in zoom-in-95">
@@ -749,12 +777,10 @@ ${u?.name || 'Store Owner'}`
                 <span>سائن آؤٹ کریں اور لاگ ان پر واپس جائیں</span>
               </button>
             </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE (CLEAN CORPORATE DESIGN)       */}
-          {/* ========================================================================= */}
-          {!pendingUser && (!currentUserEmail || isApprovedUser === false) && (
+          ) : (
+            /* ========================================================================= */
+            /* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE (CLEAN CORPORATE DESIGN)       */
+            /* ========================================================================= */
             <div className="space-y-4">
               {/* Segmented Top Tab Switcher */}
               <div className="p-1 bg-slate-950 rounded-xl border border-slate-800 flex items-center gap-1 select-none">
@@ -900,6 +926,22 @@ ${u?.name || 'Store Owner'}`
                       <span>یاد رکھیں (Remember)</span>
                     </label>
                   </div>
+
+                  {/* DIRECT SWITCH TO REGISTRATION FOR NEW USERS */}
+                  <div className="pt-3 border-t border-slate-800/80 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('register');
+                        setLoginError('');
+                        setRegError('');
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-emerald-500/50 text-xs font-bold text-emerald-300 hover:text-emerald-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm group"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>نیا کاروبار ہے؟ نیا اکاؤنٹ رجسٹر کریں (New Store? Register here)</span>
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -1018,10 +1060,18 @@ ${u?.name || 'Store Owner'}`
                     </div>
                   )}
 
+                  {/* Helpful explanatory notification banner */}
+                  <div className="p-2.5 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-[11px] text-emerald-300 leading-relaxed text-right flex items-start gap-2">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                    <span>
+                      اکاؤنٹ بناتے ہی فوری جے کے ڈویلپرز ایڈمن کو واٹس ایپ (<span className="font-mono font-bold text-white">0300-8998381</span>) اور جی میل پر الرٹ چلا جائے گا، اور منظوری ملتے ہی سافٹ ویئر فوری خودکار ان لاک ہو جائے گا۔
+                    </span>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={isRegistering}
-                    className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer mt-1"
+                    className="w-full py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl font-black text-xs sm:text-sm shadow-md shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer mt-1"
                   >
                     {isRegistering ? (
                       <>
@@ -1030,11 +1080,26 @@ ${u?.name || 'Store Owner'}`
                       </>
                     ) : (
                       <>
-                        <User className="w-4 h-4" />
-                        <span>اکاؤنٹ رجسٹر کریں اور منظوری مانگیں</span>
+                        <Phone className="w-4 h-4 text-emerald-300" />
+                        <span>اکاؤنٹ رجسٹر کریں اور واٹس ایپ پر الرٹ بھیجیں</span>
                       </>
                     )}
                   </button>
+
+                  <div className="pt-2 border-t border-slate-800/80 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('login');
+                        setLoginError('');
+                        setRegError('');
+                      }}
+                      className="text-xs font-bold text-slate-400 hover:text-white inline-flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>پہلے سے اکاؤنٹ موجود ہے؟ لاگ ان پر جائیں (Sign In)</span>
+                    </button>
+                  </div>
                 </form>
               )}
 
