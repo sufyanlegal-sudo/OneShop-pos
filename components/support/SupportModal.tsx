@@ -79,9 +79,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
           <div className="text-center py-2">
             <a
               href={`tel:${whatsappNumber}`}
-              className="text-3xl font-black font-mono tracking-widest text-white hover:text-amber-400 transition-colors inline-block"
+              dir="ltr"
+              className="text-3xl font-black font-mono tracking-widest text-white hover:text-amber-400 transition-colors inline-block phone-number"
             >
-              {whatsappNumber}
+              0300-8998381
             </a>
             <p className="text-[11px] text-slate-400 mt-1">
               {lang === 'ur' ? 'براہ راست کال کریں یا واٹس ایپ میسج بھیجیں' : 'Direct Call or WhatsApp Message'}

@@ -749,7 +749,8 @@ ${u?.name || 'Store Owner'}`
                       className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                     >
                       <Phone className="w-4 h-4" />
-                      <span>واٹس ایپ پر درخواست بھیجیں (0300-8998381)</span>
+                      <span>واٹس ایپ پر درخواست بھیجیں</span>{' '}
+                      <span dir="ltr" className="phone-number font-mono">(0300-8998381)</span>
                     </button>
 
                     <button
@@ -1064,7 +1065,7 @@ ${u?.name || 'Store Owner'}`
                   <div className="p-2.5 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-[11px] text-emerald-300 leading-relaxed text-right flex items-start gap-2">
                     <Phone className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
                     <span>
-                      اکاؤنٹ بناتے ہی فوری جے کے ڈویلپرز ایڈمن کو واٹس ایپ (<span className="font-mono font-bold text-white">0300-8998381</span>) اور جی میل پر الرٹ چلا جائے گا، اور منظوری ملتے ہی سافٹ ویئر فوری خودکار ان لاک ہو جائے گا۔
+                      اکاؤنٹ بناتے ہی فوری جے کے ڈویلپرز ایڈمن کو واٹس ایپ (<span dir="ltr" className="font-mono font-bold text-white phone-number">0300-8998381</span>) اور جی میل پر الرٹ چلا جائے گا، اور منظوری ملتے ہی سافٹ ویئر فوری خودکار ان لاک ہو جائے گا۔
                     </span>
                   </div>
 
@@ -1213,7 +1214,7 @@ ${u?.name || 'Store Owner'}`
           <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
             <span>© 2026 JK Developers Pakistan</span>
             <span>•</span>
-            <span className="font-mono text-slate-400">0300-8998381</span>
+            <span dir="ltr" className="font-mono text-slate-400 phone-number">0300-8998381</span>
             <span>•</span>
             {/* Subtle discreet lock icon for developer master login (no public banner) */}
             <button

@@ -217,6 +217,15 @@ export function printElement(
           width: 100% !important;
           border-collapse: collapse !important;
         }
+        .phone-number,
+        .ltr-num,
+        [dir="rtl"] .phone-number,
+        [dir="rtl"] .ltr-num {
+          direction: ltr !important;
+          unicode-bidi: isolate !important;
+          display: inline-block !important;
+          text-align: left !important;
+        }
         img, svg {
           max-width: 100% !important;
           height: auto !important;
