@@ -4,9 +4,10 @@ export async function POST(req: Request) {
   try {
     const { email, businessName, backupData, dailySummary } = await req.json();
 
-    if (!email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
       return NextResponse.json(
-        { success: false, message: 'ای میل ایڈریس درکار ہے (Gmail is required)' },
+        { success: false, message: 'درست ای میل ایڈریس درکار ہے (Valid Gmail is required)' },
         { status: 400 }
       );
     }

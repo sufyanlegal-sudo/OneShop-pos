@@ -1,4 +1,9 @@
 import { NextResponse } from 'next/server';
+import {
+  MASTER_SECURITY_KEY,
+  SUPER_ADMIN_EMAIL,
+  verifySessionToken,
+} from '@/lib/sessionAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -24,11 +29,10 @@ export interface ServerUserLicense {
 }
 
 const DEFAULT_SUPER_ADMIN: ServerUserLicense = {
-  email: 'jkdevelopers.pk@gmail.com',
+  email: SUPER_ADMIN_EMAIL,
   name: 'JK Developers Pakistan (Admin)',
   businessName: 'JK Developers Pakistan',
   phone: '0300-8998381',
-  password: 'JK@8998381',
   approved: true,
   registeredAt: '2026-01-01T00:00:00.000Z',
 };
@@ -145,6 +149,31 @@ export async function GET(req: Request) {
       }, { headers: noCacheHeaders });
     }
 
+    // Strict Authorization: Returning full user directory is strictly restricted to verified Super Admin
+    const authHeader = req.headers.get('authorization') || '';
+    const adminKeyHeader = req.headers.get('x-super-admin-key') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+    let isAuthorizedAdmin = false;
+    if (adminKeyHeader && adminKeyHeader.trim() === MASTER_SECURITY_KEY) {
+      isAuthorizedAdmin = true;
+    } else if (token) {
+      const verifyRes = verifySessionToken(token);
+      if (verifyRes.valid && verifyRes.payload?.isSuperAdmin) {
+        isAuthorizedAdmin = true;
+      }
+    }
+
+    if (!isAuthorizedAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: '⛔ غیر مجاز رسائی مسترد! صارفین کی مکمل فہرست دیکھنے کی اجازت صرف تصدیق شدہ سپر ایڈمن کو ہے۔',
+        },
+        { status: 403, headers: noCacheHeaders }
+      );
+    }
+
     // Sanitize users: Never expose passwords in public API responses
     const sanitizedUsers = users.map((u) => ({
       email: u.email,
@@ -177,11 +206,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, email, name, businessName, phone, password, masterKey } = body;
 
-    const MASTER_SECURITY_KEY = 'JK@8998381';
-
-    // Strict Cryptographic Authorization: TOGGLE_APPROVAL and DELETE_USER strictly require Super Admin Master Key
+    // Strict Authorization: TOGGLE_APPROVAL and DELETE_USER strictly require Super Admin credentials
     if (action === 'TOGGLE_APPROVAL' || action === 'DELETE_USER') {
-      if (!masterKey || masterKey.trim() !== MASTER_SECURITY_KEY) {
+      const authHeader = req.headers.get('authorization') || '';
+      const adminKeyHeader = req.headers.get('x-super-admin-key') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+      let isAuthorized = false;
+      if (masterKey && masterKey.trim() === MASTER_SECURITY_KEY) {
+        isAuthorized = true;
+      } else if (adminKeyHeader && adminKeyHeader.trim() === MASTER_SECURITY_KEY) {
+        isAuthorized = true;
+      } else if (token) {
+        const verifyRes = verifySessionToken(token);
+        if (verifyRes.valid && verifyRes.payload?.isSuperAdmin) {
+          isAuthorized = true;
+        }
+      }
+
+      if (!isAuthorized) {
         console.warn(`[SECURITY ALERT] Unauthorized access attempt to ${action} for ${email}`);
         return NextResponse.json(
           {

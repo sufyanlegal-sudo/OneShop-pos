@@ -316,11 +316,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch global registered users from Cloud Server so Super Admin sees all registrations from all devices
   const refreshUsersFromCloud = async () => {
     try {
+      const token = storage.getSessionToken();
       const res = await fetch(`/api/auth/users?_t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
         },
       });
       const data = await res.json();
@@ -523,6 +526,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (key.trim() === MASTER_ADMIN_KEY) {
       setCurrentUserEmail(SUPER_ADMIN_EMAIL);
       storage.setCurrentUser(SUPER_ADMIN_EMAIL);
+      storage.setMasterKey(key.trim());
       setIsSuperAdminModalOpen(true);
       refreshUsersFromCloud();
       return {
@@ -723,13 +727,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.saveUsersDB(updated);
 
     try {
+      const token = storage.getSessionToken();
       await fetch('/api/auth/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
+        },
         body: JSON.stringify({
           action: 'TOGGLE_APPROVAL',
           email,
-          masterKey: MASTER_ADMIN_KEY,
+          masterKey: storage.getMasterKey() || undefined,
         }),
       });
       await refreshUsersFromCloud();
@@ -790,13 +799,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.saveUsersDB(updated);
 
     try {
+      const token = storage.getSessionToken();
       await fetch('/api/auth/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
+        },
         body: JSON.stringify({
           action: 'DELETE_USER',
           email,
-          masterKey: MASTER_ADMIN_KEY,
+          masterKey: storage.getMasterKey() || undefined,
         }),
       });
       await refreshUsersFromCloud();

@@ -329,11 +329,11 @@ ${itemsList}
                 <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">
                   <div>
                     <span className="text-emerald-300 block font-bold">GROQ_API_KEY</span>
-                    <span className="text-slate-400 text-[10px]">فوری اردو AI جوابات کیلئے</span>
+                    <span className="text-slate-400 text-[10px]">console.groq.com سے حاصل کریں</span>
                   </div>
-                  <button onClick={() => copyToClipboard('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', 'groq')} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] text-white">
-                    {copiedKey === 'groq' ? 'کاپی ہوا ✓' : 'کاپی کی'}
-                  </button>
+                  <span className="px-2 py-1 bg-slate-800 rounded text-[10px] text-emerald-400 font-mono">
+                    کلاؤڈ سیکیور ✓
+                  </span>
                 </div>
 
                 <div className="bg-slate-900/80 p-2.5 rounded border border-white/10 flex justify-between items-center">

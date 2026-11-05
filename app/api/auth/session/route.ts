@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import {
+  MASTER_SECURITY_KEY,
+  SUPER_ADMIN_EMAIL,
+  createSignedSessionToken,
+  verifySessionToken,
+} from '@/lib/sessionAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -11,9 +16,6 @@ const noCacheHeaders = {
   'Expires': '0',
   'Surrogate-Control': 'no-store',
 };
-
-const MASTER_SECURITY_KEY = process.env.MASTER_SECURITY_KEY || 'JK@8998381';
-const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
 
 const GIST_ID = process.env.CLOUD_USERS_GIST_ID || '0811bfe0922e749237ee4ae1a7471b8a';
 const GITHUB_TOKEN =
@@ -54,78 +56,6 @@ async function fetchCloudUsers(): Promise<ServerUserLicense[]> {
     console.error('[Session API] Gist fetch error:', err);
   }
   return [];
-}
-
-// Generate cryptographic HMAC-SHA256 signature
-function generateSignature(payloadStr: string): string {
-  return crypto.createHmac('sha256', MASTER_SECURITY_KEY).update(payloadStr).digest('hex');
-}
-
-// Sign a session token
-function createSignedSessionToken(data: {
-  email: string;
-  approved: boolean;
-  isSuperAdmin: boolean;
-  name?: string;
-  businessName?: string;
-}) {
-  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 Days
-  const payload = {
-    email: data.email.toLowerCase(),
-    approved: data.approved,
-    isSuperAdmin: data.isSuperAdmin,
-    name: data.name || data.email.split('@')[0],
-    businessName: data.businessName || '',
-    issuedAt: Date.now(),
-    expiresAt,
-  };
-  const payloadStr = JSON.stringify(payload);
-  const signature = generateSignature(payloadStr);
-  const tokenObj = {
-    p: Buffer.from(payloadStr).toString('base64url'),
-    s: signature,
-  };
-  return Buffer.from(JSON.stringify(tokenObj)).toString('base64url');
-}
-
-// Verify a session token cryptographically
-function verifySessionToken(token: string): {
-  valid: boolean;
-  payload?: {
-    email: string;
-    approved: boolean;
-    isSuperAdmin: boolean;
-    name: string;
-    businessName: string;
-    expiresAt: number;
-  };
-  error?: string;
-} {
-  try {
-    const decodedStr = Buffer.from(token, 'base64url').toString('utf8');
-    const tokenObj = JSON.parse(decodedStr);
-    if (!tokenObj.p || !tokenObj.s) {
-      return { valid: false, error: 'MALFORMED_TOKEN' };
-    }
-    const payloadStr = Buffer.from(tokenObj.p, 'base64url').toString('utf8');
-    const expectedSig = generateSignature(payloadStr);
-
-    // Constant-time comparison to prevent timing attacks
-    const sigA = Buffer.from(tokenObj.s, 'utf8');
-    const sigB = Buffer.from(expectedSig, 'utf8');
-    if (sigA.length !== sigB.length || !crypto.timingSafeEqual(sigA, sigB)) {
-      return { valid: false, error: 'SIGNATURE_MISMATCH' };
-    }
-
-    const payload = JSON.parse(payloadStr);
-    if (Date.now() > payload.expiresAt) {
-      return { valid: false, error: 'TOKEN_EXPIRED' };
-    }
-
-    return { valid: true, payload };
-  } catch (e: any) {
-    return { valid: false, error: e.message };
-  }
 }
 
 export async function POST(req: Request) {
@@ -199,16 +129,28 @@ export async function POST(req: Request) {
         );
       }
 
-      // Password Check
-      if (userRec.password && password && userRec.password !== password) {
-        return NextResponse.json(
-          {
-            success: false,
-            status: 'WRONG_PASSWORD',
-            message: 'پاس ورڈ غلط ہے۔ برائے مہربانی درست پاس ورڈ درج کریں۔',
-          },
-          { status: 401, headers: noCacheHeaders }
-        );
+      // Strict Password Check (Prevent bypass if password is omitted or empty)
+      if (userRec.password) {
+        if (!password || typeof password !== 'string' || !password.trim()) {
+          return NextResponse.json(
+            {
+              success: false,
+              status: 'MISSING_PASSWORD',
+              message: 'پاس ورڈ درج کرنا لازمی ہے۔',
+            },
+            { status: 400, headers: noCacheHeaders }
+          );
+        }
+        if (userRec.password !== password.trim()) {
+          return NextResponse.json(
+            {
+              success: false,
+              status: 'WRONG_PASSWORD',
+              message: 'پاس ورڈ غلط ہے۔ برائے مہربانی درست پاس ورڈ درج کریں۔',
+            },
+            { status: 401, headers: noCacheHeaders }
+          );
+        }
       }
 
       // Live Approval Check directly from Cloud Database
