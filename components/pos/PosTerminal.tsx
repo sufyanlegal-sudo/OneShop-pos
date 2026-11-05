@@ -1576,6 +1576,26 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     const isShort = activeTendered > 0 && activeTendered < effectiveNetTotal;
     const shortAmount = isShort ? effectiveNetTotal - activeTendered : 0;
 
+    const handleNumpadPress = (digit: string) => {
+      posSound.playKeyClick();
+      if (digit === 'CLEAR') {
+        setTenderedAmount(0);
+        tenderedInputRef.current?.focus();
+        return;
+      }
+      if (digit === 'BACK') {
+        const s = String(tenderedAmount || '');
+        const next = s.slice(0, -1);
+        setTenderedAmount(next ? parseFloat(next) || 0 : 0);
+        tenderedInputRef.current?.focus();
+        return;
+      }
+      const currentStr = tenderedAmount ? String(tenderedAmount) : '';
+      const newStr = currentStr + digit;
+      setTenderedAmount(parseFloat(newStr) || 0);
+      tenderedInputRef.current?.focus();
+    };
+
     return (
       <div className="flex flex-col h-full min-h-0 space-y-2 overflow-y-auto pr-0.5 scroll-smooth">
         {/* ========================================================================= */}
@@ -2004,6 +2024,88 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <span className="text-slate-800 dark:text-slate-200">خالص واجب الادا (Net):</span>
             <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">{effectiveNetTotal.toLocaleString()} PKR</span>
           </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 5. CANDELA INTERACTIVE TOUCH NUMPAD (FOR INSTANT CASH ENTRY & ZERO GAP)   */}
+        {/* ========================================================================= */}
+        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2 space-y-1.5 shadow-md shrink-0">
+          <div className="flex items-center justify-between px-1 text-[10.5px] font-bold text-slate-400">
+            <span>{lang === 'ur' ? 'کی پیڈ (Touch Numpad)' : 'Touch Numpad'}</span>
+            <span className="font-mono text-emerald-400 text-[10px]">F4 وصولی</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {['7', '8', '9', 'C'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k === 'C' ? 'CLEAR' : k)}
+                className={`h-9 rounded-xl text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs ${
+                  k === 'C'
+                    ? 'bg-rose-950 text-rose-300 border border-rose-800/80 hover:bg-rose-900'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60'
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+            {['4', '5', '6', '00'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k)}
+                className="h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                {k}
+              </button>
+            ))}
+            {['1', '2', '3', '⌫'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k === '⌫' ? 'BACK' : k)}
+                className={`h-9 rounded-xl text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs ${
+                  k === '⌫'
+                    ? 'bg-amber-950 text-amber-300 border border-amber-800/80 hover:bg-amber-900'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60'
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+            <div className="col-span-2">
+              <button
+                type="button"
+                onClick={() => handleNumpadPress('0')}
+                className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                0
+              </button>
+            </div>
+            <div className="col-span-2">
+              <button
+                type="button"
+                onClick={() => {
+                  posSound.playClick();
+                  setTenderedAmount(effectiveNetTotal);
+                  tenderedInputRef.current?.focus();
+                }}
+                className="w-full h-9 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/50 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                برابر (Exact)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Counter Info Pill */}
+        <div className="px-2.5 py-1 bg-slate-950/60 border border-slate-800 rounded-xl text-[10.5px] font-bold text-slate-400 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>کاؤنٹر #{activeCounter} ({activeCashier?.name || 'کیشیئر'})</span>
+          </div>
+          <span className="font-mono text-emerald-400 text-[10px]">100% کلاؤڈ سنک فعال</span>
         </div>
 
         {/* Recent Hold Bills (If Any) */}
