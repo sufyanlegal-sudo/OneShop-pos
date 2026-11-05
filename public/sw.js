@@ -1,5 +1,5 @@
-// OneShop POS - Offline PWA Service Worker
-const CACHE_NAME = 'oneshop-pos-cache-v1';
+// OneShop POS - Dynamic Cache-Busting Service Worker v4
+const CACHE_NAME = 'oneshop-pos-cache-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -8,24 +8,13 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => console.log('SW cache err', err));
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
+      return Promise.all(keys.map((key) => caches.delete(key)));
     })
   );
   self.clients.claim();

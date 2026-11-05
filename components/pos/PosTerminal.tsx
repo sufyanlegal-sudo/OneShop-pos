@@ -2825,7 +2825,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
 
             {/* Right Pane: Dedicated Candela Checkout Dock - 100% Fixed, Zero Page Scroll */}
-            <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-800 p-2 sm:p-2.5 flex flex-col justify-start min-h-0 shadow-inner overflow-hidden">
+            <div className="w-full md:w-[390px] lg:w-[430px] shrink-0 bg-slate-900 border-t md:border-t-0 md:border-r border-slate-800 text-slate-100 p-2 sm:p-2.5 flex flex-col justify-start min-h-0 shadow-2xl overflow-hidden">
               {renderCheckoutControls()}
             </div>
           </div>

@@ -93,8 +93,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  for (let reg of regs) {
+                    reg.update();
+                  }
+                });
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                  navigator.serviceWorker.register('/sw.js?v=4').catch(function(err) {
                     console.log('SW registration note:', err);
                   });
                 });
