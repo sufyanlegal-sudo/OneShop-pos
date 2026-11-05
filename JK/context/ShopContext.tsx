@@ -700,6 +700,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logoutUser = () => {
     setCurrentUserEmail(null);
     storage.setCurrentUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pos_session_token');
+      localStorage.removeItem('pos_current_user');
+      sessionStorage.clear();
+    }
   };
 
   const toggleUserApproval = async (email: string) => {

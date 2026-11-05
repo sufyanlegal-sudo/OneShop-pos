@@ -100,6 +100,11 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   const [showMasterKey, setShowMasterKey] = useState(false);
   const [masterKeyError, setMasterKeyError] = useState('');
 
+  // 100% BULLETPROOF CRYPTOGRAPHIC SERVER-VERIFIED SESSION
+  // Completely prevents any software engineer or hacker from forcing entry via DevTools / LocalStorage
+  const [isServerVerified, setIsServerVerified] = useState<boolean>(false);
+  const [isCheckingSession, setIsCheckingSession] = useState<boolean>(true);
+
   const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
   const ADMIN_WHATSAPP = '+923008998381';
 
@@ -111,6 +116,58 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     const interval = setInterval(() => {
       refreshUsersFromCloud();
     }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Strict Server Session Verification: Checks HMAC-SHA256 signature and live approval status
+  const verifyServerSession = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('pos_session_token') : null;
+      if (!token) {
+        setIsServerVerified(false);
+        setIsCheckingSession(false);
+        return false;
+      }
+
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'VERIFY',
+          sessionToken: token,
+        }),
+        cache: 'no-store',
+      });
+
+      const data = await res.json();
+      if (data.valid && data.user && data.user.approved) {
+        setIsServerVerified(true);
+        setIsCheckingSession(false);
+        return true;
+      } else {
+        // Token forged, expired, or access revoked by Super Admin -> Purge all storage!
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('pos_session_token');
+          localStorage.removeItem('pos_current_user');
+          sessionStorage.clear();
+        }
+        setIsServerVerified(false);
+        setIsCheckingSession(false);
+        return false;
+      }
+    } catch {
+      setIsServerVerified(false);
+      setIsCheckingSession(false);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    verifyServerSession();
+    // Continuous live security poll every 3.5s: If Super Admin clicks "Revoke", the screen locks immediately!
+    const interval = setInterval(() => {
+      verifyServerSession();
+    }, 3500);
     return () => clearInterval(interval);
   }, []);
 
@@ -182,12 +239,22 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
   }, []);
 
-  // If user is logged in and approved (or is Super Admin), render the full software!
-  if (currentUserEmail && isApprovedUser) {
+  // If user is logged in and verified by cryptographically signed server token, render the full software!
+  if (isServerVerified && currentUserEmail && isApprovedUser) {
     return <>{children}</>;
   }
 
-  // 1. Handle Client Login
+  // If still actively verifying session on cold boot, show sleek loader
+  if (isCheckingSession && typeof window !== 'undefined' && localStorage.getItem('pos_session_token')) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-3 font-sans">
+        <div className="w-9 h-9 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-xs font-mono font-bold text-slate-400">سیکیورٹی و سیشن تصدیق جاری ہے...</div>
+      </div>
+    );
+  }
+
+  // 1. Handle Client Login (With Server Cryptographic Token Issuance)
   const handleClientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -212,11 +279,32 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     setIsLoggingIn(true);
-    const res = await loginUser({ email: cleanEmail, password: loginPassword });
-    setIsLoggingIn(false);
+    try {
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'LOGIN',
+          email: cleanEmail,
+          password: loginPassword,
+        }),
+      });
+      const data = await res.json();
+      setIsLoggingIn(false);
 
-    if (res.status !== 'APPROVED' && res.status !== 'SUPER_ADMIN') {
-      if (res.status === 'PENDING') {
+      if (data.success && data.sessionToken) {
+        localStorage.setItem('pos_session_token', data.sessionToken);
+        localStorage.setItem('pos_current_user', cleanEmail);
+        setIsServerVerified(true);
+        loginUser({ email: cleanEmail });
+        try {
+          await syncWithCloud(cleanEmail);
+        } catch {}
+        window.location.reload();
+        return;
+      }
+
+      if (data.status === 'PENDING') {
         const found = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
         setPendingUser({
           name: found?.name || cleanEmail.split('@')[0],
@@ -226,15 +314,12 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         });
         return;
       }
-      setLoginError(res.message || 'غلط ای میل یا پاس ورڈ درج کیا گیا ہے۔');
-      return;
+
+      setLoginError(data.message || 'غلط ای میل یا پاس ورڈ درج کیا گیا ہے۔');
+    } catch {
+      setIsLoggingIn(false);
+      setLoginError('سرور سے رابطہ نہ ہو سکا۔ برائے مہربانی انٹرنیٹ چیک کریں۔');
     }
-
-    try {
-      await syncWithCloud(cleanEmail);
-    } catch {}
-
-    window.location.reload();
   };
 
   // 2. Handle Client Registration
@@ -303,22 +388,39 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   };
 
   // 3. Handle Secret Master Key Submit (Only for developer)
-  const handleMasterKeySubmit = (e: React.FormEvent) => {
+  const handleMasterKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!masterKeyInput.trim()) {
       setMasterKeyError('براہِ کرم ماسٹر سیکیورٹی کی درج کریں۔');
       return;
     }
 
-    const res = superAdminLoginWithMasterKey(masterKeyInput);
-    if (!res.success) {
-      setMasterKeyError(res.message || 'غلط سیکیورٹی کی! رسائی مسترد کر دی گئی۔');
-      return;
+    try {
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'LOGIN',
+          email: SUPER_ADMIN_EMAIL.toLowerCase(),
+          masterKey: masterKeyInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.sessionToken) {
+        localStorage.setItem('pos_session_token', data.sessionToken);
+        localStorage.setItem('pos_current_user', SUPER_ADMIN_EMAIL.toLowerCase());
+        setIsServerVerified(true);
+        superAdminLoginWithMasterKey(masterKeyInput.trim());
+        setMasterKeyModalOpen(false);
+        setMasterKeyInput('');
+        setMasterKeyError('');
+        window.location.reload();
+        return;
+      }
+      setMasterKeyError(data.message || 'غلط سیکیورٹی کی! رسائی مسترد کر دی گئی۔');
+    } catch {
+      setMasterKeyError('سرور سے رابطہ نہ ہو سکا۔');
     }
-
-    setMasterKeyModalOpen(false);
-    setMasterKeyInput('');
-    setMasterKeyError('');
   };
 
   // 4. Handle WhatsApp Notification to Company

@@ -1178,8 +1178,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </h4>
             <p className="text-xs text-slate-500 leading-relaxed">
               {lang === 'ur'
-                ? 'بارکوڈ اسکینر، سرچ بار (نام لکھ کر)، کیو آر کوڈ اسکینر، یا اشیاء ڈیش بورڈ کھول کر سودا بل میں شامل کریں۔'
-                : 'Scan barcode, type product name, use QR scanner, or open products dashboard to build the bill.'}
+                ? 'بارکوڈ اسکین کریں (F2)، اوپر سرچ بار میں نام لکھ کر تلاش کریں (F3)، یا کیو آر کوڈ اسکین کریں۔'
+                : 'Scan barcode (F2), search item name (F3), or use camera QR scanner.'}
             </p>
           </div>
 
@@ -1191,7 +1191,18 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               className="px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-all"
             >
               <Barcode className="w-4 h-4 text-emerald-600" />
-              <span>{lang === 'ur' ? 'بارکوڈ اسکین کریں' : 'Scan Barcode'}</span>
+              <span>{lang === 'ur' ? 'بارکوڈ اسکین کریں (F2)' : 'Scan Barcode (F2)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const searchInput = document.getElementById('pos-search-input');
+                searchInput?.focus();
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-all"
+            >
+              <Search className="w-4 h-4 text-emerald-600" />
+              <span>{lang === 'ur' ? 'نام سے تلاش کریں (F3)' : 'Search Name (F3)'}</span>
             </button>
             <button
               type="button"
@@ -1200,14 +1211,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             >
               <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span>{lang === 'ur' ? 'کیو آر اسکینر' : 'QR Scanner'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={toggleCatalog}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 transition-all"
-            >
-              <LayoutGrid className="w-4 h-4 text-amber-600" />
-              <span>{lang === 'ur' ? 'اشیاء ڈیش بورڈ لائیں' : 'Show Items Grid'}</span>
             </button>
             {(currentRole === 'ADMIN' || currentRole === 'MANAGER') && (
               <button
@@ -1225,50 +1228,101 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
 
     return (
-      <div className="space-y-3">
-        {cart.map((item, idx) => {
-          const isWeight = isWeightEligible(item);
-          const isLiter = isLiterEligible(item);
-          const unitRate = item.ratePerKg || item.ratePerLiter || item.unitPrice || item.product.salePrice;
-          const displayUnit = item.selectedUnit || item.unit || item.product.unit || 'عدد';
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+        {/* Candela POS High-Density Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs border-collapse">
+            <thead className="bg-slate-900 text-white font-black text-[11px] sticky top-0 z-10 select-none shadow-xs">
+              <tr>
+                <th className="py-2 px-2 text-center w-8">#</th>
+                <th className="py-2 px-2.5 w-24 text-slate-300 font-mono text-[10.5px]">
+                  {lang === 'ur' ? 'بارکوڈ / SKU' : 'Barcode'}
+                </th>
+                <th className="py-2 px-3">
+                  {lang === 'ur' ? 'اشیاء کا نام و تفصیل' : 'Item Description'}
+                </th>
+                <th className="py-2 px-2 text-center w-14">
+                  {lang === 'ur' ? 'یونٹ' : 'Unit'}
+                </th>
+                <th className="py-2 px-2.5 text-center w-24">
+                  {lang === 'ur' ? 'ریٹ (PKR)' : 'Rate'}
+                </th>
+                <th className="py-2 px-2.5 text-center w-36">
+                  {lang === 'ur' ? 'مقدار (Qty)' : 'Quantity'}
+                </th>
+                <th className="py-2 px-3 text-center w-24">
+                  {lang === 'ur' ? 'کل رقم' : 'Subtotal'}
+                </th>
+                <th className="py-2 px-2 text-center w-9">
+                  <Trash2 className="w-3.5 h-3.5 mx-auto text-slate-400" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+              {cart.map((item, idx) => {
+                const isWeight = isWeightEligible(item);
+                const isLiter = isLiterEligible(item);
+                const unitRate = item.ratePerKg || item.ratePerLiter || item.unitPrice || item.product.salePrice;
+                const displayUnit = item.selectedUnit || item.unit || item.product.unit || 'عدد';
 
-          return (
-            <div
-              key={item.id}
-              className="p-3 sm:p-3.5 bg-white dark:bg-slate-850 rounded-2xl border-2 border-emerald-500/40 hover:border-emerald-500 transition-all shadow-sm flex flex-col gap-2.5 animate-fadeIn"
-            >
-              {/* TOP ROW: Item Number, Urdu & English Name, Sale Rate (Editable), Trash Button */}
-              <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-mono font-black text-xs sm:text-sm shrink-0 shadow-xs mt-0.5">
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h5 className="font-black text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
-                        {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
-                      </h5>
-                      {item.packagedVariant && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                          {item.packagedVariant}
+                return (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 transition-colors even:bg-slate-50/70 dark:even:bg-slate-850/50 text-slate-900 dark:text-slate-100 text-xs"
+                  >
+                    {/* Index */}
+                    <td className="py-1.5 px-2 text-center font-mono font-bold text-slate-500">
+                      <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 inline-flex items-center justify-center font-black text-[11px]">
+                        {idx + 1}
+                      </span>
+                    </td>
+
+                    {/* Barcode / SKU */}
+                    <td className="py-1.5 px-2.5 font-mono text-[10.5px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={item.product.barcode || item.product.sku}>
+                      {item.product.barcode || item.product.sku || '—'}
+                    </td>
+
+                    {/* Product Name & Badges */}
+                    <td className="py-1.5 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-black text-xs text-slate-900 dark:text-white leading-tight">
+                          {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
                         </span>
+                        {item.packagedVariant && (
+                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                            {item.packagedVariant}
+                          </span>
+                        )}
+                        {item.product.expiryDate && (
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold ${
+                              new Date(item.product.expiryDate) < new Date()
+                                ? 'bg-rose-600 text-white animate-pulse'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}
+                          >
+                            Exp: {item.product.expiryDate}
+                          </span>
+                        )}
+                      </div>
+                      {item.product.nameEn && item.product.nameUr && (
+                        <div className="text-[10px] text-slate-400 font-normal">
+                          {item.product.nameEn}
+                        </div>
                       )}
-                      {item.product.expiryDate && (
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
-                            new Date(item.product.expiryDate) < new Date()
-                              ? 'bg-rose-600 text-white animate-pulse'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
-                          }`}
-                        >
-                          Exp: {item.product.expiryDate}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-slate-400 font-normal">({item.product.nameEn || item.product.sku})</span>
-                      <span className="inline-flex items-center gap-1 font-mono text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <span>{lang === 'ur' ? 'ریٹ:' : 'Rate:'} <strong>{unitRate.toLocaleString()} PKR</strong> / {lang === 'ur' ? displayUnit : (displayUnit === 'عدد' ? 'Pcs' : displayUnit === 'کلو' ? 'Kg' : displayUnit === 'گرام' ? 'g' : displayUnit === 'لیٹر' ? 'L' : displayUnit)}</span>
+                    </td>
+
+                    {/* Unit */}
+                    <td className="py-1.5 px-2 text-center">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        {lang === 'ur' ? displayUnit : (displayUnit === 'عدد' ? 'Pcs' : displayUnit === 'کلو' ? 'Kg' : displayUnit === 'گرام' ? 'g' : displayUnit === 'لیٹر' ? 'L' : displayUnit)}
+                      </span>
+                    </td>
+
+                    {/* Rate (Editable with Click or Pencil) */}
+                    <td className="py-1.5 px-2.5 text-center font-mono font-bold">
+                      <div className="inline-flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span>{unitRate.toLocaleString()}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -1288,192 +1342,125 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               }
                             }
                           }}
-                          className="p-0.5 hover:bg-emerald-200 dark:hover:bg-emerald-900 rounded text-emerald-600 dark:text-emerald-300 transition"
-                          title={lang === 'ur' ? 'ریٹ تبدیل کرنے کے لیے کلک کریں' : 'Click to edit price'}
+                          className="p-0.5 hover:text-emerald-500 text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded transition"
+                          title="ریٹ تبدیل کریں"
                         >
-                          <Edit2 className="w-3 h-3" />
+                          <Edit2 className="w-2.5 h-2.5" />
                         </button>
-                      </span>
-                      {isWeight && item.quantity < 1 && (
-                        <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
-                          ({Math.round(item.quantity * 1000)} گرام)
-                        </span>
-                      )}
-                      {isLiter && item.quantity < 1 && (
-                        <span className="text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/50 px-1.5 py-0.5 rounded">
-                          ({Math.round(item.quantity * 1000)} ml)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      </div>
+                    </td>
 
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    posSound.playClick();
-                    removeFromCart(item.id);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all shrink-0 cursor-pointer"
-                  title="بل سے یہ آئٹم نکالیں"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+                    {/* Compact Candela Quantity Stepper */}
+                    <td className="py-1.5 px-2.5 text-center">
+                      <div className="inline-flex items-center justify-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        {/* Decrement [-] */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            posSound.playClick();
+                            const step = (isWeight || isLiter) ? 0.25 : 1;
+                            if (item.quantity > step) {
+                              const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
+                              updateCartItem(item.id, {
+                                quantity: next,
+                                isGram: false,
+                                isLiter: false,
+                                unitPrice: unitRate,
+                                total: Math.round(next * unitRate),
+                              });
+                            } else {
+                              removeFromCart(item.id);
+                            }
+                          }}
+                          className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 hover:bg-rose-100 hover:text-rose-600 text-slate-700 dark:text-slate-200 font-black flex items-center justify-center shadow-xs text-xs active:scale-90 transition-all cursor-pointer"
+                          title="کم کریں (-)"
+                        >
+                          -
+                        </button>
 
-              {/* BOTTOM ROW: Large Prominent Quantity Stepper & Big Subtotal */}
-              <div className="flex items-center justify-between gap-3 pt-0.5 flex-wrap">
-                {/* Quantity Controls - Prominent, Large, Touch & Click Friendly */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 shrink-0">
-                    {lang === 'ur' ? 'مقدار / تعداد:' : 'Quantity:'}
-                  </span>
+                        {/* Direct Editable Quantity */}
+                        <input
+                          type="number"
+                          min="0.01"
+                          step={isWeight || isLiter ? "0.05" : "1"}
+                          value={item.quantity}
+                          onKeyDown={() => posSound.playKeyClick()}
+                          onChange={(e) => {
+                            const val = Math.max(0.01, parseFloat(e.target.value) || 0);
+                            if (!canSellOutOfStock() && val > (Number(item.product.stock) || 0)) {
+                              posSound.playError();
+                              alert(lang === 'ur'
+                                ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
+                                : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
+                              return;
+                            }
+                            updateCartItem(item.id, {
+                              quantity: val,
+                              isGram: false,
+                              isLiter: false,
+                              unitPrice: unitRate,
+                              total: Math.round(val * unitRate),
+                            });
+                          }}
+                          className="w-13 text-center text-xs font-mono font-black bg-white dark:bg-slate-900 border border-emerald-500 rounded-md py-0.5 text-slate-900 dark:text-white outline-none"
+                          title="براہ راست تعداد لکھیں"
+                        />
 
-                  {/* Decrement [-] Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      posSound.playClick();
-                      const step = (isWeight || isLiter) ? 0.25 : 1;
-                      if (item.quantity > step) {
-                        const next = Math.max(0.01, Math.round((item.quantity - step) * 100) / 100);
-                        updateCartItem(item.id, {
-                          quantity: next,
-                          isGram: false,
-                          isLiter: false,
-                          unitPrice: unitRate,
-                          total: Math.round(next * unitRate),
-                        });
-                      } else {
-                        removeFromCart(item.id);
-                      }
-                    }}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 hover:text-rose-600 dark:hover:bg-rose-950 text-slate-800 dark:text-slate-200 border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center font-black text-base active:scale-90 transition-all shadow-xs cursor-pointer"
-                    title="مقدار کم کریں (-)"
-                  >
-                    <Minus className="w-4 h-4 stroke-[3]" />
-                  </button>
+                        {/* Increment [+] */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            posSound.playClick();
+                            const step = (isWeight || isLiter) ? 0.25 : 1;
+                            const next = Math.round((item.quantity + step) * 100) / 100;
+                            if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
+                              posSound.playError();
+                              alert(lang === 'ur'
+                                ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
+                                : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
+                              return;
+                            }
+                            updateCartItem(item.id, {
+                              quantity: next,
+                              isGram: false,
+                              isLiter: false,
+                              unitPrice: unitRate,
+                              total: Math.round(next * unitRate),
+                            });
+                          }}
+                          className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center shadow-xs text-xs active:scale-90 transition-all cursor-pointer"
+                          title="بڑھائیں (+)"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
 
-                  {/* Editable Quantity Input */}
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0.01"
-                      step={isWeight || isLiter ? "0.05" : "1"}
-                      value={item.quantity}
-                      onKeyDown={() => posSound.playKeyClick()}
-                      onChange={(e) => {
-                        const val = Math.max(0.01, parseFloat(e.target.value) || 0);
-                        if (!canSellOutOfStock() && val > (Number(item.product.stock) || 0)) {
-                          posSound.playError();
-                          alert(lang === 'ur'
-                            ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
-                            : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
-                          return;
-                        }
-                        updateCartItem(item.id, {
-                          quantity: val,
-                          isGram: false,
-                          isLiter: false,
-                          unitPrice: unitRate,
-                          total: Math.round(val * unitRate),
-                        });
-                      }}
-                      className="w-18 sm:w-22 text-center text-base sm:text-lg font-mono font-black bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl py-1 focus:ring-2 focus:ring-emerald-500/30 outline-none text-slate-900 dark:text-white shadow-inner"
-                      title="براہ راست تعداد لکھیں"
-                    />
-                    <span className="absolute -bottom-3 left-0 right-0 text-center text-[9px] font-bold text-slate-400 font-mono pointer-events-none">
-                      {displayUnit}
-                    </span>
-                  </div>
+                    {/* Subtotal */}
+                    <td className="py-1.5 px-3 text-center font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                      {item.total.toLocaleString()} PKR
+                    </td>
 
-                  {/* Increment [+] Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      posSound.playClick();
-                      const step = (isWeight || isLiter) ? 0.25 : 1;
-                      const next = Math.round((item.quantity + step) * 100) / 100;
-                      if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
-                        posSound.playError();
-                        alert(lang === 'ur'
-                          ? `⚠️ سامان / اسٹاک ناکافی ہے!\nاس آئٹم کا اسٹاک صرف ${item.product.stock} ${item.product.unit} دستیاب ہے۔ کیشیئر کو منفی انٹری کی اجازت نہیں ہے۔`
-                          : `⚠️ Out of Stock! Only ${item.product.stock} available. Negative stock billing is blocked for cashier.`);
-                        return;
-                      }
-                      updateCartItem(item.id, {
-                        quantity: next,
-                        isGram: false,
-                        isLiter: false,
-                        unitPrice: unitRate,
-                        total: Math.round(next * unitRate),
-                      });
-                    }}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-black text-base active:scale-90 transition-all shadow-md shadow-emerald-700/30 border border-emerald-400 cursor-pointer"
-                    title="مقدار بڑھائیں (+)"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                  </button>
-
-                  {/* Quick Shortcuts: +1 and +5 for Speed */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        posSound.playClick();
-                        const next = item.quantity + 1;
-                        if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
-                          posSound.playError();
-                          return;
-                        }
-                        updateCartItem(item.id, {
-                          quantity: next,
-                          unitPrice: unitRate,
-                          total: Math.round(next * unitRate),
-                        });
-                      }}
-                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-750 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-200 text-xs font-mono font-bold transition-all shadow-xs border border-slate-300 dark:border-slate-700"
-                      title="+1 مزید شامل کریں"
-                    >
-                      +1
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        posSound.playClick();
-                        const next = item.quantity + 5;
-                        if (!canSellOutOfStock() && next > (Number(item.product.stock) || 0)) {
-                          posSound.playError();
-                          return;
-                        }
-                        updateCartItem(item.id, {
-                          quantity: next,
-                          unitPrice: unitRate,
-                          total: Math.round(next * unitRate),
-                        });
-                      }}
-                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-750 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-200 text-xs font-mono font-bold transition-all shadow-xs border border-slate-300 dark:border-slate-700"
-                      title="+5 مزید شامل کریں"
-                    >
-                      +5
-                    </button>
-                  </div>
-                </div>
-
-                {/* Line Total */}
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] font-bold text-slate-400 block">
-                    {lang === 'ur' ? 'کل رقم:' : 'Total:'}
-                  </span>
-                  <span className="font-mono font-black text-base sm:text-xl text-emerald-600 dark:text-emerald-400">
-                    {item.total.toLocaleString()} <span className="text-xs font-sans">PKR</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                    {/* Delete Icon */}
+                    <td className="py-1.5 px-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          posSound.playClick();
+                          removeFromCart(item.id);
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer"
+                        title="بل سے نکالیں"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         {/* Invisible anchor for smooth auto-scroll to bottom */}
         <div ref={cartEndRef} />
       </div>
@@ -2137,24 +2124,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
         {/* Right-aligned Sleek Action Buttons in a Single Compact Row */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* 1. Products Catalog Grid Toggle (Small, sleek button) */}
-          <button
-            type="button"
-            onClick={toggleCatalog}
-            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 border cursor-pointer whitespace-nowrap ${
-              showCatalog
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
-            }`}
-            title={showCatalog ? 'اشیاء گرڈ چھپائیں اور صرف بلنگ سکرین رکھیں' : 'اشیاء ڈیش بورڈ ساتھ کھولیں'}
-          >
-            {showCatalog ? <EyeOff className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
-            <span className="text-[11px] font-bold">
-              {showCatalog ? (lang === 'ur' ? 'صرف بل' : 'Bill Only') : (lang === 'ur' ? 'اشیاء گرڈ' : 'Items Grid')}
-            </span>
-          </button>
-
-          {/* 2. Quick Hold Bill Button */}
+          {/* 1. Quick Hold Bill Button */}
           {cart.length > 0 && (
             <button
               type="button"
@@ -2358,51 +2328,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* MOBILE TAB CONTROLS (Only visible on mobile / tablet screens < lg) */}
-      <div className="lg:hidden flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-2xl shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            posSound.playClick();
-            setMobileTab('cart');
-          }}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
-            mobileTab === 'cart'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40'
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>{lang === 'ur' ? '🛒 فعال بل و چیک آؤٹ' : 'Cart & Bill'}</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
-            mobileTab === 'cart' ? 'bg-white/20 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-          }`}>
-            {cartTotals.itemCount} | {effectiveNetTotal.toLocaleString()} PKR
-          </span>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            posSound.playClick();
-            setMobileTab('catalog');
-            if (!showCatalog) setShowCatalog(true);
-          }}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
-            mobileTab === 'catalog'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40'
-          }`}
-        >
-          <LayoutGrid className="w-4 h-4" />
-          <span>{lang === 'ur' ? '📦 اشیاء کیٹلاگ' : 'Products Grid'}</span>
-        </button>
-      </div>
 
       {/* 3. MAIN WORKSPACE */}
       <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-y-auto lg:overflow-hidden pb-24 lg:pb-0">
-        {/* LEFT: Product Catalog Grid (Only visible if showCatalog is true) */}
-        {showCatalog && (
+        {/* LEFT: Product Catalog Grid removed from front page as requested */}
+        {false && (
           <div className={`w-full lg:w-[46%] xl:w-[48%] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fadeIn ${
             mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
           }`}>
@@ -2674,11 +2605,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           </div>
         )}
 
-        {/* ACTIVE BILLING TERMINAL SCREEN */}
+        {/* ACTIVE BILLING TERMINAL SCREEN: CANDELA DEDICATED FULL WIDTH */}
         <div
-          className={`flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all ${
-            !showCatalog ? 'w-full' : 'w-full lg:w-[54%] xl:w-[52%]'
-          } ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}
+          className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden w-full transition-all"
         >
           {/* Cart Header */}
           <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
@@ -2736,31 +2665,18 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Body Content based on Layout Mode */}
-          {!showCatalog ? (
-            /* Dedicated Full-Width Billing View: Left is Bill Items Table/List, Right is Checkout Sidebar - Side-by-side on md and up */
-            <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-              {/* Left Pane: Items in Active Bill */}
-              <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth">
-                {renderCartItems()}
-              </div>
+          {/* Dedicated Full-Width Candela Billing View: Left is Bill Items Table, Right is Candela Checkout Dock */}
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+            {/* Left Pane: Items in Active Bill */}
+            <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth">
+              {renderCartItems()}
+            </div>
 
-              {/* Right Pane: Dedicated Candela Checkout Dock - 100% Fixed, Zero Page Scroll */}
-              <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-800 p-2 sm:p-2.5 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden">
-                {renderCheckoutControls()}
-              </div>
+            {/* Right Pane: Dedicated Candela Checkout Dock - 100% Fixed, Zero Page Scroll */}
+            <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-800 p-2 sm:p-2.5 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden">
+              {renderCheckoutControls()}
             </div>
-          ) : (
-            /* Split View (Catalog on Left, Cart on Right): Items on top, Checkout on bottom */
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div ref={cartContainerRef} className="flex-1 min-h-[140px] overflow-y-auto p-2.5 sm:p-3 space-y-2 scroll-smooth">
-                {renderCartItems()}
-              </div>
-              <div className="shrink-0 max-h-[60%] overflow-hidden p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex flex-col pb-16 lg:pb-2">
-                {renderCheckoutControls()}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
