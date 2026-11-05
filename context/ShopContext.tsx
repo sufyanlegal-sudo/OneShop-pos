@@ -889,10 +889,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'کامیابی سے کاؤنٹر لاگ ان ہو گیا' };
   };
 
-  // Filter products for active preset (Ensures newly created products without preset are never hidden)
+  // In OneShop POS (Supermarket Multi-Counter ERP), all items across General Store,
+  // Sweets & Bakers, Garments, Karyana and Confectionery are 100% accessible and searchable:
   const products = useMemo(() => {
-    return allProducts.filter((p) => !p.preset || p.preset === activePreset);
-  }, [allProducts, activePreset]);
+    return allProducts;
+  }, [allProducts]);
 
   // Current business profile
   const businessProfile = useMemo(() => {
