@@ -1253,31 +1253,31 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     return (
       <div className="bg-white/95 dark:bg-slate-900/95 rounded-2xl border-2 border-sky-400 dark:border-sky-800 shadow-md overflow-hidden flex flex-col">
         {/* Candela POS High-Density Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-right text-sm border-collapse">
-            <thead className="bg-slate-900 text-white font-black text-sm sm:text-base sticky top-0 z-10 select-none shadow-sm">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-right text-xs sm:text-sm border-collapse">
+            <thead className="bg-slate-900 text-white font-black text-xs sm:text-sm sticky top-0 z-10 select-none shadow-sm">
               <tr>
-                <th className="py-3 px-2 text-center w-12">#</th>
-                <th className="py-3 px-3 w-36 text-center text-slate-200 font-mono text-xs sm:text-sm">
+                <th className="py-2.5 px-1.5 text-center w-10">#</th>
+                <th className="py-2.5 px-2 w-28 text-center text-slate-200 font-mono text-xs">
                   {lang === 'ur' ? 'بارکوڈ / SKU' : 'Barcode'}
                 </th>
-                <th className="py-3 px-4 text-right">
+                <th className="py-2.5 px-3 text-right">
                   {lang === 'ur' ? 'اشیاء کا نام و تفصیل' : 'Item Description'}
                 </th>
-                <th className="py-3 px-2.5 text-center w-20">
+                <th className="py-2.5 px-1.5 text-center w-16">
                   {lang === 'ur' ? 'یونٹ' : 'Unit'}
                 </th>
-                <th className="py-3 px-3 text-center w-32">
+                <th className="py-2.5 px-2 text-center w-24">
                   {lang === 'ur' ? 'ریٹ (PKR)' : 'Rate'}
                 </th>
-                <th className="py-3 px-3 text-center w-44">
+                <th className="py-2.5 px-2 text-center w-36">
                   {lang === 'ur' ? 'مقدار (Qty)' : 'Quantity'}
                 </th>
-                <th className="py-3 px-4 text-center w-36">
+                <th className="py-2.5 px-2 text-center w-28">
                   {lang === 'ur' ? 'کل رقم' : 'Subtotal'}
                 </th>
-                <th className="py-3 px-2 text-center w-12">
-                  <Trash2 className="w-4 h-4 mx-auto text-slate-400" />
+                <th className="py-2.5 px-1.5 text-center w-10">
+                  <Trash2 className="w-3.5 h-3.5 mx-auto text-slate-400" />
                 </th>
               </tr>
             </thead>
@@ -1294,35 +1294,35 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     className="bg-[#e8f7ee] hover:bg-[#d5f0de] dark:bg-[#0f2d22] dark:hover:bg-[#163d2e] border-b-2 border-emerald-200 dark:border-emerald-800 text-slate-950 dark:text-slate-100 transition-colors"
                   >
                     {/* Index */}
-                    <td className="py-3 px-2 text-center font-mono font-bold text-slate-600">
-                      <span className="w-8 h-8 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center font-black text-sm shadow-xs">
+                    <td className="py-2.5 px-1.5 text-center font-mono font-bold text-slate-600">
+                      <span className="w-7 h-7 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center font-black text-xs shadow-xs">
                         {idx + 1}
                       </span>
                     </td>
 
                     {/* Barcode / SKU */}
-                    <td className="py-3 px-3 text-center font-mono text-sm sm:text-base font-black text-slate-700 dark:text-slate-300 truncate max-w-[130px]" title={item.product.barcode || item.product.sku}>
+                    <td className="py-2.5 px-2 text-center font-mono text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[105px]" title={item.product.barcode || item.product.sku}>
                       <span dir="ltr" className="phone-number">{item.product.barcode || item.product.sku || '—'}</span>
                     </td>
 
                     {/* Product Name & Stock Badges */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-base sm:text-lg text-slate-950 dark:text-white leading-tight">
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-black text-sm sm:text-base text-slate-950 dark:text-white leading-tight">
                           {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
                         </span>
                         {item.packagedVariant && (
-                          <span className="px-2 py-0.5 rounded text-xs font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                             {item.packagedVariant}
                           </span>
                         )}
                         {/* Live Stock Badge (Screen Only) */}
-                        <span className="px-2.5 py-0.5 rounded text-xs font-black bg-emerald-200 dark:bg-emerald-900/80 text-emerald-950 dark:text-emerald-100 border border-emerald-400">
+                        <span className="px-2 py-0.2 rounded text-[10.5px] font-black bg-emerald-200 dark:bg-emerald-900/80 text-emerald-950 dark:text-emerald-100 border border-emerald-400">
                           {lang === 'ur' ? `اسٹاک: ${item.product.stock} ${displayUnit}` : `Stock: ${item.product.stock}`}
                         </span>
                         {item.product.expiryDate && (
                           <span
-                            className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
                               new Date(item.product.expiryDate) < new Date()
                                 ? 'bg-rose-600 text-white animate-pulse'
                                 : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -1333,22 +1333,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         )}
                       </div>
                       {item.product.nameEn && item.product.nameUr && (
-                        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
                           {item.product.nameEn}
                         </div>
                       )}
                     </td>
 
                     {/* Unit */}
-                    <td className="py-3 px-2.5 text-center">
-                      <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-emerald-300 dark:border-slate-700 shadow-xs">
+                    <td className="py-2.5 px-1.5 text-center">
+                      <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-emerald-300 dark:border-slate-700 shadow-xs">
                         {lang === 'ur' ? displayUnit : (displayUnit === 'عدد' ? 'Pcs' : displayUnit === 'کلو' ? 'Kg' : displayUnit === 'گرام' ? 'g' : displayUnit === 'لیٹر' ? 'L' : displayUnit)}
                       </span>
                     </td>
 
                     {/* Rate (Editable with Click or Pencil) */}
-                    <td className="py-3 px-3 text-center font-mono">
-                      <div className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border-2 border-emerald-400 dark:border-emerald-700 font-black text-sm sm:text-lg text-slate-950 dark:text-emerald-300 shadow-xs">
+                    <td className="py-2.5 px-2 text-center font-mono">
+                      <div className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-xl border-2 border-emerald-400 dark:border-emerald-700 font-black text-xs sm:text-sm text-slate-950 dark:text-emerald-300 shadow-xs">
                         <span>{unitRate.toLocaleString()}</span>
                         <button
                           type="button"
@@ -1369,17 +1369,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               }
                             }
                           }}
-                          className="p-1 hover:text-emerald-600 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition"
+                          className="p-0.5 hover:text-emerald-600 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition"
                           title="ریٹ تبدیل کریں"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Edit2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
 
-                    {/* Candela Large Quantity Stepper */}
-                    <td className="py-3 px-3 text-center">
-                      <div className="inline-flex items-center justify-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-2xl border-2 border-emerald-300 dark:border-slate-700 shadow-xs">
+                    {/* Candela Responsive Quantity Stepper */}
+                    <td className="py-2.5 px-2 text-center">
+                      <div className="inline-flex items-center justify-center gap-1 bg-white dark:bg-slate-800 p-0.5 rounded-xl border-2 border-emerald-300 dark:border-slate-700 shadow-xs">
                         {/* Decrement [-] */}
                         <button
                           type="button"
@@ -1399,7 +1399,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               removeFromCart(item.id);
                             }
                           }}
-                          className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 hover:text-rose-600 text-slate-900 dark:text-slate-100 font-black flex items-center justify-center shadow-xs text-lg active:scale-90 transition-all cursor-pointer"
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 hover:text-rose-600 text-slate-900 dark:text-slate-100 font-black flex items-center justify-center shadow-xs text-base active:scale-90 transition-all cursor-pointer"
                           title="کم کریں (-)"
                         >
                           -
@@ -1429,7 +1429,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               total: Math.round(val * unitRate),
                             });
                           }}
-                          className="w-20 h-9 text-center text-base sm:text-lg font-mono font-black bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl text-slate-950 dark:text-white outline-none shadow-inner"
+                          className="w-12 sm:w-14 h-7 sm:h-8 text-center text-xs sm:text-sm font-mono font-black bg-white dark:bg-slate-900 border border-emerald-500 rounded-lg text-slate-950 dark:text-white outline-none shadow-inner"
                           title="براہ راست تعداد لکھیں"
                         />
 
@@ -1455,7 +1455,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               total: Math.round(next * unitRate),
                             });
                           }}
-                          className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center shadow-xs text-lg active:scale-90 transition-all cursor-pointer"
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center shadow-xs text-base active:scale-90 transition-all cursor-pointer"
                           title="بڑھائیں (+)"
                         >
                           +
@@ -1464,22 +1464,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     </td>
 
                     {/* Subtotal */}
-                    <td className="py-3 px-4 text-center font-mono font-black text-base sm:text-xl text-emerald-800 dark:text-emerald-300">
+                    <td className="py-2.5 px-2 text-center font-mono font-black text-xs sm:text-base text-emerald-800 dark:text-emerald-300 whitespace-nowrap">
                       {item.total.toLocaleString()} PKR
                     </td>
 
                     {/* Delete Icon */}
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-2.5 px-1.5 text-center">
                       <button
                         type="button"
                         onClick={() => {
                           posSound.playClick();
                           removeFromCart(item.id);
                         }}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-xl transition-all cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer"
                         title="بل سے نکالیں"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -2741,13 +2741,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
           {/* Dedicated Full-Width Candela Billing View: Left is Bill Items Table, Right is Candela Checkout Dock */}
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-[#e0f2fe] rounded-2xl border-2 border-sky-300 shadow-md">
-            {/* Left Pane: Items in Active Bill */}
-            <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth bg-sky-100/60">
+            {/* Left Pane: Items in Active Bill (Ensures all columns fit with zero cutoff) */}
+            <div ref={cartContainerRef} className="flex-1 min-w-0 min-h-0 overflow-y-auto p-1.5 sm:p-2 space-y-2 scroll-smooth bg-sky-100/60">
               {renderCartItems()}
             </div>
 
-            {/* Right Pane: Dedicated Candela Checkout Dock - Enlarged Width & Sky Blue Theme */}
-            <div className="w-full md:w-[460px] lg:w-[500px] xl:w-[540px] shrink-0 bg-[#e0f2fe] border-t md:border-t-0 md:border-r-2 border-sky-300 text-slate-900 p-3 sm:p-3.5 flex flex-col justify-start min-h-0 shadow-lg overflow-y-auto">
+            {/* Right Pane: Dedicated Candela Checkout Dock - Balanced Pro Width & Sky Blue Theme */}
+            <div className="w-full md:w-[360px] lg:w-[380px] xl:w-[400px] shrink-0 bg-[#e0f2fe] border-t md:border-t-0 md:border-r-2 border-sky-300 text-slate-900 p-2.5 sm:p-3 flex flex-col justify-start min-h-0 shadow-lg overflow-y-auto">
               {renderCheckoutControls()}
             </div>
           </div>
