@@ -394,8 +394,8 @@ export const InventoryView: React.FC = () => {
   // STRICT ACCESS CONTROL: Only ADMIN can access Barcode/QR Inventory Stock Intake!
   if (currentRole !== 'ADMIN') {
     return (
-      <div className="min-h-[75vh] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-5 animate-in fade-in">
+      <div className="min-h-[75vh] flex items-center justify-center p-4 bg-[#e8f7ee] dark:bg-[#071e15] transition-colors">
+        <div className="bg-white dark:bg-slate-900 border-2 border-emerald-300 dark:border-emerald-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-5 animate-in fade-in">
           <div className="w-16 h-16 rounded-3xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto border-2 border-amber-300 dark:border-amber-700 shadow-inner">
             <Lock className="w-8 h-8" />
           </div>
@@ -448,9 +448,10 @@ export const InventoryView: React.FC = () => {
   }
 
   return (
-    <div className="p-3 sm:p-4 max-w-7xl mx-auto space-y-4">
-      {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-[calc(100vh-70px)] bg-[#e8f7ee] dark:bg-[#071e15] p-3 sm:p-5 transition-colors">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Top Header Card */}
+        <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-2xl">
             <Boxes className="w-6 h-6" />
@@ -601,7 +602,7 @@ export const InventoryView: React.FC = () => {
 
       {/* 4 KPI Summary Boxes */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600">
             <Package className="w-5 h-5" />
           </div>
@@ -611,7 +612,7 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600">
             <Boxes className="w-5 h-5" />
           </div>
@@ -623,7 +624,7 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600">
             <Banknote className="w-5 h-5" />
           </div>
@@ -633,7 +634,7 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600">
             <TrendingUp className="w-5 h-5" />
           </div>
@@ -645,7 +646,7 @@ export const InventoryView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -702,10 +703,10 @@ export const InventoryView: React.FC = () => {
       </div>
 
       {/* Products Table (Renders 25-50 paginated rows max for lightning mobile speed) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">
+            <thead className="bg-slate-900 text-white font-black uppercase tracking-wider">
               <tr>
                 <th className="p-3">SKU / بارکوڈ</th>
                 <th className="p-3">نام و تفصیل</th>
@@ -1569,6 +1570,7 @@ export const InventoryView: React.FC = () => {
         onClose={() => setBarcodeModalOpen(false)}
         initialProductId={barcodeTargetProductId}
       />
+      </div>
     </div>
   );
 };

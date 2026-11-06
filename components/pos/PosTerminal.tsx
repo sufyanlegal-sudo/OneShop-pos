@@ -2123,7 +2123,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden">
+    <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden bg-sky-100 dark:bg-[#061830] transition-colors">
       {/* Live Pending WhatsApp Order Alert Strip */}
       {pendingWhatsAppOrdersCount > 0 && (
         <div className="bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-500/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs text-slate-900 dark:text-white shadow-xs">
@@ -2150,7 +2150,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       )}
 
       {/* 2. SLEEK PROFESSIONAL COMMAND BAR: BARCODE SCANNER, SEARCH & ESSENTIAL TOOLS */}
-      <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-2 shrink-0">
+      <div className="p-2 bg-white/95 dark:bg-slate-900/95 rounded-xl border-2 border-sky-300 dark:border-sky-800 shadow-sm flex items-center gap-2 shrink-0">
         {/* Barcode scanner input (Sleek Compact Pro Input) */}
         <form onSubmit={handleBarcodeSubmit} className="flex-1 max-w-[280px] sm:max-w-[320px] relative">
           <Barcode className="w-4 h-4 absolute left-3 top-2.5 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
