@@ -29,6 +29,8 @@ import {
   KeyRound,
   Image as ImageIcon,
   FileText,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
@@ -47,9 +49,22 @@ export const SettingsView: React.FC = () => {
     updateCashierAccount,
     cashierPermissions,
     updateCashierPermissions,
+    currentUserEmail,
   } = useShop();
 
-  const [activeTab, setActiveTab] = useState<'identity' | 'permissions' | 'counters' | 'backup'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'permissions' | 'counters' | 'backup' | 'security'>('identity');
+
+  // Password Change State
+  const [pwForm, setPwForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMessage, setPwMessage] = useState<{ success: boolean; text: string } | null>(null);
 
   // Business profile form
   const [form, setForm] = useState({
@@ -261,6 +276,78 @@ export const SettingsView: React.FC = () => {
     reader.readAsText(file);
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwMessage(null);
+
+    if (!pwForm.currentPassword) {
+      setPwMessage({
+        success: false,
+        text: lang === 'ur' ? 'موجودہ (پرانا) پاس ورڈ درج کرنا لازمی ہے۔' : 'Current password is required.',
+      });
+      return;
+    }
+
+    if (!pwForm.newPassword || pwForm.newPassword.length < 4) {
+      setPwMessage({
+        success: false,
+        text: lang === 'ur' ? 'نیا پاس ورڈ کم از کم 4 حروف پر مشتمل ہونا چاہیے۔' : 'New password must be at least 4 characters.',
+      });
+      return;
+    }
+
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwMessage({
+        success: false,
+        text: lang === 'ur' ? 'نیا پاس ورڈ اور تصدیقی پاس ورڈ آپس میں مماثلت نہیں رکھتے!' : 'New password and confirm password do not match.',
+      });
+      return;
+    }
+
+    const emailToUse = currentUserEmail || storage.getCurrentUser();
+    if (!emailToUse) {
+      setPwMessage({
+        success: false,
+        text: lang === 'ur' ? 'صارف کی ای میل نہیں مل سکی۔ براہ کرم دوبارہ لاگ ان کریں۔' : 'User email not found. Please log in again.',
+      });
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailToUse,
+          currentPassword: pwForm.currentPassword,
+          newPassword: pwForm.newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setPwMessage({
+          success: true,
+          text: lang === 'ur' ? 'پاس ورڈ کامیابی کے ساتھ تبدیل کر دیا گیا ہے!' : 'Password changed successfully!',
+        });
+        setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPwMessage({
+          success: false,
+          text: data.message || (lang === 'ur' ? 'پاس ورڈ تبدیل نہ ہو سکا۔' : 'Failed to change password.'),
+        });
+      }
+    } catch (err: any) {
+      setPwMessage({
+        success: false,
+        text: err.message || (lang === 'ur' ? 'سرور سے رابطہ قائم نہ ہو سکا۔' : 'Connection error.'),
+      });
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 max-w-5xl mx-auto space-y-6">
       {/* Top Header Card */}
@@ -340,6 +427,18 @@ export const SettingsView: React.FC = () => {
         >
           <Download className="w-4 h-4" />
           <span>{lang === 'ur' ? '4. بیک اپ و ری سیٹ' : '4. Backup & Reset'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+            activeTab === 'security'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <KeyRound className="w-4 h-4" />
+          <span>{lang === 'ur' ? '5. پاس ورڈ و ایڈمن سیکیورٹی' : '5. Password & Security'}</span>
         </button>
       </div>
 
@@ -569,26 +668,42 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Admin PIN Setting */}
-          <div className="bg-purple-50/60 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Lock className="w-4 h-4 text-purple-600" />
-                <span>خفیہ ایڈمن لاگ ان پن کوڈ (Admin PIN)</span>
-              </h4>
-              <p className="text-[11px] text-slate-500">
-                {lang === 'ur'
-                  ? 'ایڈمن موڈ کو ان لاک کرنے، حساس ماڈیولز دیکھنے اور نفع چیک کرنے کا کوڈ (ڈیفالٹ: 1234)'
-                  : 'PIN required to unlock admin mode, modify sensitive settings, and view profit'}
-              </p>
+          <div className="bg-purple-50/60 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800/50 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-purple-600" />
+                  <span>خفیہ ایڈمن لاگ ان پن کوڈ (Admin PIN)</span>
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  {lang === 'ur'
+                    ? 'ایڈمن موڈ کو ان لاک کرنے، حساس ماڈیولز دیکھنے اور نفع چیک کرنے کا کوڈ (ڈیفالٹ: 1234)'
+                    : 'PIN required to unlock admin mode, modify sensitive settings, and view profit'}
+                </p>
+              </div>
+
+              <input
+                type="password"
+                maxLength={10}
+                value={form.adminPin}
+                onChange={(e) => setForm({ ...form, adminPin: e.target.value })}
+                className="w-32 text-center text-lg tracking-widest font-mono font-bold bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 rounded-xl py-1.5 outline-none text-purple-600"
+              />
             </div>
 
-            <input
-              type="password"
-              maxLength={10}
-              value={form.adminPin}
-              onChange={(e) => setForm({ ...form, adminPin: e.target.value })}
-              className="w-32 text-center text-lg tracking-widest font-mono font-bold bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 rounded-xl py-1.5 outline-none text-purple-600"
-            />
+            <div className="pt-2 border-t border-purple-200 dark:border-purple-800/40 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-[11px] text-purple-700 dark:text-purple-300 font-bold">
+                {lang === 'ur' ? 'مین کلاؤڈ اکاؤنٹ کا لاگ ان پاس ورڈ تبدیل کرنا چاہتے ہیں؟' : 'Want to change account login password?'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('security')}
+                className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{lang === 'ur' ? 'پاس ورڈ و سیکیورٹی ٹیب کھولیں 🔑' : 'Open Password & Security Tab'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Submit Action */}
@@ -1160,6 +1275,212 @@ export const SettingsView: React.FC = () => {
               <RotateCcw className="w-4 h-4" />
               <span>{lang === 'ur' ? 'تمام ڈیٹا ری سیٹ کریں' : 'Reset to Default Seed'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: PASSWORD & ADMIN SECURITY                                          */}
+      {/* ========================================================================= */}
+      {activeTab === 'security' && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 text-xs">
+          <div>
+            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-purple-600" />
+              <span>{lang === 'ur' ? 'پاس ورڈ و ایڈمن سیکیورٹی (Password & Security)' : 'Password & Security'}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {lang === 'ur'
+                ? 'اپنے مین کلاؤڈ لاگ ان اکاؤنٹ کا پاس ورڈ اور ایڈمن پن کوڈ محفوظ طریقے سے تبدیل کریں۔'
+                : 'Safely change your cloud login account password and internal Admin PIN.'}
+            </p>
+          </div>
+
+          {/* User Account Info Bar */}
+          <div className="bg-purple-50/70 dark:bg-purple-950/30 p-4 rounded-xl border border-purple-200 dark:border-purple-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[11px] text-purple-700 dark:text-purple-300 font-bold block">
+                {lang === 'ur' ? 'فعال اکاؤنٹ لاگ ان ای میل (Active Account):' : 'Active Account Email:'}
+              </span>
+              <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
+                {currentUserEmail || storage.getCurrentUser() || 'jkdevelopers.pk@gmail.com'}
+              </span>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 self-start sm:self-auto">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>{lang === 'ur' ? 'کلاؤڈ سیشن محفوظ ہے' : 'Secured Session'}</span>
+            </span>
+          </div>
+
+          {/* Form: Change Main Account Password */}
+          <form onSubmit={handleChangePassword} className="bg-slate-50 dark:bg-slate-850 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+              <Lock className="w-4 h-4 text-purple-600" />
+              <span>{lang === 'ur' ? 'مین لاگ ان پاس ورڈ تبدیل کریں (Change Login Password)' : 'Change Login Password'}</span>
+            </h4>
+
+            {pwMessage && (
+              <div
+                className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                  pwMessage.success
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+                    : 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200'
+                }`}
+              >
+                {pwMessage.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                <span>{pwMessage.text}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Field 1: Current Password */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'موجودہ (پرانا) پاس ورڈ:' : 'Current Password:'} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPw ? 'text' : 'password'}
+                    value={pwForm.currentPassword}
+                    onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                    placeholder="••••••••"
+                    required
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPw(!showCurrentPw)}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={showCurrentPw ? 'پاس ورڈ چھپائیں' : 'پاس ورڈ دیکھیں'}
+                  >
+                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 2: New Password */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'نیا پاس ورڈ:' : 'New Password:'} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPw ? 'text' : 'password'}
+                    value={pwForm.newPassword}
+                    onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                    placeholder="کم از کم 4 حروف"
+                    required
+                    minLength={4}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={showNewPw ? 'پاس ورڈ چھپائیں' : 'پاس ورڈ دیکھیں'}
+                  >
+                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 3: Confirm New Password */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {lang === 'ur' ? 'نئے پاس ورڈ کی تصدیق:' : 'Confirm New Password:'} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    value={pwForm.confirmPassword}
+                    onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                    placeholder="دوبارہ نیا پاس ورڈ لکھیں"
+                    required
+                    minLength={4}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={showConfirmPw ? 'پاس ورڈ چھپائیں' : 'پاس ورڈ دیکھیں'}
+                  >
+                    {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={pwLoading}
+                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 shadow-md active:scale-95 transition-all text-xs cursor-pointer"
+              >
+                {pwLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>{lang === 'ur' ? 'تبدیل ہو رہا ہے...' : 'Updating...'}</span>
+                  </span>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4" />
+                    <span>{lang === 'ur' ? 'نیا پاس ورڈ محفوظ کریں' : 'Update Password'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Secondary Card: Internal Admin PIN Code */}
+          <div className="bg-slate-50 dark:bg-slate-850 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'ur' ? 'خفیہ ایڈمن لاگ ان پن کوڈ (Admin PIN Code)' : 'Internal Admin PIN Code'}</span>
+                </h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {lang === 'ur'
+                    ? 'یہ پن کوڈ کیشیئر موڈ سے ایڈمن موڈ میں جانے، روزنامچے کے اخراجات اور نفع کا جائزہ لینے کے لیے استعمال ہوتا ہے (ڈیفالٹ: 1234)'
+                    : 'PIN code used to unlock admin functions, profit overview and cash drawer'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  maxLength={10}
+                  value={form.adminPin}
+                  onChange={(e) => setForm({ ...form, adminPin: e.target.value })}
+                  className="w-28 text-center text-lg tracking-widest font-mono font-bold bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl py-1.5 outline-none text-purple-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateBusinessProfile({ adminPin: form.adminPin });
+                    alert(lang === 'ur' ? 'ایڈمن پن کوڈ کامیابی سے محفوظ ہو گیا!' : 'Admin PIN saved!');
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{lang === 'ur' ? 'پن محفوظ کریں' : 'Save PIN'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Recommendations Card */}
+          <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-800 dark:text-amber-300 space-y-1.5">
+            <span className="font-bold block flex items-center gap-1.5 text-xs">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <span>{lang === 'ur' ? 'سیکیورٹی ہدایات برائے ایڈمن:' : 'Admin Security Tips:'}</span>
+            </span>
+            <ul className="list-disc list-inside space-y-1 pr-1">
+              <li>{lang === 'ur' ? 'اپنا مین لاگ ان پاس ورڈ اور ای میل کسی بھی عام ملازم یا گاہک کے ساتھ شیئر نہ کریں۔' : 'Do not share your main login password with cashiers or clients.'}</li>
+              <li>{lang === 'ur' ? 'سیلز کاؤنٹر کے کیشیئرز کو لاگ ان دینے کے لیے "10 کاؤنٹرز و کیشیئرز سیٹ اپ" ٹیب سے الگ پن کوڈ منتخب کریں۔' : 'Assign individual PINs to cashiers via Counters & Cashiers tab.'}</li>
+              <li>{lang === 'ur' ? 'اگر کوئی ملازم نوکری چھوڑے تو فوری طور پر یہاں سے اپنا پاس ورڈ تبدیل کر لیں۔' : 'Immediately change your password if any staff member leaves.'}</li>
+            </ul>
           </div>
         </div>
       )}
