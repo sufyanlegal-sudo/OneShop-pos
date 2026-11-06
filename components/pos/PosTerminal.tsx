@@ -1591,7 +1591,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             <select
               value={selectedCustomerId}
               onChange={(e) => handleSelectCustomer(e.target.value)}
-              className="flex-1 bg-white border-2 border-sky-300 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none text-slate-900 shadow-xs focus:border-sky-500"
+              className="flex-1 bg-white border-2 border-sky-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold outline-none text-slate-900 shadow-xs focus:border-sky-500"
             >
               <option value="">
                 {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
@@ -1611,10 +1611,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 setVoiceMode('customer');
                 setVoiceModalOpen(true);
               }}
-              className="p-1.5 bg-white hover:bg-sky-50 border-2 border-sky-300 text-slate-800 rounded-xl transition-all shadow-xs"
+              className="p-2 bg-white hover:bg-sky-50 border-2 border-sky-300 text-slate-800 rounded-xl transition-all shadow-xs"
               title="Dictate Customer Name & Phone"
             >
-              <Mic className="w-3.5 h-3.5 text-emerald-600" />
+              <Mic className="w-4 h-4 text-emerald-600" />
             </button>
 
             {/* Quick Receive Payment Pill if Customer has Balance */}
@@ -1629,7 +1629,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     setPosKhataPaymentModalOpen(true);
                   }
                 }}
-                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer animate-fadeIn"
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer animate-fadeIn"
                 title="اس گاہک کی طرف سے رقم وصول کریں اور کھاتے میں جمع کریں"
               >
                 <Banknote className="w-3.5 h-3.5" />
@@ -1656,7 +1656,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   }}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا نام (کھاتہ کیلئے)' : 'Customer Name (Khata)') : t('customerName')}
-                  className={`bg-white border-2 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none transition-all shadow-xs text-slate-900 ${
+                  className={`bg-white border-2 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold outline-none transition-all shadow-xs text-slate-900 ${
                     paymentMethod === 'CREDIT'
                       ? 'border-rose-400 ring-1 ring-rose-400/40 bg-rose-50/50'
                       : 'border-sky-300 focus:border-sky-500'
@@ -1675,7 +1675,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   }}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا فون نمبر' : 'Phone (Optional)') : t('customerPhone')}
-                  className={`bg-white border-2 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none transition-all shadow-xs text-slate-900 ${
+                  className={`bg-white border-2 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono font-bold outline-none transition-all shadow-xs text-slate-900 ${
                     paymentMethod === 'CREDIT'
                       ? 'border-rose-400 ring-1 ring-rose-400/40 bg-rose-50/50'
                       : 'border-sky-300 focus:border-sky-500'
@@ -1685,7 +1685,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
               {/* Dynamic Auto-Khata Feedback Pill */}
               {detectedExistingCustomer ? (
-                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-[10px] font-bold text-emerald-900 animate-fadeIn">
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 animate-fadeIn">
                   <span className="truncate">👤 {detectedExistingCustomer.name} {lang === 'ur' ? '(کھاتہ موجود ہے)' : '(Khata Active)'}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="font-mono text-emerald-800">{lang === 'ur' ? 'سابقہ ادھار:' : 'Previous Due:'} {detectedExistingCustomer.currentBalance.toLocaleString()} PKR</span>
@@ -1697,7 +1697,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                           setPosKhataPayAmount(0);
                           setPosKhataPaymentModalOpen(true);
                         }}
-                        className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9.5px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10.5px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
                       >
                         رقم جمع کریں
                       </button>
@@ -1705,12 +1705,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   </div>
                 </div>
               ) : (customerName.trim() || customerPhone.trim()) && paymentMethod === 'CREDIT' ? (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-300 text-[10px] font-bold text-blue-900 animate-fadeIn">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-300 text-xs font-bold text-blue-900 animate-fadeIn">
                   <span className="animate-pulse">✨</span>
                   <span>{lang === 'ur' ? 'نیا کھاتہ: بل فائنل ہونے پر ادھار کھاتہ بک میں خودکار بن جائے گا!' : 'New Khata: Will be auto-created in KhataBook upon checkout!'}</span>
                 </div>
               ) : paymentMethod === 'CREDIT' ? (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-300 text-[10px] font-bold text-rose-900 animate-pulse">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-300 text-xs font-bold text-rose-900 animate-pulse">
                   <span>{lang === 'ur' ? '📝 ادھار سیل: گاہک کا نام لکھیں، کھاتہ خودکار کھل جائے گا!' : '📝 Credit Sale: Enter customer name, khata will open automatically!'}</span>
                 </div>
               ) : null}
@@ -1718,20 +1718,20 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           )}
 
           {/* Payment Method Pills */}
-          <div className="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+          <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
             <button
               type="button"
               onClick={() => {
                 posSound.playClick();
                 setPaymentMethod('CASH');
               }}
-              className={`py-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs ${
+              className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 paymentMethod === 'CASH'
                   ? 'bg-emerald-600 text-white shadow-sm font-black'
                   : 'bg-white hover:bg-sky-50 text-slate-800 border-2 border-sky-200'
               }`}
             >
-              <Banknote className="w-3.5 h-3.5" />
+              <Banknote className="w-4 h-4" />
               <span>{t('cash')}</span>
             </button>
             <button
@@ -1740,13 +1740,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('ONLINE');
               }}
-              className={`py-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs ${
+              className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 paymentMethod === 'ONLINE'
                   ? 'bg-emerald-600 text-white shadow-sm font-black'
                   : 'bg-white hover:bg-sky-50 text-slate-800 border-2 border-sky-200'
               }`}
             >
-              <CreditCard className="w-3.5 h-3.5" />
+              <CreditCard className="w-4 h-4" />
               <span>{lang === 'ur' ? 'آن لائن' : 'Online'}</span>
             </button>
             <button
@@ -1764,7 +1764,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('CREDIT');
               }}
-              className={`py-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs ${
+              className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 !canGiveCredit()
                   ? 'bg-slate-100 text-slate-400 border border-dashed border-rose-300 cursor-not-allowed opacity-60'
                   : paymentMethod === 'CREDIT'
@@ -1773,7 +1773,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               }`}
               title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked (Admin Only)') : 'ادھار کھاتہ'}
             >
-              {!canGiveCredit() ? <Lock className="w-3.5 h-3.5 text-rose-500" /> : <FileQuestion className="w-3.5 h-3.5" />}
+              {!canGiveCredit() ? <Lock className="w-4 h-4 text-rose-500" /> : <FileQuestion className="w-4 h-4" />}
               <span>{!canGiveCredit() ? (lang === 'ur' ? '🔒 ادھار' : '🔒 Credit') : (lang === 'ur' ? 'ادھار' : 'Khata')}</span>
             </button>
             <button
@@ -1782,13 +1782,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('SPLIT');
               }}
-              className={`py-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs ${
+              className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 paymentMethod === 'SPLIT'
                   ? 'bg-amber-600 text-white shadow-sm font-black'
                   : 'bg-white hover:bg-sky-50 text-slate-800 border-2 border-sky-200'
               }`}
             >
-              <Split className="w-3.5 h-3.5" />
+              <Split className="w-4 h-4" />
               <span>{lang === 'ur' ? 'مکس' : 'Split'}</span>
             </button>
           </div>
@@ -1856,78 +1856,88 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         )}
 
         {/* ========================================================================= */}
-        {/* 2. ELEVATED CANDELA 3-COLUMN PAYMENT ROW: TOTAL | CASH RECEIVED | RETURN */}
-        {/* PROMINENT, BOLD, LARGE NUMBERS - EXPANDED WIDTH, ZERO TRUNCATION!           */}
+        {/* 2. ELEVATED CANDELA PAYMENT SLABS: TOTAL SLATE | CASH RECEIVED & CHANGE   */}
+        {/* ULTRA PROMINENT, LARGE SLATE, EXTRA LARGE FONTS - HIGH CONTRAST & VISIBLE */}
         {/* ========================================================================= */}
-        <div className="space-y-2 pt-1 border-t border-sky-300 shrink-0">
+        <div className="space-y-2.5 pt-1 border-t-2 border-sky-300 shrink-0">
           {paymentMethod === 'CASH' ? (
-            <div className="grid grid-cols-3 gap-2">
-              {/* 1. TOTAL BILL (کل بل) */}
-              <div className="bg-white text-slate-950 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between shadow-sm border-2 border-sky-400 min-h-[82px]">
-                <span className="text-[12px] font-black text-sky-950 whitespace-nowrap">
-                  {lang === 'ur' ? 'کل بل (Total):' : 'Grand Total:'}
-                </span>
-                <div className="font-mono text-xl sm:text-2xl font-black text-emerald-700 tracking-tight">
-                  {effectiveNetTotal.toLocaleString()}
-                  <span className="text-[11px] font-sans ml-1 text-slate-500 font-normal">PKR</span>
+            <div className="space-y-2.5">
+              {/* 1. GRAND TOTAL SLATE (کل بل) - ULTRA PROMINENT FULL-WIDTH SLATE */}
+              <div className="bg-slate-900 border-2 border-slate-700 rounded-2xl p-3 sm:p-4 text-white shadow-md flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-xs sm:text-sm font-black text-slate-200 block">
+                    {lang === 'ur' ? 'کل بل (Grand Total):' : 'Grand Total:'}
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-300">
+                    {lang === 'ur' ? 'صاف و حتمی رقم' : 'Net Final Amount'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400 tracking-tight flex items-baseline justify-end gap-1.5">
+                    <span>{effectiveNetTotal.toLocaleString()}</span>
+                    <span className="text-xs sm:text-sm font-sans text-slate-300 font-bold">PKR</span>
+                  </div>
                 </div>
               </div>
 
-              {/* 2. CASH RECEIVED (موصول کیش F4) */}
-              <div className="bg-white border-2 border-emerald-500 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between shadow-sm focus-within:ring-2 focus-within:ring-emerald-400 min-h-[82px]">
-                <div className="flex items-center justify-between text-[12px] font-black text-emerald-950">
-                  <span className="whitespace-nowrap">{lang === 'ur' ? 'موصول کیش:' : 'Cash Received:'}</span>
-                  <span className="bg-emerald-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded font-mono shadow-xs">F4</span>
+              {/* 2. CASH RECEIVED (موصول کیش F4) & RETURN CHANGE (واپسی بقایا) - 2 ROOMY COLUMNS */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* 2A. CASH RECEIVED (موصول کیش F4) */}
+                <div className="bg-white border-2 border-emerald-500 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-sm focus-within:ring-2 focus-within:ring-emerald-400 min-h-[92px]">
+                  <div className="flex items-center justify-between text-xs sm:text-sm font-black text-emerald-950">
+                    <span className="whitespace-nowrap">{lang === 'ur' ? 'موصول کیش:' : 'Cash Received:'}</span>
+                    <span className="bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded font-mono shadow-xs">F4</span>
+                  </div>
+                  <input
+                    ref={tenderedInputRef}
+                    type="number"
+                    min="0"
+                    value={tenderedAmount || ''}
+                    onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
+                    onKeyDown={(e) => {
+                      posSound.playKeyClick();
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCheckout();
+                      }
+                    }}
+                    placeholder={String(effectiveNetTotal)}
+                    className="w-full bg-emerald-50/70 border-2 border-emerald-400 rounded-xl px-2 py-1.5 text-2xl sm:text-3xl font-mono font-black text-center text-emerald-950 outline-none shadow-inner"
+                  />
                 </div>
-                <input
-                  ref={tenderedInputRef}
-                  type="number"
-                  min="0"
-                  value={tenderedAmount || ''}
-                  onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
-                  onKeyDown={(e) => {
-                    posSound.playKeyClick();
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleCheckout();
-                    }
-                  }}
-                  placeholder={String(effectiveNetTotal)}
-                  className="w-full bg-emerald-50/70 border border-emerald-400 rounded-xl px-1.5 py-1 text-xl sm:text-2xl font-mono font-black text-center text-emerald-950 outline-none shadow-inner"
-                />
-              </div>
 
-              {/* 3. RETURN CHANGE (واپسی بقایا - LIVE UPDATE) */}
-              <div
-                className={`p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between shadow-sm transition-all border-2 min-h-[82px] ${
-                  changeDue > 0
-                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-700/30'
-                    : isShort
-                    ? 'bg-rose-600 text-white border-rose-400'
-                    : 'bg-white text-slate-900 border-2 border-teal-500'
-                }`}
-              >
-                <span className="text-[12px] font-black whitespace-nowrap">
-                  {changeDue > 0
-                    ? (lang === 'ur' ? '💵 واپسی بقایا:' : 'Change Return:')
-                    : isShort
-                    ? (lang === 'ur' ? '⚠️ کم رقم:' : 'Short:')
-                    : (lang === 'ur' ? 'واپسی بقایا:' : 'Change Return:')}
-                </span>
-                <div className="font-mono text-xl sm:text-2xl font-black truncate">
-                  {changeDue > 0
-                    ? changeDue.toLocaleString()
-                    : isShort
-                    ? shortAmount.toLocaleString()
-                    : '0'}
-                  <span className="text-[11px] font-sans ml-1 opacity-80 font-normal">PKR</span>
+                {/* 2B. RETURN CHANGE (واپسی بقایا - LIVE UPDATE) */}
+                <div
+                  className={`p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between shadow-sm transition-all border-2 min-h-[92px] ${
+                    changeDue > 0
+                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-700/30'
+                      : isShort
+                      ? 'bg-rose-600 text-white border-rose-400'
+                      : 'bg-white text-slate-900 border-2 border-teal-500'
+                  }`}
+                >
+                  <span className="text-xs sm:text-sm font-black whitespace-nowrap">
+                    {changeDue > 0
+                      ? (lang === 'ur' ? '💵 واپسی بقایا:' : 'Change Return:')
+                      : isShort
+                      ? (lang === 'ur' ? '⚠️ کم رقم:' : 'Short:')
+                      : (lang === 'ur' ? 'واپسی بقایا:' : 'Change Return:')}
+                  </span>
+                  <div className="font-mono text-2xl sm:text-3xl font-black text-center py-1 truncate">
+                    {changeDue > 0
+                      ? changeDue.toLocaleString()
+                      : isShort
+                      ? shortAmount.toLocaleString()
+                      : '0'}
+                    <span className="text-xs sm:text-sm font-sans ml-1 opacity-90 font-bold">PKR</span>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-3.5 bg-white text-slate-900 rounded-2xl border-2 border-sky-400 flex justify-between items-center shadow-sm">
-              <span className="text-xs font-black text-slate-700">{lang === 'ur' ? 'کل واجب الادا رقم:' : 'Grand Total:'}</span>
-              <span className="font-mono text-2xl font-black text-emerald-700">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl border-2 border-slate-700 flex justify-between items-center shadow-md">
+              <span className="text-sm font-black text-slate-300">{lang === 'ur' ? 'کل واجب الادا رقم:' : 'Grand Total:'}</span>
+              <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-400">
                 {effectiveNetTotal.toLocaleString()} PKR
               </span>
             </div>
@@ -1935,7 +1945,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
           {/* Quick Note Pills (1-Click Cash Buttons) */}
           {paymentMethod === 'CASH' && (
-            <div className="flex gap-1.5 items-center justify-between overflow-x-auto py-1 text-xs font-mono font-bold">
+            <div className="flex gap-2 items-center justify-between overflow-x-auto py-1 text-xs font-mono font-bold">
               <button
                 type="button"
                 onClick={() => {
@@ -1943,9 +1953,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   setTenderedAmount(effectiveNetTotal);
                   tenderedInputRef.current?.focus();
                 }}
-                className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black active:scale-95 text-center shadow-xs whitespace-nowrap cursor-pointer"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-black active:scale-95 text-center shadow-sm whitespace-nowrap cursor-pointer"
               >
-                {lang === 'ur' ? `برابر (${effectiveNetTotal})` : `Exact (${effectiveNetTotal})`}
+                {lang === 'ur' ? `برابر (${effectiveNetTotal.toLocaleString()})` : `Exact (${effectiveNetTotal.toLocaleString()})`}
               </button>
               {[500, 1000, 1500, 2000, 5000].map((note) => (
                 <button
@@ -1956,7 +1966,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     setTenderedAmount(note);
                     tenderedInputRef.current?.focus();
                   }}
-                  className="py-2 px-2.5 rounded-xl bg-white hover:bg-sky-50 border-2 border-sky-300 text-slate-900 text-xs font-black active:scale-95 shadow-xs whitespace-nowrap cursor-pointer"
+                  className="py-2.5 px-3 rounded-xl bg-white hover:bg-sky-50 border-2 border-sky-400 text-slate-900 text-xs sm:text-sm font-mono font-black active:scale-95 shadow-xs whitespace-nowrap cursor-pointer"
                 >
                   {note}
                 </button>
@@ -1971,7 +1981,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             type="button"
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className="w-full py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-black text-base flex items-center justify-center gap-2.5 shadow-lg border-2 border-emerald-400 active:scale-98 transition-all cursor-pointer"
+            className="w-full py-4 sm:py-4.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-lg border-2 border-emerald-400 active:scale-98 transition-all cursor-pointer"
           >
             <span className="bg-slate-900 text-emerald-300 font-black text-xs px-2.5 py-1 rounded font-mono">
               Rs.
@@ -1987,24 +1997,24 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         {/* ========================================================================= */}
         {/* 4. COMPACT INVOICE BREAKDOWN SUMMARY CARD                                  */}
         {/* ========================================================================= */}
-        <div className="bg-white border-2 border-sky-300 rounded-2xl p-3 space-y-2 text-xs shadow-sm shrink-0">
+        <div className="bg-white border-2 border-sky-300 rounded-2xl p-3.5 space-y-2 text-xs sm:text-sm shadow-sm shrink-0">
           <div className="flex justify-between items-center text-slate-700 font-bold">
-            <span>تعداد اشیاء (Items):</span>
-            <span className="font-mono text-slate-950 font-black text-sm">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+            <span className="text-xs sm:text-sm">تعداد اشیاء (Items):</span>
+            <span className="font-mono text-slate-950 font-black text-sm sm:text-base">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
           </div>
           <div className="flex justify-between items-center text-slate-700 font-bold">
-            <span>سب ٹوٹل (Subtotal):</span>
-            <span className="font-mono text-slate-950 font-black text-sm">{cartTotals.subtotal.toLocaleString()} PKR</span>
+            <span className="text-xs sm:text-sm">سب ٹوٹل (Subtotal):</span>
+            <span className="font-mono text-slate-950 font-black text-sm sm:text-base">{cartTotals.subtotal.toLocaleString()} PKR</span>
           </div>
           {orderDiscount > 0 && (
             <div className="flex justify-between items-center text-rose-600 font-bold">
-              <span>رعایت / ڈسکاؤنٹ:</span>
-              <span className="font-mono font-black text-sm">- {orderDiscount.toLocaleString()} PKR</span>
+              <span className="text-xs sm:text-sm">رعایت / ڈسکاؤنٹ:</span>
+              <span className="font-mono font-black text-sm sm:text-base">- {orderDiscount.toLocaleString()} PKR</span>
             </div>
           )}
-          <div className="flex justify-between items-center pt-1.5 border-t border-sky-200 font-black text-sm">
+          <div className="flex justify-between items-center pt-2 border-t-2 border-sky-200 font-black text-sm sm:text-base">
             <span className="text-slate-900">خالص واجب الادا (Net):</span>
-            <span className="font-mono text-emerald-700 font-black text-base">{effectiveNetTotal.toLocaleString()} PKR</span>
+            <span className="font-mono text-emerald-700 font-black text-lg sm:text-xl">{effectiveNetTotal.toLocaleString()} PKR</span>
           </div>
         </div>
 
