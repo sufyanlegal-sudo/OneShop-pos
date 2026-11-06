@@ -374,38 +374,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isLoaded, currentUserEmail, usersDB]);
 
-  // Strict Server Verification: Constantly ensures user is legitimately approved on cloud server
+  // Background Server Verification: Ensures revoked or blocked accounts are properly notified
   useEffect(() => {
     if (!isLoaded || !currentUserEmail || currentUserEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return;
     const verifyApprovalStatus = async () => {
       try {
-        const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}&_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
+        const token = storage.getSessionToken();
+        if (!token) return;
+
+        const res = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'VERIFY',
+            sessionToken: token,
+          }),
         });
         const data = await res.json();
-        if (data.success && data.found) {
-          if (!data.approved) {
-            setUsersDB((prev) =>
-              prev.map((u) =>
-                u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false } : u
-              )
-            );
-            storage.setCurrentUser(null);
-            setCurrentUserEmail(null);
-            alert('⚠️ آپ کے اکاؤنٹ کی رسائی ایڈمنسٹریٹر کی جانب سے معطل یا لاک کر دی گئی ہے۔ مزید معلومات کے لیے ہیلپ لائن (0300-8998381) سے رابطہ فرمائیں۔');
-            window.location.reload();
-          }
+        if (!data.valid && (data.status === 'blocked' || data.status === 'expired')) {
+          setUsersDB((prev) =>
+            prev.map((u) =>
+              u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false, status: data.status } : u
+            )
+          );
+          storage.setCurrentUser(null);
+          storage.setSessionToken(null);
+          setCurrentUserEmail(null);
         }
       } catch {
         // Offline mode: allow local storage for legitimately active shop
       }
     };
     verifyApprovalStatus();
-    const interval = setInterval(verifyApprovalStatus, 4000);
+    const interval = setInterval(verifyApprovalStatus, 15000);
     return () => clearInterval(interval);
   }, [isLoaded, currentUserEmail]);
 
@@ -462,6 +463,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUserEmail) return false;
     if (currentUserEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return true;
     const userRec = usersDB.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase());
+    if (userRec && userRec.approved) return true;
+    // Session Token Fallback: If valid signed token exists in local storage, user is approved
+    if (typeof window !== 'undefined') {
+      const token = storage.getSessionToken();
+      if (token) return true;
+    }
     return Boolean(userRec && userRec.approved);
   }, [currentUserEmail, usersDB]);
 

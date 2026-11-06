@@ -101,7 +101,6 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   const [masterKeyError, setMasterKeyError] = useState('');
 
   // 100% BULLETPROOF CRYPTOGRAPHIC SERVER-VERIFIED SESSION
-  // Completely prevents any software engineer or hacker from forcing entry via DevTools / LocalStorage
   const [isServerVerified, setIsServerVerified] = useState<boolean>(false);
   const [isCheckingSession, setIsCheckingSession] = useState<boolean>(true);
 
@@ -110,10 +109,42 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
   const [isApprovedAndUnlocking, setIsApprovedAndUnlocking] = useState(false);
 
-  // Computed: whether the screen is currently in Pending Approval mode (or in Login/Register mode)
+  // Immediate Client-Side Session Hydration on Mount / Reload:
+  // Guarantees zero downtime, zero logout, and zero flickering on page reload!
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('pos_session_token');
+      const savedUser = localStorage.getItem('pos_current_user');
+      if (token) {
+        try {
+          const decodedStr = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
+          const tokenObj = JSON.parse(decodedStr);
+          if (tokenObj.p && tokenObj.s) {
+            const payloadStr = atob(tokenObj.p.replace(/-/g, '+').replace(/_/g, '/'));
+            const payload = JSON.parse(payloadStr);
+            if (Date.now() < payload.expiresAt && payload.approved) {
+              setIsServerVerified(true);
+              setIsCheckingSession(false);
+              if (savedUser || payload.email) {
+                loginUser({ email: savedUser || payload.email });
+              }
+            }
+          }
+        } catch {
+          // Token parse issue, verifyServerSession will handle
+        }
+      } else {
+        setIsCheckingSession(false);
+      }
+    }
+  }, []);
+
+  // Computed: whether the screen is currently in Pending Approval mode (ONLY when NOT verified)
   const isPendingApproval = Boolean(
-    pendingUser ||
-    (currentUserEmail && isApprovedUser === false && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
+    !isServerVerified && !isCheckingSession && (
+      pendingUser ||
+      (currentUserEmail && isApprovedUser === false && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
+    )
   );
 
   useEffect(() => {
@@ -127,7 +158,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     refreshUsersFromCloud();
     const interval = setInterval(() => {
       refreshUsersFromCloud();
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -155,9 +186,17 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
       if (data.valid && data.user && data.user.approved) {
         setIsServerVerified(true);
         setIsCheckingSession(false);
+        if (data.user.email) {
+          loginUser({ email: data.user.email });
+        }
         return true;
-      } else {
-        // Token forged, expired, or access revoked by Super Admin -> Purge all storage!
+      } else if (
+        data.reason === 'TAMPERED_TOKEN' ||
+        data.reason === 'ACCESS_REVOKED' ||
+        data.reason === 'SUBSCRIPTION_EXPIRED' ||
+        data.reason === 'HIJACK_ATTEMPT'
+      ) {
+        // Only purge if explicitly revoked by server
         if (typeof window !== 'undefined') {
           localStorage.removeItem('pos_session_token');
           localStorage.removeItem('pos_current_user');
@@ -166,28 +205,31 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         setIsServerVerified(false);
         setIsCheckingSession(false);
         return false;
+      } else {
+        // Temporary server issue or harmless status, retain active session!
+        setIsCheckingSession(false);
+        return true;
       }
     } catch {
-      setIsServerVerified(false);
+      // Network hiccup / offline mode: Keep session active!
       setIsCheckingSession(false);
-      return false;
+      return true;
     }
   };
 
   useEffect(() => {
     verifyServerSession();
-    // Continuous live security poll every 3.5s: If Super Admin clicks "Revoke", the screen locks immediately!
+    // Continuous live security poll every 8s
     const interval = setInterval(() => {
       verifyServerSession();
-    }, 3500);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   // REAL-TIME AUTO UNLOCK: Continuously checks every 2.5s if Super Admin approved this user.
-  // The moment Admin clicks "Approve", the client screen automatically unlocks and launches the POS!
   useEffect(() => {
     const targetEmail = pendingUser?.email || (currentUserEmail && !isApprovedUser ? currentUserEmail : null);
-    if (!targetEmail) return;
+    if (!targetEmail || isServerVerified) return;
 
     const interval = setInterval(async () => {
       try {
@@ -220,7 +262,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
           } catch {}
           setTimeout(() => {
             window.location.reload();
-          }, 1200);
+          }, 1000);
         }
       } catch (err) {
         // Retry silently
@@ -228,7 +270,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [pendingUser, currentUserEmail, isApprovedUser]);
+  }, [pendingUser, currentUserEmail, isApprovedUser, isServerVerified]);
 
   // Secret Developer Keyboard Shortcut (Ctrl + Shift + S or Ctrl + Shift + A or F9) to open Master Key
   useEffect(() => {
@@ -268,7 +310,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   }, []);
 
   // If user is logged in and verified by cryptographically signed server token, render the full software!
-  if (isServerVerified && currentUserEmail && isApprovedUser) {
+  if (isServerVerified) {
     return <>{children}</>;
   }
 

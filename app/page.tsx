@@ -96,9 +96,19 @@ export default function Home() {
 
         {/* Main Tab View Content */}
         <main
+          style={{
+            backgroundColor:
+              effectiveTab === 'pos'
+                ? '#e0f2fe'
+                : effectiveTab === 'inventory'
+                ? '#e8f7ee'
+                : effectiveTab === 'grn'
+                ? '#020617'
+                : undefined,
+          }}
           className={`flex-1 transition-colors ${
             effectiveTab === 'pos'
-              ? 'bg-sky-100 dark:bg-[#061830]'
+              ? 'bg-[#e0f2fe] dark:bg-[#061830]'
               : effectiveTab === 'inventory'
               ? 'bg-[#e8f7ee] dark:bg-[#071e15]'
               : effectiveTab === 'grn'

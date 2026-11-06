@@ -79,6 +79,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#059669" />
@@ -99,7 +102,7 @@ export default function RootLayout({
                   }
                 });
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js?v=4').catch(function(err) {
+                  navigator.serviceWorker.register('/sw.js?v=5').catch(function(err) {
                     console.log('SW registration note:', err);
                   });
                 });

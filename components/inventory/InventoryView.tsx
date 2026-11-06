@@ -448,7 +448,10 @@ export const InventoryView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-70px)] bg-[#e8f7ee] dark:bg-[#071e15] p-3 sm:p-5 transition-colors">
+    <div
+      style={{ backgroundColor: '#e8f7ee' }}
+      className="min-h-[calc(100vh-70px)] bg-[#e8f7ee] dark:bg-[#071e15] p-3 sm:p-5 transition-colors"
+    >
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Top Header Card */}
         <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">

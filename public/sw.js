@@ -1,7 +1,6 @@
-// OneShop POS - Dynamic Cache-Busting Service Worker v4
-const CACHE_NAME = 'oneshop-pos-cache-v4';
+// OneShop POS - Live Hot Update Service Worker v5
+const CACHE_NAME = 'oneshop-pos-cache-v5';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/images/oneshop-pos-supermarket.jpg',
   '/images/supermarket-shelves.jpg',
@@ -14,7 +13,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(keys.map((key) => caches.delete(key)));
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
     })
   );
   self.clients.claim();
@@ -23,9 +24,30 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
-  // Ignore API requests that need live server interaction
+  // Ignore API requests completely
   if (event.request.url.includes('/api/')) return;
 
+  // For HTML page navigations (e.g. reload or visit): ALWAYS NETWORK-FIRST
+  // This guarantees that any reload (F5) immediately loads the latest deployed version without locking or old bundle trapping!
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' })
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache ONLY if completely offline
+          return caches.match(event.request).then((cached) => cached || caches.match('/'));
+        })
+    );
+    return;
+  }
+
+  // For static assets: Stale-while-revalidate or Network-first
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -37,17 +59,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => {
-        // When offline, serve from cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Fallback to root if page navigation
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });

@@ -2123,7 +2123,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden bg-sky-100 dark:bg-[#061830] transition-colors">
+    <div
+      style={{ backgroundColor: '#e0f2fe' }}
+      className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden bg-[#e0f2fe] dark:bg-[#061830] transition-colors"
+    >
       {/* Live Pending WhatsApp Order Alert Strip */}
       {pendingWhatsAppOrdersCount > 0 && (
         <div className="bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-500/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs text-slate-900 dark:text-white shadow-xs">
