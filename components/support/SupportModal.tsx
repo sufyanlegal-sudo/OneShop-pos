@@ -36,22 +36,41 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
   const helplineDisplay = '0300-8998381';
   const cleanHelplineNumber = '923008998381';
 
-  // Generate Unique Cryptographic / Random Ticket & Open WhatsApp
-  const handleGenerateTicketAndConnect = () => {
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    const newTicket = `JK-TK-${randomDigits}`;
+  // Generate Unique Ticket, alert Super Admin via API, & Open WhatsApp
+  const handleGenerateTicketAndConnect = async () => {
     const timestamp = new Date().toLocaleString('ur-PK');
-
-    setActiveTicket(newTicket);
-    setTicketIssuedAt(timestamp);
-
     const clientStoreName = businessProfile?.nameUr || businessProfile?.nameEn || 'ون شاپ کلائنٹ سٹور';
-    const clientContactPhone = businessProfile?.phone || businessProfile?.whatsapp || 'N/A';
+    const clientContactPhone = businessProfile?.phone || businessProfile?.whatsapp || '0300-8998381';
     const operatorName = activeCashier?.name || currentUserEmail?.split('@')[0] || 'سٹور کیشیئر / ایڈمن';
+
+    let generatedTicketId = `TICK-${Date.now().toString().slice(-4)}`;
+
+    try {
+      const res = await fetch('/api/support/ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: `${operatorName} (${clientStoreName})`,
+          userPhone: clientContactPhone,
+          userEmail: currentUserEmail || '',
+          subject: `ٹیکنیکل سپورٹ انکوائری - ${clientStoreName}`,
+          message: `السلام علیکم جے کے ڈویلپرز! مجھے اپنے OneShop POS سسٹم کے متعلق تکنیکی سپورٹ درکار ہے۔`,
+        }),
+      });
+      const data = await res.json();
+      if (data.ticketId) {
+        generatedTicketId = data.ticketId;
+      }
+    } catch (err) {
+      console.warn('Ticket API call fallback:', err);
+    }
+
+    setActiveTicket(generatedTicketId);
+    setTicketIssuedAt(timestamp);
 
     const whatsappText = `🚨 *نئی کسٹمر سپورٹ انکوائری (OneShop POS)*
 ━━━━━━━━━━━━━━━━━━
-🎫 *ٹکٹ نمبر:* ${newTicket}
+🎫 *ٹکٹ نمبر:* ${generatedTicketId}
 🏪 *دکان / کاروبار:* ${clientStoreName}
 👤 *صارف / کیشیئر:* ${operatorName}
 📱 *رابطہ فون:* ${clientContactPhone}
@@ -59,7 +78,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
 🕒 *تاریخ و وقت:* ${timestamp}
 ━━━━━━━━━━━━━━━━━━
 السلام علیکم جے کے ڈویلپرز! مجھے اپنے OneShop POS سسٹم کے متعلق تکنیکی سپورٹ درکار ہے۔
-میرا سپورٹ ٹکٹ نمبر *${newTicket}* ہے۔ برائے مہربانی فوری رہنمائی فرمائیں۔`;
+میرا سپورٹ ٹکٹ نمبر *${generatedTicketId}* ہے۔ برائے مہربانی فوری رہنمائی فرمائیں۔`;
 
     const targetUrl = `https://wa.me/${cleanHelplineNumber}?text=${encodeURIComponent(whatsappText)}`;
     window.open(targetUrl, '_blank');

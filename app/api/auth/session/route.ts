@@ -5,6 +5,13 @@ import {
   createSignedSessionToken,
   verifySessionToken,
 } from '@/lib/sessionAuth';
+import {
+  getAllUsers,
+  findUser,
+  verifyUserPassword,
+  calculateRemainingDays,
+  saveAllUsers,
+} from '@/lib/userDb';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,49 +21,7 @@ const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
   'Pragma': 'no-cache',
   'Expires': '0',
-  'Surrogate-Control': 'no-store',
 };
-
-const GIST_ID = process.env.CLOUD_USERS_GIST_ID || '0811bfe0922e749237ee4ae1a7471b8a';
-const GITHUB_TOKEN =
-  process.env.GITHUB_TOKEN ||
-  ['g', 'h', 'o', '_', 'FRD06u', 'SNZW7b0', 'Vi8ki0', 'EAVV16', 'haHey0', 'oZOei'].join('');
-const GIST_FILENAME = 'registered_users.json';
-
-interface ServerUserLicense {
-  email: string;
-  name: string;
-  businessName?: string;
-  phone?: string;
-  password?: string;
-  approved: boolean;
-  registeredAt: string;
-}
-
-// Fetch live users directly from Cloud Gist
-async function fetchCloudUsers(): Promise<ServerUserLicense[]> {
-  try {
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}?_t=${Date.now()}`, {
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        'User-Agent': 'JK-POS-App',
-        'Accept': 'application/vnd.github.v3+json',
-      },
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const content = data?.files?.[GIST_FILENAME]?.content;
-      if (content) {
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('[Session API] Gist fetch error:', err);
-  }
-  return [];
-}
 
 export async function POST(req: Request) {
   try {
@@ -64,7 +29,7 @@ export async function POST(req: Request) {
     const { action, email, password, masterKey, sessionToken } = body;
 
     // -------------------------------------------------------------
-    // ACTION 1: LOGIN (Server-Side Credential Validation & Token Issuance)
+    // ACTION 1: LOGIN
     // -------------------------------------------------------------
     if (action === 'LOGIN') {
       if (!email) {
@@ -75,14 +40,13 @@ export async function POST(req: Request) {
       }
       const cleanEmail = email.trim().toLowerCase();
 
-      // Check Super Admin Developer Access
+      // Super Admin Login
       if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
         if (!masterKey || masterKey.trim() !== MASTER_SECURITY_KEY) {
-          console.warn(`[SECURITY ALERT] Unauthorized Super Admin login attempt for ${cleanEmail}`);
           return NextResponse.json(
             {
               success: false,
-              status: 'DENIED',
+              status: 'blocked',
               message: '⛔ غیر مجاز رسائی مسترد! ڈویلپر سیکیورٹی کی غلط ہے۔',
             },
             { status: 403, headers: noCacheHeaders }
@@ -97,55 +61,69 @@ export async function POST(req: Request) {
           businessName: 'JK Developers Pakistan',
         });
 
-        return NextResponse.json(
+        const response = NextResponse.json(
           {
             success: true,
-            status: 'SUPER_ADMIN',
+            status: 'active',
+            role: 'super_admin',
             message: 'خوش آمدید! جے کے ڈویلپرز سپر ایڈمن کنٹرول منظور ہو چکا ہے۔',
             sessionToken: token,
             user: {
               email: cleanEmail,
               name: 'JK Developers Pakistan (Admin)',
+              status: 'active',
+              role: 'super_admin',
               approved: true,
               isSuperAdmin: true,
             },
           },
           { headers: noCacheHeaders }
         );
+
+        response.cookies.set('pos_session', token, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 30 * 24 * 60 * 60,
+          path: '/',
+        });
+
+        return response;
       }
 
-      // Check client in live Cloud Gist database
-      const users = await fetchCloudUsers();
-      const userRec = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      // Check client in live Database
+      const userRec = await findUser(cleanEmail);
 
       if (!userRec) {
         return NextResponse.json(
           {
             success: false,
-            status: 'NOT_FOUND',
+            status: 'not_found',
             message: 'اس ای میل کا کوئی اکاؤنٹ موجود نہیں ہے۔ برائے مہربانی نیا اکاؤنٹ بنائیں۔',
           },
           { status: 404, headers: noCacheHeaders }
         );
       }
 
-      // Strict Password Check (Prevent bypass if password is omitted or empty)
+      // Password Verification
       if (userRec.password) {
-        if (!password || typeof password !== 'string' || !password.trim()) {
+        if (!password || !password.trim()) {
           return NextResponse.json(
             {
               success: false,
-              status: 'MISSING_PASSWORD',
+              status: 'missing_password',
               message: 'پاس ورڈ درج کرنا لازمی ہے۔',
             },
             { status: 400, headers: noCacheHeaders }
           );
         }
-        if (userRec.password !== password.trim()) {
+
+        const isMatch = await verifyUserPassword(userRec, password.trim());
+        if (!isMatch) {
           return NextResponse.json(
             {
               success: false,
-              status: 'WRONG_PASSWORD',
+              status: 'wrong_password',
               message: 'پاس ورڈ غلط ہے۔ برائے مہربانی درست پاس ورڈ درج کریں۔',
             },
             { status: 401, headers: noCacheHeaders }
@@ -153,53 +131,126 @@ export async function POST(req: Request) {
         }
       }
 
-      // Live Approval Check directly from Cloud Database
-      if (!userRec.approved) {
+      // Live Expiry Check
+      if (userRec.expiry_date && new Date(userRec.expiry_date).getTime() <= Date.now()) {
+        userRec.status = 'expired';
+        userRec.approved = false;
+        const all = await getAllUsers();
+        const idx = all.findIndex((u) => u.email === cleanEmail);
+        if (idx >= 0) {
+          all[idx] = userRec;
+          await saveAllUsers(all);
+        }
+      }
+
+      // Strict Access Blocking: 'pending', 'blocked', 'expired'
+      if (userRec.status === 'pending') {
         return NextResponse.json(
           {
             success: false,
-            status: 'PENDING',
-            message: 'آپ کا اکاؤنٹ منظوری کے لیے پینڈنگ ہے۔ ایڈمن (0300-8998381) سے رابطہ کریں۔',
+            status: 'pending',
+            message: 'آپ کا اکاؤنٹ زیرِ جائزہ (Pending) ہے۔ سپر ایڈمن کی منظوری کے بعد فعال ہو گا۔',
             user: {
               email: userRec.email,
               name: userRec.name,
+              status: 'pending',
               approved: false,
-              isSuperAdmin: false,
             },
           },
           { status: 403, headers: noCacheHeaders }
         );
       }
 
-      // Issue signed session token for approved client
+      if (userRec.status === 'blocked') {
+        return NextResponse.json(
+          {
+            success: false,
+            status: 'blocked',
+            message: 'آپ کا اکاؤنٹ بلاک کر دیا گیا ہے۔ برائے بحالی ہیلپ لائن (0300-8998381) سے رابطہ کریں۔',
+            user: {
+              email: userRec.email,
+              name: userRec.name,
+              status: 'blocked',
+              approved: false,
+            },
+          },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+
+      if (userRec.status === 'expired') {
+        return NextResponse.json(
+          {
+            success: false,
+            status: 'expired',
+            message: 'آپ کی سبسکرپشن کی مدت ختم (Expired) ہو چکی ہے۔ تجدید کے لیے ایڈمن سے رابطہ فرمائیں۔',
+            user: {
+              email: userRec.email,
+              name: userRec.name,
+              status: 'expired',
+              expiry_date: userRec.expiry_date,
+              approved: false,
+            },
+          },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+
+      if (userRec.status !== 'active') {
+        return NextResponse.json(
+          {
+            success: false,
+            status: userRec.status,
+            message: 'اکاؤنٹ اس وقت فعال نہیں ہے۔ ایڈمن سے رابطہ کریں۔',
+          },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+
+      // Approved & Active: Issue signed session token
       const token = createSignedSessionToken({
         email: cleanEmail,
         approved: true,
         isSuperAdmin: false,
         name: userRec.name,
-        businessName: userRec.businessName,
+        businessName: userRec.businessName || userRec.shopName,
       });
 
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           success: true,
-          status: 'APPROVED',
+          status: 'active',
           message: 'لاگ ان کامیاب! خوش آمدید۔',
           sessionToken: token,
           user: {
+            id: userRec.id,
             email: cleanEmail,
             name: userRec.name,
-            businessName: userRec.businessName,
+            shopName: userRec.shopName || userRec.businessName,
+            status: 'active',
+            role: userRec.role || 'client',
             approved: true,
+            expiry_date: userRec.expiry_date,
+            remainingDays: calculateRemainingDays(userRec.expiry_date),
             isSuperAdmin: false,
           },
         },
         { headers: noCacheHeaders }
       );
+
+      response.cookies.set('pos_session', token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60,
+        path: '/',
+      });
+
+      return response;
     }
 
     // -------------------------------------------------------------
-    // ACTION 2: VERIFY (Live Cryptographic Validation on Every Page Load)
+    // ACTION 2: VERIFY
     // -------------------------------------------------------------
     if (action === 'VERIFY') {
       if (!sessionToken) {
@@ -209,10 +260,8 @@ export async function POST(req: Request) {
         );
       }
 
-      // 1. Verify cryptographic HMAC signature
       const verification = verifySessionToken(sessionToken);
       if (!verification.valid || !verification.payload) {
-        console.warn(`[SECURITY ALERT] Tampered session token rejected: ${verification.error}`);
         return NextResponse.json(
           { valid: false, reason: 'TAMPERED_TOKEN' },
           { status: 401, headers: noCacheHeaders }
@@ -221,10 +270,8 @@ export async function POST(req: Request) {
 
       const { email: tokenEmail, isSuperAdmin } = verification.payload;
 
-      // 2. If Super Admin, ensure email is strictly the developer email
       if (isSuperAdmin) {
         if (tokenEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-          console.warn(`[SECURITY ALERT] Forged Super Admin token detected for ${tokenEmail}`);
           return NextResponse.json(
             { valid: false, reason: 'HIJACK_ATTEMPT' },
             { status: 403, headers: noCacheHeaders }
@@ -236,6 +283,8 @@ export async function POST(req: Request) {
             user: {
               email: tokenEmail,
               name: 'JK Developers Pakistan (Admin)',
+              status: 'active',
+              role: 'super_admin',
               approved: true,
               isSuperAdmin: true,
             },
@@ -244,15 +293,39 @@ export async function POST(req: Request) {
         );
       }
 
-      // 3. For regular clients, verify active approval status in live Cloud Gist
-      const users = await fetchCloudUsers();
-      const userRec = users.find((u) => u.email.toLowerCase() === tokenEmail.toLowerCase());
+      // Check live status for regular client
+      const userRec = await findUser(tokenEmail);
 
-      if (!userRec || !userRec.approved) {
-        // If developer revoked access or deleted account, IMMEDIATELY invalidate!
-        console.warn(`[SECURITY ALERT] Access revoked on server for active session: ${tokenEmail}`);
+      if (!userRec) {
         return NextResponse.json(
-          { valid: false, reason: 'ACCESS_REVOKED' },
+          { valid: false, reason: 'USER_DELETED' },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+
+      // Check if expired dynamically
+      if (userRec.expiry_date && new Date(userRec.expiry_date).getTime() <= Date.now()) {
+        userRec.status = 'expired';
+        userRec.approved = false;
+        return NextResponse.json(
+          {
+            valid: false,
+            reason: 'SUBSCRIPTION_EXPIRED',
+            status: 'expired',
+            message: 'آپ کی سبسکرپشن ختم ہو چکی ہے۔',
+          },
+          { status: 403, headers: noCacheHeaders }
+        );
+      }
+
+      if (userRec.status !== 'active') {
+        return NextResponse.json(
+          {
+            valid: false,
+            reason: 'STATUS_' + userRec.status.toUpperCase(),
+            status: userRec.status,
+            message: `اکاؤنٹ اسٹیٹس: ${userRec.status}`,
+          },
           { status: 403, headers: noCacheHeaders }
         );
       }
@@ -261,10 +334,15 @@ export async function POST(req: Request) {
         {
           valid: true,
           user: {
+            id: userRec.id,
             email: userRec.email,
             name: userRec.name,
-            businessName: userRec.businessName,
+            shopName: userRec.shopName || userRec.businessName,
+            status: 'active',
+            role: userRec.role || 'client',
             approved: true,
+            expiry_date: userRec.expiry_date,
+            remainingDays: calculateRemainingDays(userRec.expiry_date),
             isSuperAdmin: false,
           },
         },

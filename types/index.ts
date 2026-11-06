@@ -459,13 +459,20 @@ export interface WhatsAppMessage {
 }
 
 export interface PosUserLicense {
+  id?: string;
   email: string;
   name?: string;
+  ownerName?: string;
   businessName?: string;
+  shopName?: string;
   phone?: string;
   password?: string;
+  status?: 'pending' | 'active' | 'blocked' | 'expired';
+  role?: 'super_admin' | 'client' | 'admin';
   approved: boolean;
   registeredAt?: string;
   approvedAt?: string;
-  shopName?: string;
+  durationMonths?: number;
+  expiry_date?: string;
+  remainingDays?: number;
 }

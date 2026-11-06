@@ -332,14 +332,24 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         return;
       }
 
-      if (data.status === 'PENDING') {
+      if (data.status === 'PENDING' || data.status === 'pending') {
         const found = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
         setPendingUser({
           name: found?.name || cleanEmail.split('@')[0],
-          businessName: found?.businessName || 'Business Store',
+          businessName: found?.businessName || found?.shopName || 'Business Store',
           phone: found?.phone || '',
           email: cleanEmail,
         });
+        return;
+      }
+
+      if (data.status === 'blocked') {
+        setLoginError('⛔ آپ کا اکاؤنٹ سیکیورٹی وجوہات کی بنا پر بلاک ہے۔ برائے بحالی ہیلپ لائن (0300-8998381) سے رابطہ فرمائیں۔');
+        return;
+      }
+
+      if (data.status === 'expired') {
+        setLoginError('⌛ آپ کی سبسکرپشن کی میعاد ختم (Expired) ہو چکی ہے۔ تجدید کے لیے ایڈمن سے رابطہ فرمائیں۔');
         return;
       }
 
@@ -350,7 +360,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
   };
 
-  // 2. Handle Client Registration
+  // 2. Handle Client Registration (Strictly Default Status: 'pending')
   const handleClientRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -386,33 +396,45 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     setIsRegistering(true);
-    const res = await registerUser({
-      name: regName.trim(),
-      businessName: regBusinessName.trim(),
-      phone: regPhone.trim(),
-      email: cleanEmail,
-      password: regPassword,
-    });
-    setIsRegistering(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopName: regBusinessName.trim(),
+          ownerName: regName.trim(),
+          phone: regPhone.trim(),
+          email: cleanEmail,
+          password: regPassword,
+        }),
+      });
 
-    if (res.status === 'ERROR') {
-      setRegError(res.message || 'رجسٹریشن کے دوران خرابی پیش آئی ہے۔');
-      return;
+      const data = await res.json();
+      setIsRegistering(false);
+
+      if (!data.success) {
+        setRegError(data.message || 'رجسٹریشن کے دوران خرابی پیش آئی ہے۔');
+        return;
+      }
+
+      // Set client into Pending state
+      const newClient = {
+        name: regName.trim(),
+        businessName: regBusinessName.trim(),
+        phone: regPhone.trim(),
+        email: cleanEmail,
+      };
+      setPendingUser(newClient);
+      await refreshUsersFromCloud();
+
+      // Trigger user WhatsApp notice
+      setTimeout(() => {
+        handleSendWhatsAppNotification(newClient);
+      }, 400);
+    } catch (err: any) {
+      setIsRegistering(false);
+      setRegError('سرور سے رابطہ نہ ہو سکا۔ برائے مہربانی انٹرنیٹ چیک کریں۔');
     }
-
-    // Set client into Pending state
-    const newClient = {
-      name: regName.trim(),
-      businessName: regBusinessName.trim(),
-      phone: regPhone.trim(),
-      email: cleanEmail,
-    };
-    setPendingUser(newClient);
-
-    // Automatically trigger WhatsApp notification so the request is sent immediately
-    setTimeout(() => {
-      handleSendWhatsAppNotification(newClient);
-    }, 400);
   };
 
   // 3. Handle Secret Master Key Submit (Only for developer)
