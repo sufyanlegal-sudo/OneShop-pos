@@ -910,11 +910,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'کامیابی سے کاؤنٹر لاگ ان ہو گیا' };
   };
 
-  // In OneShop POS (Supermarket Multi-Counter ERP), all items across General Store,
-  // Sweets & Bakers, Garments, Karyana and Confectionery are 100% accessible and searchable:
+  // Filter products by the current active business preset (e.g. Karyana 1,500 items)
+  // PLUS all custom products created by the user (IDs starting with 'prod-' or 'custom-' or custom products)
   const products = useMemo(() => {
-    return allProducts;
-  }, [allProducts]);
+    return allProducts.filter((p) => {
+      // Always include user-added custom products
+      if (!p.preset || p.id.startsWith('prod-') || p.id.startsWith('custom-')) {
+        return true;
+      }
+      // Include catalog items matching the active business preset
+      return p.preset === activePreset;
+    });
+  }, [allProducts, activePreset]);
 
   // Current business profile
   const businessProfile = useMemo(() => {
