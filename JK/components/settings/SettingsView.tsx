@@ -35,7 +35,7 @@ import {
 import { useLanguage } from '@/context/LanguageContext';
 import { useShop } from '@/context/ShopContext';
 import { storage } from '@/lib/storage';
-import { CashierAccount, CashierModulePermissions } from '@/types';
+import { CashierAccount, CashierModulePermissions, BusinessPresetType } from '@/types';
 
 export const SettingsView: React.FC = () => {
   const { lang, t } = useLanguage();
@@ -44,6 +44,10 @@ export const SettingsView: React.FC = () => {
     updateBusinessProfile,
     resetSystemData,
     activePreset,
+    setPreset,
+    enabledPresets,
+    setEnabledPresets,
+    togglePreset,
     cashierAccounts,
     saveCashiers,
     updateCashierAccount,
@@ -485,6 +489,113 @@ export const SettingsView: React.FC = () => {
               </span>
               <span className="font-bold text-amber-600 dark:text-amber-400 font-sans">
                 JK Developers Pakistan <span dir="ltr" className="text-slate-400 font-mono text-[11px] phone-number">(0300-8998381)</span>
+              </span>
+            </div>
+          </div>
+
+          {/* MULTI-DEPARTMENT & BUSINESS PRESET SELECTOR */}
+          <div className="bg-gradient-to-br from-emerald-50/60 to-sky-50/60 dark:from-slate-850 dark:to-slate-900 p-5 rounded-2xl border-2 border-emerald-300 dark:border-emerald-700/60 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Boxes className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'ur' ? 'دکان کے شعبہ جات و مشترکہ کاروبار (Business Departments)' : 'Business Departments & Multi-Preset'}</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {lang === 'ur'
+                    ? 'اگر آپ ایک سے زائد کاروبار (مثلاً جنرل اسٹور + گارمنٹس یا بیکری + ریسٹورنٹ) ایک ساتھ چلاتے ہیں، تو مطلوبہ شعبے منتخب کریں۔'
+                    : 'Select all business departments active in your store. Multi-store setups are supported.'}
+                </p>
+              </div>
+
+              {/* Master Supermarket Toggle Buttons */}
+              <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setEnabledPresets(['karyana', 'general_store', 'sweets', 'garments', 'restaurant', 'confectionery'])}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1 cursor-pointer ${
+                    enabledPresets.length === 6
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-50'
+                  }`}
+                  title="تمام 6 شعبے فعال کریں (آل ان ون سپر مارٹ)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{lang === 'ur' ? 'آل ان ون سپر اسٹور (تمام 6)' : 'All-in-One Supermarket'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEnabledPresets(['karyana'])}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] transition-all cursor-pointer ${
+                    enabledPresets.length === 1 && enabledPresets[0] === 'karyana'
+                      ? 'bg-slate-800 text-white dark:bg-slate-700'
+                      : 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                  }`}
+                  title="صرف ایک شعبہ منتخب کریں"
+                >
+                  <span>{lang === 'ur' ? 'صرف کریانہ' : 'Karyana Only'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Checkbox Grid of 6 Departments */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              {[
+                { id: 'karyana', nameUr: 'کریانہ و گراسری', nameEn: 'Karyana & Grocery', icon: '🛒', count: 1500 },
+                { id: 'general_store', nameUr: 'جنرل اسٹور و مارٹ', nameEn: 'General Store & Mart', icon: '🏪', count: 1500 },
+                { id: 'sweets', nameUr: 'مٹھائی و بیکری', nameEn: 'Sweets & Bakers', icon: '🧁', count: 1500 },
+                { id: 'garments', nameUr: 'گارمنٹس و کلوتھنگ', nameEn: 'Garments & Clothing', icon: '👕', count: 1500 },
+                { id: 'restaurant', nameUr: 'ریسٹورنٹ و کیفے', nameEn: 'Restaurant & Cafe', icon: '🍽️', count: 1500 },
+                { id: 'confectionery', nameUr: 'کنفیکشنری و اسنیکس', nameEn: 'Confectionery & Snacks', icon: '🍬', count: 1500 },
+              ].map((item) => {
+                const isChecked = enabledPresets.includes(item.id as BusinessPresetType);
+                return (
+                  <label
+                    key={item.id}
+                    className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                      isChecked
+                        ? 'bg-white dark:bg-slate-850 border-emerald-500 dark:border-emerald-500 shadow-xs'
+                        : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => togglePreset(item.id as BusinessPresetType)}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                      />
+                      <span className="text-lg leading-none">{item.icon}</span>
+                      <div className="min-w-0">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">
+                          {lang === 'ur' ? item.nameUr : item.nameEn}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono block">
+                          1,500 {lang === 'ur' ? 'اشیاء' : 'items'}
+                        </span>
+                      </div>
+                    </div>
+                    {isChecked && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Department Summary Banner */}
+            <div className="bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px]">
+              <span className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>
+                  {lang === 'ur'
+                    ? `فعال شعبہ جات: ${enabledPresets.length} | منتخب ریڈی میڈ اشیاء: ${(enabledPresets.length * 1500).toLocaleString()}`
+                    : `Active Departments: ${enabledPresets.length} | Catalog Items: ${(enabledPresets.length * 1500).toLocaleString()}`}
+                </span>
+              </span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                {lang === 'ur' ? '💡 آپ کی اپنی شامل کردہ نئی اشیاء ہمیشہ تمام شعبوں کے ساتھ محفوظ رہیں گی۔' : '💡 Your custom added items will always be available.'}
               </span>
             </div>
           </div>

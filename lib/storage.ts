@@ -30,6 +30,7 @@ import {
 
 const KEYS = {
   ACTIVE_PRESET: 'jk_active_preset',
+  ENABLED_PRESETS: 'jk_enabled_presets',
   PROFILES: 'jk_business_profiles',
   PRODUCTS: 'jk_products',
   PRODUCT_OVERRIDES: 'jk_product_overrides',
@@ -94,6 +95,25 @@ export const storage = {
   setActivePreset(preset: BusinessPresetType): void {
     if (typeof window === 'undefined') return;
     safeStorage.set(KEYS.ACTIVE_PRESET, preset);
+  },
+
+  getEnabledPresets(): BusinessPresetType[] {
+    if (typeof window === 'undefined') return ['karyana'];
+    const raw = safeStorage.get(KEYS.ENABLED_PRESETS);
+    if (!raw) {
+      const active = this.getActivePreset();
+      return [active];
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+    return [this.getActivePreset()];
+  },
+
+  setEnabledPresets(presets: BusinessPresetType[]): void {
+    if (typeof window === 'undefined') return;
+    safeStorage.set(KEYS.ENABLED_PRESETS, JSON.stringify(presets));
   },
 
   getProfiles(): Record<string, BusinessProfile> {

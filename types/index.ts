@@ -52,6 +52,7 @@ export interface CashierAccount {
 export interface BusinessProfile {
   id: string;
   preset: BusinessPresetType;
+  enabledPresets?: BusinessPresetType[];
   softwareName?: string; // Software branding name (e.g. "OneShop POS")
   nameEn: string;
   nameUr: string;

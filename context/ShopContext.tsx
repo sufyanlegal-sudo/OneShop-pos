@@ -89,6 +89,9 @@ export interface ProcessExchangeParams {
 interface ShopContextType {
   activePreset: BusinessPresetType;
   setPreset: (preset: BusinessPresetType) => void;
+  enabledPresets: BusinessPresetType[];
+  setEnabledPresets: (presets: BusinessPresetType[]) => void;
+  togglePreset: (preset: BusinessPresetType) => void;
   businessProfile: BusinessProfile;
   updateBusinessProfile: (updated: Partial<BusinessProfile>) => void;
   products: Product[];
@@ -230,6 +233,7 @@ const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activePreset, setActivePresetState] = useState<BusinessPresetType>('karyana');
+  const [enabledPresets, setEnabledPresetsState] = useState<BusinessPresetType[]>(['karyana']);
   const [profiles, setProfiles] = useState<Record<string, BusinessProfile>>(defaultBusinessProfiles);
   const [allProducts, setAllProducts] = useState<Product[]>(seedProducts);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -270,6 +274,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load state from local storage on mount
   useEffect(() => {
     const loadedPreset = storage.getActivePreset();
+    const loadedEnabledPresets = storage.getEnabledPresets();
     const loadedProfiles = storage.getProfiles();
     const loadedProducts = storage.getProducts();
     const loadedCustomers = storage.getCustomers();
@@ -291,6 +296,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadedUser = storage.getCurrentUser();
 
     setActivePresetState(loadedPreset);
+    setEnabledPresetsState(loadedEnabledPresets);
     setProfiles(loadedProfiles);
     setAllProducts(loadedProducts);
     setCustomers(loadedCustomers);
@@ -910,18 +916,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'کامیابی سے کاؤنٹر لاگ ان ہو گیا' };
   };
 
-  // Filter products by the current active business preset (e.g. Karyana 1,500 items)
-  // PLUS all custom products created by the user (IDs starting with 'prod-' or 'custom-' or custom products)
+  // Filter products by the current active business presets (e.g. Karyana 1,500, or Karyana + Garments 3,000)
+  // PLUS all custom products created by the user (IDs starting with 'prod-' or 'custom-')
   const products = useMemo(() => {
+    const activeList = enabledPresets && enabledPresets.length > 0 ? enabledPresets : [activePreset];
     return allProducts.filter((p) => {
       // Always include user-added custom products
       if (!p.preset || p.id.startsWith('prod-') || p.id.startsWith('custom-')) {
         return true;
       }
-      // Include catalog items matching the active business preset
-      return p.preset === activePreset;
+      // Include catalog items matching any of the enabled business presets
+      return activeList.includes(p.preset as BusinessPresetType);
     });
-  }, [allProducts, activePreset]);
+  }, [allProducts, enabledPresets, activePreset]);
 
   // Current business profile
   const businessProfile = useMemo(() => {
@@ -931,6 +938,32 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setPreset = (preset: BusinessPresetType) => {
     setActivePresetState(preset);
     storage.setActivePreset(preset);
+    if (!enabledPresets.includes(preset)) {
+      const updated = [...enabledPresets, preset];
+      setEnabledPresetsState(updated);
+      storage.setEnabledPresets(updated);
+    }
+  };
+
+  const setEnabledPresets = (presets: BusinessPresetType[]) => {
+    const valid: BusinessPresetType[] = presets.length > 0 ? presets : ['karyana'];
+    setEnabledPresetsState(valid);
+    storage.setEnabledPresets(valid);
+    if (!valid.includes(activePreset)) {
+      setActivePresetState(valid[0]);
+      storage.setActivePreset(valid[0]);
+    }
+  };
+
+  const togglePreset = (preset: BusinessPresetType) => {
+    let next: BusinessPresetType[];
+    if (enabledPresets.includes(preset)) {
+      if (enabledPresets.length <= 1) return; // Keep at least one preset active
+      next = enabledPresets.filter((p) => p !== preset);
+    } else {
+      next = [...enabledPresets, preset];
+    }
+    setEnabledPresets(next);
   };
 
   const updateBusinessProfile = (updated: Partial<BusinessProfile>) => {
@@ -3053,6 +3086,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         activePreset,
         setPreset,
+        enabledPresets,
+        setEnabledPresets,
+        togglePreset,
         businessProfile,
         updateBusinessProfile,
         products,
