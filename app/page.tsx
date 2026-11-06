@@ -150,7 +150,7 @@ export default function Home() {
             <Headphones className="w-3.5 h-3.5 text-amber-400" />
             <span className="tracking-wider">JK Developers Pakistan</span>
             <span className="text-slate-500">|</span>
-            <span className="font-mono text-emerald-400 font-bold">03008998381</span>
+            <bdi dir="ltr" style={{ direction: 'ltr', unicodeBidi: 'isolate' }} className="phone-number font-mono text-emerald-400 font-bold">0300-8998381</bdi>
           </button>
 
           <span className="text-[11px] text-slate-500">
