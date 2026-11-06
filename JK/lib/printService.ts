@@ -42,10 +42,10 @@ export function printElement(
         oldFrame.remove();
       }
 
-      // 2. Create isolated hidden iframe
+      // 2. Create isolated hidden iframe with full dimensions (Prevents Chrome 1px blank-page clipping bug)
       const iframe = document.createElement('iframe');
       iframe.id = 'pos-isolated-print-frame';
-      iframe.setAttribute('style', 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;');
+      iframe.setAttribute('style', 'position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;opacity:0;pointer-events:none;z-index:-99999;');
       document.body.appendChild(iframe);
 
       const frameDoc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -56,7 +56,24 @@ export function printElement(
         return;
       }
 
-      // 3. Extract all head styles, links, and Google Fonts from current document
+      // 3. Extract all head styles, links, and Google Fonts from current document + inline sheets
+      let inlineRules = '';
+      try {
+        for (let i = 0; i < document.styleSheets.length; i++) {
+          const sheet = document.styleSheets[i];
+          try {
+            const rules = sheet.cssRules || sheet.rules;
+            if (rules) {
+              for (let j = 0; j < rules.length; j++) {
+                inlineRules += rules[j].cssText + '\n';
+              }
+            }
+          } catch {
+            // Ignore cross-origin stylesheet read errors
+          }
+        }
+      } catch {}
+
       const currentHeadStyles = Array.from(
         document.querySelectorAll('link[rel="stylesheet"], style')
       )
@@ -200,6 +217,15 @@ export function printElement(
           width: 100% !important;
           border-collapse: collapse !important;
         }
+        .phone-number,
+        .ltr-num,
+        [dir="rtl"] .phone-number,
+        [dir="rtl"] .ltr-num {
+          direction: ltr !important;
+          unicode-bidi: isolate !important;
+          display: inline-block !important;
+          text-align: left !important;
+        }
         img, svg {
           max-width: 100% !important;
           height: auto !important;
@@ -219,6 +245,7 @@ export function printElement(
             <title>${title}</title>
             ${currentHeadStyles}
             <style>
+              ${inlineRules}
               ${pageCss}
               ${universalPrintCss}
             </style>

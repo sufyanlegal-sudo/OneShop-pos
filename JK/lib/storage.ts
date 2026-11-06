@@ -598,7 +598,6 @@ export const storage = {
         name: 'JK Developers Pakistan (Admin)',
         businessName: 'JK Developers Pakistan',
         phone: '0300-8998381',
-        password: 'JK@8998381',
         approved: true,
         registeredAt: '2026-01-01',
       },
@@ -635,6 +634,52 @@ export const storage = {
       console.error('Session storage error', e);
     }
     return null;
+  },
+
+  getSessionToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem('pos_session_token') || sessionStorage.getItem('pos_session_token');
+    } catch {
+      return null;
+    }
+  },
+
+  setSessionToken(token: string | null): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!token) {
+        localStorage.removeItem('pos_session_token');
+        sessionStorage.removeItem('pos_session_token');
+      } else {
+        localStorage.setItem('pos_session_token', token);
+        sessionStorage.setItem('pos_session_token', token);
+      }
+    } catch (e) {
+      console.error('Failed to set session token', e);
+    }
+  },
+
+  getMasterKey(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      return sessionStorage.getItem('pos_super_admin_key');
+    } catch {
+      return null;
+    }
+  },
+
+  setMasterKey(key: string | null): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!key) {
+        sessionStorage.removeItem('pos_super_admin_key');
+      } else {
+        sessionStorage.setItem('pos_super_admin_key', key);
+      }
+    } catch {
+      // Ignored
+    }
   },
 
   setCurrentUser(email: string | null): void {

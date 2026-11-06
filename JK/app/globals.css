@@ -35,6 +35,17 @@ body {
   font-weight: 700;
 }
 
+/* Force proper LTR display for phone numbers and code in RTL contexts so numbers are never inverted */
+.phone-number,
+.ltr-num,
+[dir="rtl"] .phone-number,
+[dir="rtl"] .ltr-num {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  display: inline-block !important;
+  text-align: left !important;
+}
+
 /* Ensure RTL headings and text do not clip */
 [dir="rtl"] {
   text-align: right;

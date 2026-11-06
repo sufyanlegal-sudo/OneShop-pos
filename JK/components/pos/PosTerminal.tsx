@@ -65,6 +65,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
   const { lang, t } = useLanguage();
   const {
     products,
+    allProducts,
     cart,
     cartTotals,
     addToCart,
@@ -765,7 +766,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     return filteredProducts.slice(0, visibleProductCount);
   }, [filteredProducts, visibleProductCount]);
 
-  // Global search suggestions with fast early exit at 25 items for 0ms typing
+  // Global search suggestions with fast early exit across ALL store departments (General, Sweets/Bakers, Garments, Karyana)
   const searchResults = useMemo(() => {
     const rawQ = (deferredSearchQuery || '').trim();
     if (!rawQ) return [];
@@ -777,9 +778,18 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       .replace(/[هۃھ]/g, 'ہ')
       .replace(/[آإأٱ]/g, 'ا');
 
+    // Department & Category Synonyms
+    const isGeneralStoreQuery = normQ.includes('جنرل') || q.includes('general');
+    const isSweetsBakersQuery = normQ.includes('سویٹ') || normQ.includes('بیکر') || normQ.includes('مٹھائی') || q.includes('sweet') || q.includes('baker') || q.includes('bakery');
+    const isGarmentsQuery = normQ.includes('گارمنٹ') || normQ.includes('کپڑ') || normQ.includes('سوٹ') || q.includes('garment') || q.includes('cloth');
+    const isKaryanaQuery = normQ.includes('کریانہ') || normQ.includes('گراسری') || q.includes('karyana') || q.includes('grocery');
+    const isConfectioneryQuery = normQ.includes('کنفیکشن') || q.includes('confectionery');
+
     const results: Product[] = [];
-    for (let i = 0; i < products.length; i++) {
-      const p = products[i];
+    const pool = (allProducts && allProducts.length > 0) ? allProducts : products;
+
+    for (let i = 0; i < pool.length; i++) {
+      const p = pool[i];
       const nameEn = (p.nameEn || '').toLowerCase();
       const nameUr = (p.nameUr || '').toLowerCase();
       const normNameUr = nameUr
@@ -789,21 +799,34 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         .replace(/[هۃھ]/g, 'ہ')
         .replace(/[آإأٱ]/g, 'ا');
 
+      const preset = (p.preset || '').toLowerCase();
+      const catUr = (p.categoryUr || '').toLowerCase();
+      const catEn = (p.categoryEn || '').toLowerCase();
+
+      const matchesDept =
+        (isGeneralStoreQuery && (preset === 'general_store' || catUr.includes('جنرل') || catEn.includes('general'))) ||
+        (isSweetsBakersQuery && (preset === 'sweets' || catUr.includes('بیکری') || catUr.includes('مٹھائی') || catEn.includes('sweet') || catEn.includes('baker'))) ||
+        (isGarmentsQuery && (preset === 'garments' || catUr.includes('گارمنٹس') || catUr.includes('کپڑے') || catEn.includes('garment') || catEn.includes('cloth'))) ||
+        (isKaryanaQuery && (preset === 'karyana' || catUr.includes('کریانہ') || catEn.includes('grocery'))) ||
+        (isConfectioneryQuery && (preset === 'confectionery' || catUr.includes('کنفیکشنری')));
+
       if (
+        matchesDept ||
         nameEn.includes(q) ||
         nameUr.includes(q) ||
         (normQ && normNameUr.includes(normQ)) ||
         (p.barcode && p.barcode.includes(rawQ)) ||
         (p.sku && p.sku.toLowerCase().includes(q)) ||
-        (p.categoryUr && p.categoryUr.toLowerCase().includes(q)) ||
-        (p.categoryEn && p.categoryEn.toLowerCase().includes(q))
+        catUr.includes(q) ||
+        catEn.includes(q) ||
+        preset.includes(q)
       ) {
         results.push(p);
-        if (results.length >= 25) break;
+        if (results.length >= 40) break;
       }
     }
     return results;
-  }, [products, deferredSearchQuery]);
+  }, [products, allProducts, deferredSearchQuery]);
 
   // Handle Search Input Enter Key (Adds top match directly to bill)
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -1228,37 +1251,37 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     }
 
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white/95 dark:bg-slate-900/95 rounded-2xl border-2 border-sky-400 dark:border-sky-800 shadow-md overflow-hidden flex flex-col">
         {/* Candela POS High-Density Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-xs border-collapse">
-            <thead className="bg-slate-900 text-white font-black text-[11px] sticky top-0 z-10 select-none shadow-xs">
+          <table className="w-full text-right text-sm border-collapse">
+            <thead className="bg-slate-900 text-white font-black text-sm sm:text-base sticky top-0 z-10 select-none shadow-sm">
               <tr>
-                <th className="py-2 px-2 text-center w-8">#</th>
-                <th className="py-2 px-2.5 w-24 text-slate-300 font-mono text-[10.5px]">
+                <th className="py-3 px-2 text-center w-12">#</th>
+                <th className="py-3 px-3 w-36 text-center text-slate-200 font-mono text-xs sm:text-sm">
                   {lang === 'ur' ? 'بارکوڈ / SKU' : 'Barcode'}
                 </th>
-                <th className="py-2 px-3">
+                <th className="py-3 px-4 text-right">
                   {lang === 'ur' ? 'اشیاء کا نام و تفصیل' : 'Item Description'}
                 </th>
-                <th className="py-2 px-2 text-center w-14">
+                <th className="py-3 px-2.5 text-center w-20">
                   {lang === 'ur' ? 'یونٹ' : 'Unit'}
                 </th>
-                <th className="py-2 px-2.5 text-center w-24">
+                <th className="py-3 px-3 text-center w-32">
                   {lang === 'ur' ? 'ریٹ (PKR)' : 'Rate'}
                 </th>
-                <th className="py-2 px-2.5 text-center w-36">
+                <th className="py-3 px-3 text-center w-44">
                   {lang === 'ur' ? 'مقدار (Qty)' : 'Quantity'}
                 </th>
-                <th className="py-2 px-3 text-center w-24">
+                <th className="py-3 px-4 text-center w-36">
                   {lang === 'ur' ? 'کل رقم' : 'Subtotal'}
                 </th>
-                <th className="py-2 px-2 text-center w-9">
-                  <Trash2 className="w-3.5 h-3.5 mx-auto text-slate-400" />
+                <th className="py-3 px-2 text-center w-12">
+                  <Trash2 className="w-4 h-4 mx-auto text-slate-400" />
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+            <tbody className="divide-y-2 divide-emerald-200/80 dark:divide-slate-800">
               {cart.map((item, idx) => {
                 const isWeight = isWeightEligible(item);
                 const isLiter = isLiterEligible(item);
@@ -1268,34 +1291,38 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 transition-colors even:bg-slate-50/70 dark:even:bg-slate-850/50 text-slate-900 dark:text-slate-100 text-xs"
+                    className="bg-[#e8f7ee] hover:bg-[#d5f0de] dark:bg-[#0f2d22] dark:hover:bg-[#163d2e] border-b-2 border-emerald-200 dark:border-emerald-800 text-slate-950 dark:text-slate-100 transition-colors"
                   >
                     {/* Index */}
-                    <td className="py-1.5 px-2 text-center font-mono font-bold text-slate-500">
-                      <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 inline-flex items-center justify-center font-black text-[11px]">
+                    <td className="py-3 px-2 text-center font-mono font-bold text-slate-600">
+                      <span className="w-8 h-8 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center font-black text-sm shadow-xs">
                         {idx + 1}
                       </span>
                     </td>
 
                     {/* Barcode / SKU */}
-                    <td className="py-1.5 px-2.5 font-mono text-[10.5px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={item.product.barcode || item.product.sku}>
-                      {item.product.barcode || item.product.sku || '—'}
+                    <td className="py-3 px-3 text-center font-mono text-sm sm:text-base font-black text-slate-700 dark:text-slate-300 truncate max-w-[130px]" title={item.product.barcode || item.product.sku}>
+                      <span dir="ltr" className="phone-number">{item.product.barcode || item.product.sku || '—'}</span>
                     </td>
 
-                    {/* Product Name & Badges */}
-                    <td className="py-1.5 px-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-black text-xs text-slate-900 dark:text-white leading-tight">
+                    {/* Product Name & Stock Badges */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-base sm:text-lg text-slate-950 dark:text-white leading-tight">
                           {lang === 'ur' ? item.product.nameUr : item.product.nameEn}
                         </span>
                         {item.packagedVariant && (
-                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                          <span className="px-2 py-0.5 rounded text-xs font-black bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                             {item.packagedVariant}
                           </span>
                         )}
+                        {/* Live Stock Badge (Screen Only) */}
+                        <span className="px-2.5 py-0.5 rounded text-xs font-black bg-emerald-200 dark:bg-emerald-900/80 text-emerald-950 dark:text-emerald-100 border border-emerald-400">
+                          {lang === 'ur' ? `اسٹاک: ${item.product.stock} ${displayUnit}` : `Stock: ${item.product.stock}`}
+                        </span>
                         {item.product.expiryDate && (
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold ${
+                            className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
                               new Date(item.product.expiryDate) < new Date()
                                 ? 'bg-rose-600 text-white animate-pulse'
                                 : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -1306,22 +1333,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                         )}
                       </div>
                       {item.product.nameEn && item.product.nameUr && (
-                        <div className="text-[10px] text-slate-400 font-normal">
+                        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
                           {item.product.nameEn}
                         </div>
                       )}
                     </td>
 
                     {/* Unit */}
-                    <td className="py-1.5 px-2 text-center">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <td className="py-3 px-2.5 text-center">
+                      <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-emerald-300 dark:border-slate-700 shadow-xs">
                         {lang === 'ur' ? displayUnit : (displayUnit === 'عدد' ? 'Pcs' : displayUnit === 'کلو' ? 'Kg' : displayUnit === 'گرام' ? 'g' : displayUnit === 'لیٹر' ? 'L' : displayUnit)}
                       </span>
                     </td>
 
                     {/* Rate (Editable with Click or Pencil) */}
-                    <td className="py-1.5 px-2.5 text-center font-mono font-bold">
-                      <div className="inline-flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <td className="py-3 px-3 text-center font-mono">
+                      <div className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border-2 border-emerald-400 dark:border-emerald-700 font-black text-sm sm:text-lg text-slate-950 dark:text-emerald-300 shadow-xs">
                         <span>{unitRate.toLocaleString()}</span>
                         <button
                           type="button"
@@ -1342,17 +1369,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               }
                             }
                           }}
-                          className="p-0.5 hover:text-emerald-500 text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded transition"
+                          className="p-1 hover:text-emerald-600 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition"
                           title="ریٹ تبدیل کریں"
                         >
-                          <Edit2 className="w-2.5 h-2.5" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
 
-                    {/* Compact Candela Quantity Stepper */}
-                    <td className="py-1.5 px-2.5 text-center">
-                      <div className="inline-flex items-center justify-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                    {/* Candela Large Quantity Stepper */}
+                    <td className="py-3 px-3 text-center">
+                      <div className="inline-flex items-center justify-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-2xl border-2 border-emerald-300 dark:border-slate-700 shadow-xs">
                         {/* Decrement [-] */}
                         <button
                           type="button"
@@ -1372,7 +1399,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               removeFromCart(item.id);
                             }
                           }}
-                          className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 hover:bg-rose-100 hover:text-rose-600 text-slate-700 dark:text-slate-200 font-black flex items-center justify-center shadow-xs text-xs active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 hover:text-rose-600 text-slate-900 dark:text-slate-100 font-black flex items-center justify-center shadow-xs text-lg active:scale-90 transition-all cursor-pointer"
                           title="کم کریں (-)"
                         >
                           -
@@ -1402,7 +1429,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               total: Math.round(val * unitRate),
                             });
                           }}
-                          className="w-13 text-center text-xs font-mono font-black bg-white dark:bg-slate-900 border border-emerald-500 rounded-md py-0.5 text-slate-900 dark:text-white outline-none"
+                          className="w-20 h-9 text-center text-base sm:text-lg font-mono font-black bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl text-slate-950 dark:text-white outline-none shadow-inner"
                           title="براہ راست تعداد لکھیں"
                         />
 
@@ -1428,7 +1455,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                               total: Math.round(next * unitRate),
                             });
                           }}
-                          className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center shadow-xs text-xs active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center shadow-xs text-lg active:scale-90 transition-all cursor-pointer"
                           title="بڑھائیں (+)"
                         >
                           +
@@ -1437,22 +1464,22 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     </td>
 
                     {/* Subtotal */}
-                    <td className="py-1.5 px-3 text-center font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                    <td className="py-3 px-4 text-center font-mono font-black text-base sm:text-xl text-emerald-800 dark:text-emerald-300">
                       {item.total.toLocaleString()} PKR
                     </td>
 
                     {/* Delete Icon */}
-                    <td className="py-1.5 px-2 text-center">
+                    <td className="py-3 px-2 text-center">
                       <button
                         type="button"
                         onClick={() => {
                           posSound.playClick();
                           removeFromCart(item.id);
                         }}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer"
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-xl transition-all cursor-pointer"
                         title="بل سے نکالیں"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
@@ -1553,16 +1580,38 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
     const isShort = activeTendered > 0 && activeTendered < effectiveNetTotal;
     const shortAmount = isShort ? effectiveNetTotal - activeTendered : 0;
 
+    const handleNumpadPress = (digit: string) => {
+      posSound.playKeyClick();
+      if (digit === 'CLEAR') {
+        setTenderedAmount(0);
+        tenderedInputRef.current?.focus();
+        return;
+      }
+      if (digit === 'BACK') {
+        const s = String(tenderedAmount || '');
+        const next = s.slice(0, -1);
+        setTenderedAmount(next ? parseFloat(next) || 0 : 0);
+        tenderedInputRef.current?.focus();
+        return;
+      }
+      const currentStr = tenderedAmount ? String(tenderedAmount) : '';
+      const newStr = currentStr + digit;
+      setTenderedAmount(parseFloat(newStr) || 0);
+      tenderedInputRef.current?.focus();
+    };
+
     return (
-      <div className="flex flex-col h-full min-h-0 justify-between gap-1.5 overflow-hidden">
-        {/* Upper Area: Customer & Payment Method (Scrollable if needed, doesn't push bottom dock) */}
-        <div className="space-y-1.5 overflow-y-auto pr-0.5 shrink min-h-0">
+      <div className="flex flex-col h-full min-h-0 space-y-2 overflow-y-auto pr-0.5 scroll-smooth">
+        {/* ========================================================================= */}
+        {/* 1. CUSTOMER SELECTION & PAYMENT METHOD (COMPACT UPPER ROW)                */}
+        {/* ========================================================================= */}
+        <div className="space-y-1.5 shrink-0">
           {/* Customer Selection Row */}
           <div className="flex items-center gap-1.5">
             <select
               value={selectedCustomerId}
               onChange={(e) => handleSelectCustomer(e.target.value)}
-              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold outline-none text-slate-800 dark:text-slate-200"
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none text-slate-800 dark:text-slate-200"
             >
               <option value="">
                 {lang === 'ur' ? '👤 عام گاہک (Walk-in Customer)' : '👤 Walk-in Customer'}
@@ -1600,7 +1649,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     setPosKhataPaymentModalOpen(true);
                   }
                 }}
-                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer animate-fadeIn"
+                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer animate-fadeIn"
                 title="اس گاہک کی طرف سے رقم وصول کریں اور کھاتے میں جمع کریں"
               >
                 <Banknote className="w-3.5 h-3.5" />
@@ -1627,7 +1676,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   }}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا نام (کھاتہ کیلئے)' : 'Customer Name (Khata)') : t('customerName')}
-                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1 text-xs font-bold outline-none transition-all ${
+                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none transition-all ${
                     paymentMethod === 'CREDIT'
                       ? 'border-rose-400 dark:border-rose-500 ring-1 ring-rose-400/40 bg-rose-50/30 dark:bg-rose-950/20'
                       : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'
@@ -1646,7 +1695,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   }}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder={paymentMethod === 'CREDIT' ? (lang === 'ur' ? 'گاہک کا فون نمبر' : 'Phone (Optional)') : t('customerPhone')}
-                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none transition-all ${
+                  className={`bg-white dark:bg-slate-800 border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none transition-all ${
                     paymentMethod === 'CREDIT'
                       ? 'border-rose-400 dark:border-rose-500 ring-1 ring-rose-400/40 bg-rose-50/30 dark:bg-rose-950/20'
                       : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'
@@ -1696,13 +1745,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('CASH');
               }}
-              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 paymentMethod === 'CASH'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  ? 'bg-emerald-600 text-white shadow-sm font-black'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
               }`}
             >
-              <Banknote className="w-3 h-3" />
+              <Banknote className="w-3.5 h-3.5" />
               <span>{t('cash')}</span>
             </button>
             <button
@@ -1711,13 +1760,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('ONLINE');
               }}
-              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 paymentMethod === 'ONLINE'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  ? 'bg-emerald-600 text-white shadow-sm font-black'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
               }`}
             >
-              <CreditCard className="w-3 h-3" />
+              <CreditCard className="w-3.5 h-3.5" />
               <span>{lang === 'ur' ? 'آن لائن' : 'Online'}</span>
             </button>
             <button
@@ -1735,17 +1784,17 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('CREDIT');
               }}
-              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 !canGiveCredit()
                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-dashed border-rose-300 dark:border-rose-900/40 cursor-not-allowed opacity-60'
                   : paymentMethod === 'CREDIT'
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  ? 'bg-rose-600 text-white shadow-sm font-black'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
               }`}
               title={!canGiveCredit() ? (lang === 'ur' ? 'ادھار ممنوع (صرف ایڈمن)' : 'Credit Locked (Admin Only)') : 'ادھار کھاتہ'}
             >
-              {!canGiveCredit() ? <Lock className="w-3 h-3 text-rose-500" /> : <FileQuestion className="w-3 h-3" />}
-              <span>{!canGiveCredit() ? (lang === 'ur' ? '🔒 ادھار (بلاک)' : '🔒 Credit') : (lang === 'ur' ? 'ادھار' : 'Khata')}</span>
+              {!canGiveCredit() ? <Lock className="w-3.5 h-3.5 text-rose-500" /> : <FileQuestion className="w-3.5 h-3.5" />}
+              <span>{!canGiveCredit() ? (lang === 'ur' ? '🔒 ادھار' : '🔒 Credit') : (lang === 'ur' ? 'ادھار' : 'Khata')}</span>
             </button>
             <button
               type="button"
@@ -1753,13 +1802,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                 posSound.playClick();
                 setPaymentMethod('SPLIT');
               }}
-              className={`py-1 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 paymentMethod === 'SPLIT'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  ? 'bg-amber-600 text-white shadow-sm font-black'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
               }`}
             >
-              <Split className="w-3 h-3" />
+              <Split className="w-3.5 h-3.5" />
               <span>{lang === 'ur' ? 'مکس' : 'Split'}</span>
             </button>
           </div>
@@ -1767,7 +1816,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
 
         {/* Credit & Down-payment / Split Payment Controls */}
         {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && (
-          <div className="p-1.5 sm:p-2 bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/80 rounded-xl space-y-1 text-xs shrink-0 animate-fadeIn">
+          <div className="p-2 bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/80 rounded-2xl space-y-1.5 text-xs shrink-0 animate-fadeIn">
             <div className="flex items-center justify-between font-bold text-rose-950 dark:text-rose-200">
               <span className="flex items-center gap-1.5 text-xs font-black">
                 <span>📝</span>
@@ -1806,7 +1855,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Helper hint */}
             <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-slate-900/60 p-1 rounded-lg border border-rose-200 dark:border-rose-900/50 flex items-center justify-between">
               <span>
                 {amountPaid > 0 ? (
@@ -1828,37 +1876,28 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
         )}
 
         {/* ========================================================================= */}
-        {/* RECENT HOLD BILLS SECTION (صرف تب جب ہولڈ بلز موجود ہوں)                   */}
+        {/* 2. ELEVATED CANDELA 3-COLUMN PAYMENT ROW: TOTAL | CASH RECEIVED | RETURN */}
+        {/* PROMINENT, BOLD, LARGE NUMBERS - ZERO EMPTY GAP!                          */}
         {/* ========================================================================= */}
-        {heldBills.length > 0 && (
-          <div className="my-1 shrink-0">
-            {renderHeldBillsSection()}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* CANDELA & NEBS 3-COLUMN FRONT ROW: TOTAL | CASH RECEIVED | CHANGE RETURN */}
-        {/* 100% VISIBLE ON THE FRONT - ZERO SCROLLING - NO MOUSE REQUIRED           */}
-        {/* ========================================================================= */}
-        <div className="shrink-0 space-y-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
+        <div className="space-y-2 pt-1.5 border-t border-slate-200 dark:border-slate-800 shrink-0">
           {paymentMethod === 'CASH' ? (
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {/* 1. TOTAL BILL (کل بل) */}
-              <div className="bg-slate-900 text-white p-2 rounded-2xl flex flex-col justify-between shadow-sm border border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 truncate">
+              <div className="bg-slate-900 dark:bg-slate-950 text-white p-2.5 rounded-2xl flex flex-col justify-between shadow-md border-2 border-slate-800 min-h-[74px]">
+                <span className="text-[11px] font-bold text-slate-400 truncate">
                   {lang === 'ur' ? 'کل بل (Total):' : 'Grand Total:'}
                 </span>
-                <div className="font-mono text-base sm:text-xl font-black text-emerald-400 truncate">
+                <div className="font-mono text-lg sm:text-2xl font-black text-emerald-400 truncate tracking-tight">
                   {effectiveNetTotal.toLocaleString()}
-                  <span className="text-[9px] font-sans ml-1 text-slate-400">PKR</span>
+                  <span className="text-[10px] font-sans ml-1 text-slate-400 font-normal">PKR</span>
                 </div>
               </div>
 
-              {/* 2. CASH RECEIVED (موصول کیش) */}
-              <div className="bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 rounded-2xl p-1.5 flex flex-col justify-between shadow-sm focus-within:ring-2 focus-within:ring-emerald-400">
-                <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+              {/* 2. CASH RECEIVED (موصول کیش F4) */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/70 border-2 border-emerald-500 rounded-2xl p-2 flex flex-col justify-between shadow-md focus-within:ring-2 focus-within:ring-emerald-400 min-h-[74px]">
+                <div className="flex items-center justify-between text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
                   <span className="truncate">{lang === 'ur' ? 'موصول کیش:' : 'Cash Received:'}</span>
-                  <span className="bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[9px] px-1 rounded font-mono">F4</span>
+                  <span className="bg-emerald-500 text-slate-950 font-black text-[9.5px] px-1.5 py-0.2 rounded font-mono">F4</span>
                 </div>
                 <input
                   ref={tenderedInputRef}
@@ -1874,64 +1913,51 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     }
                   }}
                   placeholder={String(effectiveNetTotal)}
-                  className="w-full bg-white dark:bg-slate-900 border border-emerald-400 dark:border-emerald-600 rounded-lg px-1.5 py-0.5 text-base sm:text-lg font-mono font-black text-center text-emerald-800 dark:text-emerald-200 outline-none"
+                  className="w-full bg-white dark:bg-slate-900 border border-emerald-400 dark:border-emerald-600 rounded-xl px-1.5 py-0.5 text-lg sm:text-2xl font-mono font-black text-center text-emerald-800 dark:text-emerald-200 outline-none shadow-inner"
                 />
               </div>
 
               {/* 3. RETURN CHANGE (واپسی بقایا - LIVE UPDATE) */}
               <div
-                className={`p-2 rounded-2xl flex flex-col justify-between shadow-sm transition-all border ${
+                className={`p-2.5 rounded-2xl flex flex-col justify-between shadow-md transition-all border-2 min-h-[74px] ${
                   changeDue > 0
-                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/30'
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-900/40'
                     : isShort
-                    ? 'bg-rose-600 text-white border-rose-500'
+                    ? 'bg-rose-600 text-white border-rose-400'
                     : activeTendered >= effectiveNetTotal && activeTendered > 0
-                    ? 'bg-teal-700 text-white border-teal-600'
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                    ? 'bg-teal-700 text-white border-teal-500'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                 }`}
               >
-                <span className="text-[10px] font-bold truncate">
+                <span className="text-[11px] font-bold truncate">
                   {changeDue > 0
                     ? (lang === 'ur' ? '💵 واپسی بقایا:' : 'Change Return:')
                     : isShort
                     ? (lang === 'ur' ? '⚠️ کم رقم:' : 'Short:')
                     : (lang === 'ur' ? 'واپسی بقایا:' : 'Change Return:')}
                 </span>
-                <div className="font-mono text-base sm:text-xl font-black truncate">
+                <div className="font-mono text-lg sm:text-2xl font-black truncate">
                   {changeDue > 0
                     ? changeDue.toLocaleString()
                     : isShort
                     ? shortAmount.toLocaleString()
                     : '0'}
-                  <span className="text-[9px] font-sans ml-1 opacity-80">PKR</span>
+                  <span className="text-[10px] font-sans ml-1 opacity-80 font-normal">PKR</span>
                 </div>
               </div>
             </div>
           ) : (
-            /* Non-cash modes (Online, Khata, Split) - Compact & Prominent */
-            <div className="p-1.5 sm:p-2 bg-slate-900 text-white rounded-xl border border-slate-800 space-y-0.5">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-400">{lang === 'ur' ? 'کل بل (Grand Total):' : 'Grand Total:'}</span>
-                <span className="font-mono text-base sm:text-lg font-black text-emerald-400">
-                  {effectiveNetTotal.toLocaleString()} PKR
-                </span>
-              </div>
-              {(paymentMethod === 'CREDIT' || paymentMethod === 'SPLIT') && (
-                <div className="flex justify-between items-center pt-0.5 border-t border-slate-800 text-[10.5px] font-bold">
-                  <span className="text-emerald-400 font-mono">
-                    {lang === 'ur' ? 'نقد وصول:' : 'Paid:'} {amountPaid.toLocaleString()} PKR
-                  </span>
-                  <span className="text-rose-400 font-mono">
-                    {lang === 'ur' ? 'کھاتے میں ادھار:' : 'Khata Due:'} {Math.max(0, effectiveNetTotal - amountPaid).toLocaleString()} PKR
-                  </span>
-                </div>
-              )}
+            <div className="p-3 bg-slate-900 text-white rounded-2xl border border-slate-800 flex justify-between items-center shadow-md">
+              <span className="text-xs font-bold text-slate-400">{lang === 'ur' ? 'کل واجب الادا رقم:' : 'Grand Total:'}</span>
+              <span className="font-mono text-xl sm:text-2xl font-black text-emerald-400">
+                {effectiveNetTotal.toLocaleString()} PKR
+              </span>
             </div>
           )}
 
           {/* Quick Note Pills (1-Click Cash Buttons) */}
           {paymentMethod === 'CASH' && (
-            <div className="flex gap-1 items-center justify-between overflow-x-auto py-0.5 text-xs font-mono font-bold">
+            <div className="flex gap-1.5 items-center justify-between overflow-x-auto py-0.5 text-xs font-mono font-bold">
               <button
                 type="button"
                 onClick={() => {
@@ -1939,7 +1965,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                   setTenderedAmount(effectiveNetTotal);
                   tenderedInputRef.current?.focus();
                 }}
-                className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold active:scale-95 text-center shadow-xs whitespace-nowrap"
+                className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold active:scale-95 text-center shadow-xs whitespace-nowrap cursor-pointer"
               >
                 {lang === 'ur' ? `برابر (${effectiveNetTotal})` : `Exact (${effectiveNetTotal})`}
               </button>
@@ -1952,7 +1978,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     setTenderedAmount(note);
                     tenderedInputRef.current?.focus();
                   }}
-                  className="py-1 px-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-800 dark:text-slate-200 text-[10px] font-bold active:scale-95 shadow-xs whitespace-nowrap"
+                  className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-800 dark:text-slate-200 text-[11px] font-bold active:scale-95 shadow-xs whitespace-nowrap cursor-pointer"
                 >
                   {note}
                 </button>
@@ -1960,29 +1986,147 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* Full-width Instant Complete & Print Button - High Contrast Emerald Green */}
+          {/* ========================================================================= */}
+          {/* 3. PROMINENT COMPLETE BILL & PRINT BUTTON (DONE) (LARGER & HIGH CONTRAST) */}
+          {/* ========================================================================= */}
           <button
             type="button"
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-700/30 border-2 border-emerald-400 ring-2 ring-emerald-500/20 active:scale-95 transition-all"
+            className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950/60 border-2 border-emerald-400 ring-2 ring-emerald-500/30 active:scale-98 transition-all cursor-pointer"
           >
-            <span className="bg-white/20 text-white font-black text-[11px] px-2 py-0.5 rounded font-mono">
+            <span className="bg-slate-950/60 text-emerald-300 font-black text-[11px] px-2 py-0.5 rounded font-mono border border-emerald-500/40">
               Rs.
             </span>
-            <Printer className="w-4 h-4 text-white" />
+            <Printer className="w-5 h-5 text-white" />
             <span>{lang === 'ur' ? '⚡ بل فائنل کریں و پرنٹ (Done)' : '⚡ Complete & Print (Done)'}</span>
-            <span className="px-1.5 py-0.2 rounded bg-black/30 text-[10px] font-mono text-emerald-100 border border-white/20">
+            <span className="px-2 py-0.5 rounded bg-black/40 text-[11px] font-mono text-emerald-100 border border-white/20">
               (Enter / F12)
             </span>
           </button>
         </div>
+
+        {/* ========================================================================= */}
+        {/* 4. COMPACT INVOICE BREAKDOWN SUMMARY CARD                                  */}
+        {/* ========================================================================= */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 space-y-1.5 text-xs shadow-xs shrink-0">
+          <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 font-bold">
+            <span>تعداد اشیاء (Items):</span>
+            <span className="font-mono text-slate-900 dark:text-white font-black">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+          </div>
+          <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 font-bold">
+            <span>سب ٹوٹل (Subtotal):</span>
+            <span className="font-mono text-slate-900 dark:text-white font-black">{cartTotals.subtotal.toLocaleString()} PKR</span>
+          </div>
+          {orderDiscount > 0 && (
+            <div className="flex justify-between items-center text-rose-500 font-bold">
+              <span>رعایت / ڈسکاؤنٹ:</span>
+              <span className="font-mono font-black">- {orderDiscount.toLocaleString()} PKR</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-800 font-black text-sm">
+            <span className="text-slate-800 dark:text-slate-200">خالص واجب الادا (Net):</span>
+            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">{effectiveNetTotal.toLocaleString()} PKR</span>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 5. CANDELA INTERACTIVE TOUCH NUMPAD (FOR INSTANT CASH ENTRY & ZERO GAP)   */}
+        {/* ========================================================================= */}
+        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2 space-y-1.5 shadow-md shrink-0">
+          <div className="flex items-center justify-between px-1 text-[10.5px] font-bold text-slate-400">
+            <span>{lang === 'ur' ? 'کی پیڈ (Touch Numpad)' : 'Touch Numpad'}</span>
+            <span className="font-mono text-emerald-400 text-[10px]">F4 وصولی</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {['7', '8', '9', 'C'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k === 'C' ? 'CLEAR' : k)}
+                className={`h-9 rounded-xl text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs ${
+                  k === 'C'
+                    ? 'bg-rose-950 text-rose-300 border border-rose-800/80 hover:bg-rose-900'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60'
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+            {['4', '5', '6', '00'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k)}
+                className="h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                {k}
+              </button>
+            ))}
+            {['1', '2', '3', '⌫'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleNumpadPress(k === '⌫' ? 'BACK' : k)}
+                className={`h-9 rounded-xl text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs ${
+                  k === '⌫'
+                    ? 'bg-amber-950 text-amber-300 border border-amber-800/80 hover:bg-amber-900'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60'
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+            <div className="col-span-2">
+              <button
+                type="button"
+                onClick={() => handleNumpadPress('0')}
+                className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-emerald-500/60 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                0
+              </button>
+            </div>
+            <div className="col-span-2">
+              <button
+                type="button"
+                onClick={() => {
+                  posSound.playClick();
+                  setTenderedAmount(effectiveNetTotal);
+                  tenderedInputRef.current?.focus();
+                }}
+                className="w-full h-9 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/50 text-xs font-mono font-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                برابر (Exact)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Counter Info Pill */}
+        <div className="px-2.5 py-1 bg-slate-950/60 border border-slate-800 rounded-xl text-[10.5px] font-bold text-slate-400 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>کاؤنٹر #{activeCounter} ({activeCashier?.name || 'کیشیئر'})</span>
+          </div>
+          <span className="font-mono text-emerald-400 text-[10px]">100% کلاؤڈ سنک فعال</span>
+        </div>
+
+        {/* Recent Hold Bills (If Any) */}
+        {heldBills.length > 0 && (
+          <div className="shrink-0">
+            {renderHeldBillsSection()}
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden">
+    <div
+      style={{ backgroundColor: '#e0f2fe' }}
+      className="flex flex-col gap-2.5 min-h-[calc(100dvh-70px)] lg:h-[calc(100vh-70px)] p-2 md:p-3 overflow-y-auto lg:overflow-hidden bg-[#e0f2fe] dark:bg-[#061830] transition-colors"
+    >
       {/* Live Pending WhatsApp Order Alert Strip */}
       {pendingWhatsAppOrdersCount > 0 && (
         <div className="bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-500/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs text-slate-900 dark:text-white shadow-xs">
@@ -2009,7 +2153,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
       )}
 
       {/* 2. SLEEK PROFESSIONAL COMMAND BAR: BARCODE SCANNER, SEARCH & ESSENTIAL TOOLS */}
-      <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-2 shrink-0">
+      <div className="p-2 bg-white/95 dark:bg-slate-900/95 rounded-xl border-2 border-sky-300 dark:border-sky-800 shadow-sm flex items-center gap-2 shrink-0">
         {/* Barcode scanner input (Sleek Compact Pro Input) */}
         <form onSubmit={handleBarcodeSubmit} className="flex-1 max-w-[280px] sm:max-w-[320px] relative">
           <Barcode className="w-4 h-4 absolute left-3 top-2.5 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
@@ -2083,10 +2227,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
               </div>
               {searchResults.length === 0 ? (
                 <div className="p-3 text-center text-xs text-slate-400">
-                  {lang === 'ur' ? 'اس نام سے کوئی آئٹم نہیں ملا' : 'No matching product found'}
+                  {lang === 'ur' ? 'اس نام یا کیٹیگری سے کوئی آئٹم نہیں ملا' : 'No matching product found'}
                 </div>
               ) : (
-                searchResults.slice(0, 8).map((p) => (
+                searchResults.slice(0, 30).map((p) => (
                   <div
                     key={p.id}
                     onClick={() => {
@@ -2097,17 +2241,32 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
                     }}
                     className="flex items-center justify-between p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-all border border-transparent hover:border-emerald-300 dark:hover:border-emerald-800"
                   >
-                    <div>
-                      <div className="font-bold text-xs text-slate-900 dark:text-white">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
                         {p.nameUr && p.nameEn && p.nameUr !== p.nameEn
                           ? `${lang === 'ur' ? p.nameUr : p.nameEn} (${lang === 'ur' ? p.nameEn : p.nameUr})`
                           : p.nameUr || p.nameEn}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {p.barcode} • {p.unit}
+                      <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
+                        <span>{p.barcode}</span>
+                        <span>•</span>
+                        <span>{p.unit}</span>
+                        {p.preset && (
+                          <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[9px] font-bold text-emerald-300">
+                            {p.preset === 'general_store'
+                              ? 'جنرل سٹور'
+                              : p.preset === 'sweets'
+                              ? 'سویٹس / بیکرز'
+                              : p.preset === 'garments'
+                              ? 'گارمنٹس'
+                              : p.preset === 'karyana'
+                              ? 'کریانہ'
+                              : p.preset}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0 mr-2">
                       <span className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
                         {p.salePrice.toLocaleString()} PKR
                       </span>
@@ -2666,14 +2825,14 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ onNavigate }) => {
           </div>
 
           {/* Dedicated Full-Width Candela Billing View: Left is Bill Items Table, Right is Candela Checkout Dock */}
-          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-sky-100/80 dark:bg-[#071328] rounded-2xl border-2 border-sky-300 dark:border-sky-900/60 shadow-md">
             {/* Left Pane: Items in Active Bill */}
-            <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth">
+            <div ref={cartContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-2 scroll-smooth bg-gradient-to-b from-sky-50 via-sky-100/50 to-sky-50 dark:from-[#09152b] dark:to-[#071328]">
               {renderCartItems()}
             </div>
 
             {/* Right Pane: Dedicated Candela Checkout Dock - 100% Fixed, Zero Page Scroll */}
-            <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-850 border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-800 p-2 sm:p-2.5 flex flex-col justify-between min-h-0 shadow-inner overflow-hidden">
+            <div className="w-full md:w-[390px] lg:w-[430px] shrink-0 bg-slate-900 border-t md:border-t-0 md:border-r border-slate-800 text-slate-100 p-2 sm:p-2.5 flex flex-col justify-start min-h-0 shadow-2xl overflow-hidden">
               {renderCheckoutControls()}
             </div>
           </div>
@@ -4161,7 +4320,7 @@ ${businessProfile.nameUr} (${businessProfile.phone})`;
 
               <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-dashed">
                 <p>{lang === 'ur' ? 'بروقت ادائیگی پر آپ کا شکریہ!' : 'Thank you for your timely payment!'}</p>
-                <p className="font-mono">JK Developers Pakistan • 0300-8998381</p>
+                <p className="font-mono" dir="ltr">JK Developers Pakistan • 0300-8998381</p>
               </div>
             </div>
 

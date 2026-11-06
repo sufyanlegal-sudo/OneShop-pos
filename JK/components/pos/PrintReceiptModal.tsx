@@ -514,8 +514,22 @@ ${developerCredit}`;
                       {shopAddress}
                     </div>
                   )}
-                  <div className="text-[10px] font-bold mt-0.5" dir="ltr">
-                    {isUrdu ? `فون: ${businessProfile.phone} | واٹس ایپ: ${businessProfile.whatsapp}` : `Tel: ${businessProfile.phone} | WA: ${businessProfile.whatsapp}`}
+                  <div className="text-[10px] font-bold mt-0.5">
+                    {isUrdu ? (
+                      <span>
+                        <span>فون: </span>
+                        <span dir="ltr" className="phone-number font-mono">{businessProfile.phone}</span>
+                        {businessProfile.whatsapp && (
+                          <>
+                            <span className="mx-1">|</span>
+                            <span>واٹس ایپ: </span>
+                            <span dir="ltr" className="phone-number font-mono">{businessProfile.whatsapp}</span>
+                          </>
+                        )}
+                      </span>
+                    ) : (
+                      <span dir="ltr" className="phone-number">Tel: {businessProfile.phone} | WA: {businessProfile.whatsapp}</span>
+                    )}
                   </div>
                   {businessProfile.ntn && (
                     <div className="text-[9px] font-mono mt-0.5">
@@ -557,7 +571,7 @@ ${developerCredit}`;
                   {invoice.customerPhone && (
                     <div className="flex justify-between font-mono">
                       <span>{phoneTitle}</span>
-                      <span>{invoice.customerPhone}</span>
+                      <span dir="ltr" className="phone-number">{invoice.customerPhone}</span>
                     </div>
                   )}
                   {invoice.tableNo && (
@@ -711,8 +725,9 @@ ${developerCredit}`;
                   <div className="text-[9.5px] font-bold text-black">
                     {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                   </div>
-                  <div className="text-[9.5px] font-mono font-black text-black">
-                    {isUrdu ? 'ہیلپ لائن: 0300-8998381' : 'Helpline: +92 300 8998381'}
+                  <div className="text-[9.5px] font-mono font-black text-black flex items-center justify-center gap-1.5" dir="ltr">
+                    <span className="font-sans">{isUrdu ? 'ہیلپ لائن:' : 'Helpline:'}</span>
+                    <span dir="ltr" className="phone-number font-mono tracking-wider font-black">0300-8998381</span>
                   </div>
                 </div>
               </div>
@@ -817,7 +832,10 @@ ${developerCredit}`;
                   <div className="font-bold text-black">
                     {isUrdu ? 'JK Developers پاکستان' : 'JK Developers Pakistan'}
                   </div>
-                  <div className="font-mono font-bold text-black">0300-8998381</div>
+                  <div className="font-mono font-bold text-black flex items-center justify-center gap-1.5" dir="ltr">
+                    <span className="font-sans">{isUrdu ? 'ہیلپ لائن:' : 'Helpline:'}</span>
+                    <span dir="ltr" className="phone-number font-mono tracking-wider font-black">0300-8998381</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -967,8 +985,9 @@ ${developerCredit}`;
                       <div className="font-black text-slate-900 text-xs">
                         {isUrdu ? 'ادارہ: JK Developers پاکستان' : 'JK Developers Pakistan'}
                       </div>
-                      <div className="text-emerald-700 font-black text-xs mt-0.5">
-                        {isUrdu ? 'ہیلپ لائن: 0300-8998381' : 'Helpline: +92 300 8998381'}
+                      <div className="text-emerald-700 font-black text-xs mt-0.5 flex items-center justify-end gap-1.5" dir="ltr">
+                        <span className="font-sans">{isUrdu ? 'ہیلپ لائن:' : 'Helpline:'}</span>
+                        <span dir="ltr" className="phone-number font-mono tracking-wider">0300-8998381</span>
                       </div>
                     </div>
                   </div>
@@ -1067,10 +1086,11 @@ ${developerCredit}`;
                     <div>
                       <span className="font-black text-emerald-900">★ OneShop POS v2.0 PRO ★</span>
                     </div>
-                    <div className="text-right font-mono">
+                    <div className="text-right font-mono flex items-center justify-end gap-1.5" dir="ltr">
                       <span className="font-bold">{isUrdu ? 'JK Developers پاکستان' : 'JK Developers Pakistan'}</span>
                       <span className="mx-1">•</span>
-                      <span className="font-black text-emerald-700">0300-8998381</span>
+                      <span className="font-sans">{isUrdu ? 'ہیلپ لائن:' : 'Helpline:'}</span>
+                      <span dir="ltr" className="font-black text-emerald-700 phone-number font-mono tracking-wider">0300-8998381</span>
                     </div>
                   </div>
                 </div>

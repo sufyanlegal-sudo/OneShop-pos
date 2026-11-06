@@ -4,6 +4,14 @@ export async function POST(req: Request) {
   try {
     const { userEmail, userName, businessName, phone, action } = await req.json();
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!userEmail || typeof userEmail !== 'string' || !emailRegex.test(userEmail.trim())) {
+      return NextResponse.json(
+        { success: false, message: 'درست ای میل درکار ہے' },
+        { status: 400 }
+      );
+    }
+
     const SUPER_ADMIN_EMAIL = 'jkdevelopers.pk@gmail.com';
     const ADMIN_PHONE = '+923008998381';
 

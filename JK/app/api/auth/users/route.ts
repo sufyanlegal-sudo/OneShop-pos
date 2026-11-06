@@ -1,4 +1,15 @@
 import { NextResponse } from 'next/server';
+import {
+  MASTER_SECURITY_KEY,
+  SUPER_ADMIN_EMAIL,
+  verifySessionToken,
+} from '@/lib/sessionAuth';
+import {
+  getAllUsers,
+  saveAllUsers,
+  calculateRemainingDays,
+  UserRecord,
+} from '@/lib/userDb';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -8,161 +19,101 @@ const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
   'Pragma': 'no-cache',
   'Expires': '0',
-  'Surrogate-Control': 'no-store',
 };
 
-export interface ServerUserLicense {
-  email: string;
-  name: string;
-  businessName?: string;
-  shopName?: string;
-  phone?: string;
-  password?: string;
-  approved: boolean;
-  registeredAt: string;
-  approvedAt?: string;
-}
-
-const DEFAULT_SUPER_ADMIN: ServerUserLicense = {
-  email: 'jkdevelopers.pk@gmail.com',
-  name: 'JK Developers Pakistan (Admin)',
-  businessName: 'JK Developers Pakistan',
-  phone: '0300-8998381',
-  password: 'JK@8998381',
-  approved: true,
-  registeredAt: '2026-01-01T00:00:00.000Z',
-};
-
-// Permanent, ultra-reliable Cloud Database backed by GitHub Gist API
-const GIST_ID = process.env.CLOUD_USERS_GIST_ID || '0811bfe0922e749237ee4ae1a7471b8a';
-const GITHUB_TOKEN =
-  process.env.GITHUB_TOKEN ||
-  ['g', 'h', 'o', '_', 'FRD06u', 'SNZW7b0', 'Vi8ki0', 'EAVV16', 'haHey0', 'oZOei'].join('');
-const GIST_FILENAME = 'registered_users.json';
-
-// In-memory cache for ultra-fast responses
-let memoryCache: ServerUserLicense[] = [
-  DEFAULT_SUPER_ADMIN,
-  {
-    email: 'risingstarpublicschool@gmail.com',
-    name: 'Kamran Rafique',
-    businessName: 'Rising Star School',
-    phone: '0300-1234567',
-    approved: false,
-    registeredAt: '2026-10-30T14:15:00.000Z',
-  },
-];
-let lastFetchTime = 0;
-
-async function fetchFromCloudGist(): Promise<ServerUserLicense[]> {
-  try {
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}?_t=${Date.now()}`, {
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        'User-Agent': 'JK-POS-App',
-        'Accept': 'application/vnd.github.v3+json',
-      },
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const fileData = data?.files?.[GIST_FILENAME]?.content;
-      if (fileData) {
-        const parsed = JSON.parse(fileData);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          if (!parsed.some((u) => u.email.toLowerCase() === DEFAULT_SUPER_ADMIN.email.toLowerCase())) {
-            parsed.unshift(DEFAULT_SUPER_ADMIN);
-          }
-          memoryCache = parsed;
-          lastFetchTime = Date.now();
-          return memoryCache;
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching from Cloud Gist DB:', err);
-  }
-  return memoryCache;
-}
-
-async function saveToCloudGist(users: ServerUserLicense[]): Promise<boolean> {
-  memoryCache = users;
-  lastFetchTime = Date.now();
-  try {
-    const payload = {
-      files: {
-        [GIST_FILENAME]: {
-          content: JSON.stringify(users, null, 2),
-        },
-      },
-    };
-
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        'User-Agent': 'JK-POS-App',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    return res.ok;
-  } catch (err) {
-    console.error('Error updating Cloud Gist DB:', err);
-    return false;
-  }
-}
-
-// GET: Return all registered users (used by Super Admin panel and single-client status poll)
+// GET: Return all users for Super Admin panel or single user status poll
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const checkEmail = searchParams.get('email');
 
-    // Always fetch fresh data directly from Cloud Gist (no stale cache)
-    const users = await fetchFromCloudGist();
+    const users = await getAllUsers();
 
     if (checkEmail) {
       const cleanEmail = checkEmail.trim().toLowerCase();
-      const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      const user = users.find((u) => u.email === cleanEmail);
       if (!user) {
         return NextResponse.json({ success: false, found: false }, { headers: noCacheHeaders });
       }
-      return NextResponse.json({
-        success: true,
-        found: true,
-        approved: Boolean(user.approved),
-        user: {
-          email: user.email,
-          name: user.name,
-          businessName: user.businessName,
-          phone: user.phone,
-          approved: user.approved,
-          registeredAt: user.registeredAt,
+
+      return NextResponse.json(
+        {
+          success: true,
+          found: true,
+          status: user.status,
+          approved: user.status === 'active',
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            shopName: user.shopName || user.businessName,
+            phone: user.phone,
+            status: user.status,
+            role: user.role,
+            approved: user.status === 'active',
+            registeredAt: user.registeredAt,
+            approvedAt: user.approvedAt,
+            durationMonths: user.durationMonths,
+            expiry_date: user.expiry_date,
+            remainingDays: calculateRemainingDays(user.expiry_date),
+          },
         },
-      }, { headers: noCacheHeaders });
+        { headers: noCacheHeaders }
+      );
     }
 
-    // Sanitize users: Never expose passwords in public API responses
+    // Strict Authorization check for full user directory
+    const authHeader = req.headers.get('authorization') || '';
+    const adminKeyHeader = req.headers.get('x-super-admin-key') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+    let isAuthorizedAdmin = false;
+    if (adminKeyHeader && adminKeyHeader.trim() === MASTER_SECURITY_KEY) {
+      isAuthorizedAdmin = true;
+    } else if (token) {
+      const verifyRes = verifySessionToken(token);
+      if (verifyRes.valid && verifyRes.payload?.isSuperAdmin) {
+        isAuthorizedAdmin = true;
+      }
+    }
+
+    if (!isAuthorizedAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: '⛔ غیر مجاز رسائی مسترد! صارفین کی مکمل فہرست دیکھنے کی اجازت صرف تصدیق شدہ سپر ایڈمن کو ہے۔',
+        },
+        { status: 403, headers: noCacheHeaders }
+      );
+    }
+
     const sanitizedUsers = users.map((u) => ({
+      id: u.id,
       email: u.email,
       name: u.name,
-      businessName: u.businessName || u.shopName || '',
+      ownerName: u.ownerName || u.name,
       shopName: u.shopName || u.businessName || '',
+      businessName: u.businessName || u.shopName || '',
       phone: u.phone || '',
-      approved: Boolean(u.approved),
+      status: u.status,
+      role: u.role,
+      approved: u.status === 'active',
       registeredAt: u.registeredAt,
       approvedAt: u.approvedAt,
+      durationMonths: u.durationMonths,
+      expiry_date: u.expiry_date,
+      remainingDays: calculateRemainingDays(u.expiry_date),
     }));
 
-    return NextResponse.json({
-      success: true,
-      users: sanitizedUsers,
-      total: sanitizedUsers.length,
-      timestamp: new Date().toISOString(),
-    }, { headers: noCacheHeaders });
+    return NextResponse.json(
+      {
+        success: true,
+        users: sanitizedUsers,
+        total: sanitizedUsers.length,
+        timestamp: new Date().toISOString(),
+      },
+      { headers: noCacheHeaders }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: 'Server error: ' + error.message },
@@ -177,16 +128,29 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, email, name, businessName, phone, password, masterKey } = body;
 
-    const MASTER_SECURITY_KEY = 'JK@8998381';
-
-    // Strict Cryptographic Authorization: TOGGLE_APPROVAL and DELETE_USER strictly require Super Admin Master Key
+    // Strict Authorization for Admin actions
     if (action === 'TOGGLE_APPROVAL' || action === 'DELETE_USER') {
-      if (!masterKey || masterKey.trim() !== MASTER_SECURITY_KEY) {
-        console.warn(`[SECURITY ALERT] Unauthorized access attempt to ${action} for ${email}`);
+      const authHeader = req.headers.get('authorization') || '';
+      const adminKeyHeader = req.headers.get('x-super-admin-key') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+      let isAuthorized = false;
+      if (masterKey && masterKey.trim() === MASTER_SECURITY_KEY) {
+        isAuthorized = true;
+      } else if (adminKeyHeader && adminKeyHeader.trim() === MASTER_SECURITY_KEY) {
+        isAuthorized = true;
+      } else if (token) {
+        const verifyRes = verifySessionToken(token);
+        if (verifyRes.valid && verifyRes.payload?.isSuperAdmin) {
+          isAuthorized = true;
+        }
+      }
+
+      if (!isAuthorized) {
         return NextResponse.json(
           {
             success: false,
-            message: '⛔ غیر مجاز رسائی مسترد! صرف جے کے ڈویلپرز سپر ایڈمن ہی کسی صارف کی منظوری دینے یا کینسل کرنے کے مجاز ہیں۔',
+            message: '⛔ غیر مجاز رسائی مسترد! صرف سپر ایڈمن ہی یہ کارروائی کر سکتے ہیں۔',
           },
           { status: 403, headers: noCacheHeaders }
         );
@@ -198,107 +162,56 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const users = await fetchFromCloudGist();
+    const users = await getAllUsers();
 
-    // 1. REGISTER
-    if (action === 'REGISTER') {
-      const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-      if (existingIdx >= 0) {
-        // Update user details if re-registering or updating phone/shop
-        const existing = users[existingIdx];
-        users[existingIdx] = {
-          ...existing,
-          name: (name || existing.name || cleanEmail.split('@')[0]).trim(),
-          businessName: (businessName || existing.businessName || 'Business Store').trim(),
-          phone: (phone || existing.phone || '').trim(),
-          password: password || existing.password,
-          approved: Boolean(existing.approved), // Retain current approval state, clients cannot self-approve
-        };
-        await saveToCloudGist(users);
-        return NextResponse.json({
-          success: true,
-          exists: true,
-          approved: users[existingIdx].approved,
-          user: users[existingIdx],
-          message: 'User registered and synchronized',
-        }, { headers: noCacheHeaders });
-      }
-
-      const newUser: ServerUserLicense = {
-        email: cleanEmail,
-        name: (name || cleanEmail.split('@')[0]).trim(),
-        businessName: (businessName || 'Business Store').trim(),
-        phone: (phone || '').trim(),
-        password: password || undefined,
-        approved: false, // ALWAYS false upon registration. Requires manual approval with Super Admin Master Key.
-        registeredAt: new Date().toISOString(),
-      };
-
-      const updatedUsers = [newUser, ...users.filter((u) => u.email.toLowerCase() !== cleanEmail)];
-      await saveToCloudGist(updatedUsers);
-
-      return NextResponse.json({
-        success: true,
-        registered: true,
-        approved: false,
-        user: newUser,
-      }, { headers: noCacheHeaders });
-    }
-
-    // 2. TOGGLE_APPROVAL (Super Admin approves / revokes with verified Master Key)
     if (action === 'TOGGLE_APPROVAL') {
-      const targetUser = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      const targetUser = users.find((u) => u.email === cleanEmail);
       if (!targetUser) {
-        // If not present in DB, create approved user automatically
-        const createdUser: ServerUserLicense = {
-          email: cleanEmail,
-          name: (name || cleanEmail.split('@')[0]).trim(),
-          businessName: (businessName || 'Store').trim(),
-          phone: (phone || '').trim(),
-          approved: true,
-          registeredAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(),
-        };
-        const updatedUsers = [createdUser, ...users];
-        await saveToCloudGist(updatedUsers);
-        return NextResponse.json({ success: true, approved: true }, { headers: noCacheHeaders });
+        return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: noCacheHeaders });
       }
 
-      const newApprovalState = !targetUser.approved;
+      const isNowActive = targetUser.status !== 'active';
+      const updatedStatus = isNowActive ? 'active' : 'blocked';
+      const now = new Date();
+      const expiry = new Date(now);
+      expiry.setFullYear(expiry.getFullYear() + 1);
+
       const updatedUsers = users.map((u) =>
-        u.email.toLowerCase() === cleanEmail
+        u.email === cleanEmail
           ? {
               ...u,
-              approved: newApprovalState,
-              approvedAt: newApprovalState ? new Date().toISOString() : undefined,
+              status: updatedStatus as UserRecord['status'],
+              approved: isNowActive,
+              approvedAt: isNowActive ? now.toISOString() : undefined,
+              expiry_date: isNowActive ? (u.expiry_date || expiry.toISOString()) : u.expiry_date,
+              durationMonths: isNowActive ? (u.durationMonths || 12) : u.durationMonths,
             }
           : u
       );
 
-      await saveToCloudGist(updatedUsers);
+      await saveAllUsers(updatedUsers);
 
       return NextResponse.json({
         success: true,
-        approved: newApprovalState,
+        approved: isNowActive,
+        status: updatedStatus,
         email: cleanEmail,
       }, { headers: noCacheHeaders });
     }
 
-    // 3. DELETE_USER
     if (action === 'DELETE_USER') {
-      if (cleanEmail === DEFAULT_SUPER_ADMIN.email.toLowerCase()) {
+      if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
         return NextResponse.json({ success: false, message: 'Super admin cannot be deleted' }, { status: 400, headers: noCacheHeaders });
       }
-      const updatedUsers = users.filter((u) => u.email.toLowerCase() !== cleanEmail);
-      await saveToCloudGist(updatedUsers);
+      const updatedUsers = users.filter((u) => u.email !== cleanEmail);
+      await saveAllUsers(updatedUsers);
       return NextResponse.json({ success: true, deleted: true }, { headers: noCacheHeaders });
     }
 
     return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400, headers: noCacheHeaders });
   } catch (error: any) {
-    console.error('API auth users POST error:', error);
     return NextResponse.json(
-      { success: false, message: 'Error processing request: ' + error.message },
+      { success: false, message: error.message },
       { status: 500, headers: noCacheHeaders }
     );
   }

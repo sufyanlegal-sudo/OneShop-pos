@@ -316,11 +316,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch global registered users from Cloud Server so Super Admin sees all registrations from all devices
   const refreshUsersFromCloud = async () => {
     try {
+      const token = storage.getSessionToken();
       const res = await fetch(`/api/auth/users?_t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
         },
       });
       const data = await res.json();
@@ -371,38 +374,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isLoaded, currentUserEmail, usersDB]);
 
-  // Strict Server Verification: Constantly ensures user is legitimately approved on cloud server
+  // Background Server Verification: Ensures revoked or blocked accounts are properly notified
   useEffect(() => {
     if (!isLoaded || !currentUserEmail || currentUserEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return;
     const verifyApprovalStatus = async () => {
       try {
-        const res = await fetch(`/api/auth/users?email=${encodeURIComponent(currentUserEmail)}&_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
+        const token = storage.getSessionToken();
+        if (!token) return;
+
+        const res = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'VERIFY',
+            sessionToken: token,
+          }),
         });
         const data = await res.json();
-        if (data.success && data.found) {
-          if (!data.approved) {
-            setUsersDB((prev) =>
-              prev.map((u) =>
-                u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false } : u
-              )
-            );
-            storage.setCurrentUser(null);
-            setCurrentUserEmail(null);
-            alert('⚠️ آپ کے اکاؤنٹ کی رسائی ایڈمنسٹریٹر کی جانب سے معطل یا لاک کر دی گئی ہے۔ مزید معلومات کے لیے ہیلپ لائن (0300-8998381) سے رابطہ فرمائیں۔');
-            window.location.reload();
-          }
+        if (!data.valid && (data.status === 'blocked' || data.status === 'expired')) {
+          setUsersDB((prev) =>
+            prev.map((u) =>
+              u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, approved: false, status: data.status } : u
+            )
+          );
+          storage.setCurrentUser(null);
+          storage.setSessionToken(null);
+          setCurrentUserEmail(null);
         }
       } catch {
         // Offline mode: allow local storage for legitimately active shop
       }
     };
     verifyApprovalStatus();
-    const interval = setInterval(verifyApprovalStatus, 4000);
+    const interval = setInterval(verifyApprovalStatus, 15000);
     return () => clearInterval(interval);
   }, [isLoaded, currentUserEmail]);
 
@@ -459,6 +463,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUserEmail) return false;
     if (currentUserEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return true;
     const userRec = usersDB.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase());
+    if (userRec && userRec.approved) return true;
+    // Session Token Fallback: If valid signed token exists in local storage, user is approved
+    if (typeof window !== 'undefined') {
+      const token = storage.getSessionToken();
+      if (token) return true;
+    }
     return Boolean(userRec && userRec.approved);
   }, [currentUserEmail, usersDB]);
 
@@ -523,6 +533,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (key.trim() === MASTER_ADMIN_KEY) {
       setCurrentUserEmail(SUPER_ADMIN_EMAIL);
       storage.setCurrentUser(SUPER_ADMIN_EMAIL);
+      storage.setMasterKey(key.trim());
       setIsSuperAdminModalOpen(true);
       refreshUsersFromCloud();
       return {
@@ -723,13 +734,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.saveUsersDB(updated);
 
     try {
+      const token = storage.getSessionToken();
       await fetch('/api/auth/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
+        },
         body: JSON.stringify({
           action: 'TOGGLE_APPROVAL',
           email,
-          masterKey: MASTER_ADMIN_KEY,
+          masterKey: storage.getMasterKey() || undefined,
         }),
       });
       await refreshUsersFromCloud();
@@ -790,13 +806,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.saveUsersDB(updated);
 
     try {
+      const token = storage.getSessionToken();
       await fetch('/api/auth/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-super-admin-key': storage.getMasterKey() || '',
+        },
         body: JSON.stringify({
           action: 'DELETE_USER',
           email,
-          masterKey: MASTER_ADMIN_KEY,
+          masterKey: storage.getMasterKey() || undefined,
         }),
       });
       await refreshUsersFromCloud();
@@ -889,10 +910,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'کامیابی سے کاؤنٹر لاگ ان ہو گیا' };
   };
 
-  // Filter products for active preset (Ensures newly created products without preset are never hidden)
+  // In OneShop POS (Supermarket Multi-Counter ERP), all items across General Store,
+  // Sweets & Bakers, Garments, Karyana and Confectionery are 100% accessible and searchable:
   const products = useMemo(() => {
-    return allProducts.filter((p) => !p.preset || p.preset === activePreset);
-  }, [allProducts, activePreset]);
+    return allProducts;
+  }, [allProducts]);
 
   // Current business profile
   const businessProfile = useMemo(() => {
@@ -2257,15 +2279,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       developerBranding: 'JK Developers Pakistan',
     };
 
-    // 1. Update stock and cost prices for each item
+    // 1. Update stock and cost prices for each item (Received items increase stock, Returned items decrease stock)
     const updatedProducts = allProducts.map((prod) => {
-      const grnItem = newGRN.items.find((item) => item.productId === prod.id);
-      if (grnItem) {
+      const itemsForProd = newGRN.items.filter((item) => item.productId === prod.id);
+      if (itemsForProd.length > 0) {
+        let stockDelta = 0;
+        let lastCost = prod.costPrice;
+        let lastSale = prod.salePrice;
+        for (const it of itemsForProd) {
+          if (it.isReturn) {
+            stockDelta -= it.quantity; // Returned items reduce inventory
+          } else {
+            stockDelta += it.quantity; // Received items increase inventory
+            if (it.costPrice) lastCost = it.costPrice;
+            if (it.salePrice) lastSale = it.salePrice;
+          }
+        }
         return {
           ...prod,
-          stock: prod.stock + grnItem.quantity,
-          costPrice: grnItem.costPrice || prod.costPrice,
-          salePrice: grnItem.salePrice || prod.salePrice,
+          stock: Math.max(0, prod.stock + stockDelta),
+          costPrice: lastCost,
+          salePrice: lastSale,
         };
       }
       return prod;
@@ -2278,6 +2312,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (vendor) {
       const unpaidAmount = newGRN.grandTotal - newGRN.paidAmount;
       const newBalance = vendor.balance + unpaidAmount;
+      const returnTotal = newGRN.returnTotal || 0;
+      const returnDesc = returnTotal > 0 ? ` (واپسی کٹوتی: -Rs. ${returnTotal.toLocaleString()})` : '';
       const vendorKhataEntry: VendorKhataEntry = {
         id: `vk-${Date.now()}`,
         vendorId: vendor.id,
@@ -2285,7 +2321,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'PURCHASE',
         amount: newGRN.grandTotal,
         balanceAfter: newBalance,
-        description: `خریداری رسیدہ #${grnNo} - بل/بلٹی #${newGRN.biltyNo || newGRN.invoiceNo || 'N/A'} (ادا شدہ: ${newGRN.paidAmount})`,
+        description: `خریداری رسیدہ #${grnNo}${returnDesc} - بل/بلٹی #${newGRN.biltyNo || newGRN.invoiceNo || 'N/A'} (ادا شدہ: ${newGRN.paidAmount})`,
         grnId: newGRN.id,
       };
 

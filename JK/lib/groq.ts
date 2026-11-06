@@ -1,11 +1,10 @@
 import Groq from 'groq-sdk';
 import { BusinessProfile, Product } from '@/types';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY || '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';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
 export const groqClient = new Groq({
-  apiKey: GROQ_API_KEY,
-  dangerouslyAllowBrowser: true,
+  apiKey: GROQ_API_KEY || 'not_configured',
 });
 
 export function sanitizeChatbotReply(text: string): string {

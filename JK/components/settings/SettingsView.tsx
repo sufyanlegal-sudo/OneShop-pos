@@ -385,7 +385,7 @@ export const SettingsView: React.FC = () => {
                 {lang === 'ur' ? 'آفیشل ڈویلپر ادارہ:' : 'Official Developer Organization:'}
               </span>
               <span className="font-bold text-amber-600 dark:text-amber-400 font-sans">
-                JK Developers Pakistan <span className="text-slate-400 font-mono text-[11px]">(03008998381)</span>
+                JK Developers Pakistan <span dir="ltr" className="text-slate-400 font-mono text-[11px] phone-number">(0300-8998381)</span>
               </span>
             </div>
           </div>
@@ -1187,7 +1187,7 @@ export const SettingsView: React.FC = () => {
             rel="noopener noreferrer"
             className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50"
           >
-            <span>WhatsApp: 03008998381</span>
+            <span>WhatsApp: <span dir="ltr" className="phone-number font-mono">0300-8998381</span></span>
           </a>
         </div>
       </div>

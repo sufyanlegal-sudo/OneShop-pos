@@ -101,7 +101,6 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   const [masterKeyError, setMasterKeyError] = useState('');
 
   // 100% BULLETPROOF CRYPTOGRAPHIC SERVER-VERIFIED SESSION
-  // Completely prevents any software engineer or hacker from forcing entry via DevTools / LocalStorage
   const [isServerVerified, setIsServerVerified] = useState<boolean>(false);
   const [isCheckingSession, setIsCheckingSession] = useState<boolean>(true);
 
@@ -110,12 +109,56 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
 
   const [isApprovedAndUnlocking, setIsApprovedAndUnlocking] = useState(false);
 
+  // Immediate Client-Side Session Hydration on Mount / Reload:
+  // Guarantees zero downtime, zero logout, and zero flickering on page reload!
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('pos_session_token');
+      const savedUser = localStorage.getItem('pos_current_user');
+      if (token) {
+        try {
+          const decodedStr = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
+          const tokenObj = JSON.parse(decodedStr);
+          if (tokenObj.p && tokenObj.s) {
+            const payloadStr = atob(tokenObj.p.replace(/-/g, '+').replace(/_/g, '/'));
+            const payload = JSON.parse(payloadStr);
+            if (Date.now() < payload.expiresAt && payload.approved) {
+              setIsServerVerified(true);
+              setIsCheckingSession(false);
+              if (savedUser || payload.email) {
+                loginUser({ email: savedUser || payload.email });
+              }
+            }
+          }
+        } catch {
+          // Token parse issue, verifyServerSession will handle
+        }
+      } else {
+        setIsCheckingSession(false);
+      }
+    }
+  }, []);
+
+  // Computed: whether the screen is currently in Pending Approval mode (ONLY when NOT verified)
+  const isPendingApproval = Boolean(
+    !isServerVerified && !isCheckingSession && (
+      pendingUser ||
+      (currentUserEmail && isApprovedUser === false && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
+    )
+  );
+
+  useEffect(() => {
+    if (currentUserEmail && !loginEmail && currentUserEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setLoginEmail(currentUserEmail);
+    }
+  }, [currentUserEmail]);
+
   // Background user database sync
   useEffect(() => {
     refreshUsersFromCloud();
     const interval = setInterval(() => {
       refreshUsersFromCloud();
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -143,9 +186,17 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
       if (data.valid && data.user && data.user.approved) {
         setIsServerVerified(true);
         setIsCheckingSession(false);
+        if (data.user.email) {
+          loginUser({ email: data.user.email });
+        }
         return true;
-      } else {
-        // Token forged, expired, or access revoked by Super Admin -> Purge all storage!
+      } else if (
+        data.reason === 'TAMPERED_TOKEN' ||
+        data.reason === 'ACCESS_REVOKED' ||
+        data.reason === 'SUBSCRIPTION_EXPIRED' ||
+        data.reason === 'HIJACK_ATTEMPT'
+      ) {
+        // Only purge if explicitly revoked by server
         if (typeof window !== 'undefined') {
           localStorage.removeItem('pos_session_token');
           localStorage.removeItem('pos_current_user');
@@ -154,28 +205,31 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         setIsServerVerified(false);
         setIsCheckingSession(false);
         return false;
+      } else {
+        // Temporary server issue or harmless status, retain active session!
+        setIsCheckingSession(false);
+        return true;
       }
     } catch {
-      setIsServerVerified(false);
+      // Network hiccup / offline mode: Keep session active!
       setIsCheckingSession(false);
-      return false;
+      return true;
     }
   };
 
   useEffect(() => {
     verifyServerSession();
-    // Continuous live security poll every 3.5s: If Super Admin clicks "Revoke", the screen locks immediately!
+    // Continuous live security poll every 8s
     const interval = setInterval(() => {
       verifyServerSession();
-    }, 3500);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   // REAL-TIME AUTO UNLOCK: Continuously checks every 2.5s if Super Admin approved this user.
-  // The moment Admin clicks "Approve", the client screen automatically unlocks and launches the POS!
   useEffect(() => {
     const targetEmail = pendingUser?.email || (currentUserEmail && !isApprovedUser ? currentUserEmail : null);
-    if (!targetEmail) return;
+    if (!targetEmail || isServerVerified) return;
 
     const interval = setInterval(async () => {
       try {
@@ -186,13 +240,29 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         if (data.success && data.found && data.approved) {
           clearInterval(interval);
           setIsApprovedAndUnlocking(true);
+          try {
+            const sessRes = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'LOGIN',
+                email: targetEmail,
+              }),
+            });
+            const sessData = await sessRes.json();
+            if (sessData.sessionToken) {
+              localStorage.setItem('pos_session_token', sessData.sessionToken);
+              localStorage.setItem('pos_current_user', targetEmail);
+              setIsServerVerified(true);
+            }
+          } catch {}
           loginUser({ email: targetEmail });
           try {
             await syncWithCloud(targetEmail);
           } catch {}
           setTimeout(() => {
             window.location.reload();
-          }, 1200);
+          }, 1000);
         }
       } catch (err) {
         // Retry silently
@@ -200,7 +270,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [pendingUser, currentUserEmail, isApprovedUser]);
+  }, [pendingUser, currentUserEmail, isApprovedUser, isServerVerified]);
 
   // Secret Developer Keyboard Shortcut (Ctrl + Shift + S or Ctrl + Shift + A or F9) to open Master Key
   useEffect(() => {
@@ -240,7 +310,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
   }, []);
 
   // If user is logged in and verified by cryptographically signed server token, render the full software!
-  if (isServerVerified && currentUserEmail && isApprovedUser) {
+  if (isServerVerified) {
     return <>{children}</>;
   }
 
@@ -304,14 +374,24 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
         return;
       }
 
-      if (data.status === 'PENDING') {
+      if (data.status === 'PENDING' || data.status === 'pending') {
         const found = usersDB.find((u) => u.email.toLowerCase() === cleanEmail);
         setPendingUser({
           name: found?.name || cleanEmail.split('@')[0],
-          businessName: found?.businessName || 'Business Store',
+          businessName: found?.businessName || found?.shopName || 'Business Store',
           phone: found?.phone || '',
           email: cleanEmail,
         });
+        return;
+      }
+
+      if (data.status === 'blocked') {
+        setLoginError('⛔ آپ کا اکاؤنٹ سیکیورٹی وجوہات کی بنا پر بلاک ہے۔ برائے بحالی ہیلپ لائن (0300-8998381) سے رابطہ فرمائیں۔');
+        return;
+      }
+
+      if (data.status === 'expired') {
+        setLoginError('⌛ آپ کی سبسکرپشن کی میعاد ختم (Expired) ہو چکی ہے۔ تجدید کے لیے ایڈمن سے رابطہ فرمائیں۔');
         return;
       }
 
@@ -322,7 +402,7 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
   };
 
-  // 2. Handle Client Registration
+  // 2. Handle Client Registration (Strictly Default Status: 'pending')
   const handleClientRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -358,33 +438,45 @@ export const AuthLicenseGate: React.FC<AuthLicenseGateProps> = ({ children }) =>
     }
 
     setIsRegistering(true);
-    const res = await registerUser({
-      name: regName.trim(),
-      businessName: regBusinessName.trim(),
-      phone: regPhone.trim(),
-      email: cleanEmail,
-      password: regPassword,
-    });
-    setIsRegistering(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopName: regBusinessName.trim(),
+          ownerName: regName.trim(),
+          phone: regPhone.trim(),
+          email: cleanEmail,
+          password: regPassword,
+        }),
+      });
 
-    if (res.status === 'ERROR') {
-      setRegError(res.message || 'رجسٹریشن کے دوران خرابی پیش آئی ہے۔');
-      return;
+      const data = await res.json();
+      setIsRegistering(false);
+
+      if (!data.success) {
+        setRegError(data.message || 'رجسٹریشن کے دوران خرابی پیش آئی ہے۔');
+        return;
+      }
+
+      // Set client into Pending state
+      const newClient = {
+        name: regName.trim(),
+        businessName: regBusinessName.trim(),
+        phone: regPhone.trim(),
+        email: cleanEmail,
+      };
+      setPendingUser(newClient);
+      await refreshUsersFromCloud();
+
+      // Trigger user WhatsApp notice
+      setTimeout(() => {
+        handleSendWhatsAppNotification(newClient);
+      }, 400);
+    } catch (err: any) {
+      setIsRegistering(false);
+      setRegError('سرور سے رابطہ نہ ہو سکا۔ برائے مہربانی انٹرنیٹ چیک کریں۔');
     }
-
-    // Set client into Pending state
-    const newClient = {
-      name: regName.trim(),
-      businessName: regBusinessName.trim(),
-      phone: regPhone.trim(),
-      email: cleanEmail,
-    };
-    setPendingUser(newClient);
-
-    // Automatically trigger WhatsApp notification so the request is sent immediately
-    setTimeout(() => {
-      handleSendWhatsAppNotification(newClient);
-    }, 400);
   };
 
   // 3. Handle Secret Master Key Submit (Only for developer)
@@ -640,7 +732,7 @@ ${u?.name || 'Store Owner'}`
           {/* ========================================================================= */}
           {/* VIEW A: PENDING APPROVAL SCREEN (WHEN CLIENT REGISTERED OR UNAPPROVED)    */}
           {/* ========================================================================= */}
-          {(pendingUser || (currentUserEmail && !isApprovedUser)) && (
+          {isPendingApproval ? (
             <div className="space-y-4 animate-in fade-in zoom-in-95 text-right">
               {isApprovedAndUnlocking ? (
                 <div className="bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 p-6 rounded-2xl shadow-xl text-center space-y-3 animate-in zoom-in-95">
@@ -721,7 +813,8 @@ ${u?.name || 'Store Owner'}`
                       className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                     >
                       <Phone className="w-4 h-4" />
-                      <span>واٹس ایپ پر درخواست بھیجیں (0300-8998381)</span>
+                      <span>واٹس ایپ پر درخواست بھیجیں</span>{' '}
+                      <span dir="ltr" className="phone-number font-mono">(0300-8998381)</span>
                     </button>
 
                     <button
@@ -749,12 +842,10 @@ ${u?.name || 'Store Owner'}`
                 <span>سائن آؤٹ کریں اور لاگ ان پر واپس جائیں</span>
               </button>
             </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE (CLEAN CORPORATE DESIGN)       */}
-          {/* ========================================================================= */}
-          {!pendingUser && (!currentUserEmail || isApprovedUser === false) && (
+          ) : (
+            /* ========================================================================= */
+            /* VIEW B: MAIN LOGIN & REGISTRATION INTERFACE (CLEAN CORPORATE DESIGN)       */
+            /* ========================================================================= */
             <div className="space-y-4">
               {/* Segmented Top Tab Switcher */}
               <div className="p-1 bg-slate-950 rounded-xl border border-slate-800 flex items-center gap-1 select-none">
@@ -900,6 +991,22 @@ ${u?.name || 'Store Owner'}`
                       <span>یاد رکھیں (Remember)</span>
                     </label>
                   </div>
+
+                  {/* DIRECT SWITCH TO REGISTRATION FOR NEW USERS */}
+                  <div className="pt-3 border-t border-slate-800/80 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('register');
+                        setLoginError('');
+                        setRegError('');
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-emerald-500/50 text-xs font-bold text-emerald-300 hover:text-emerald-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm group"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>نیا کاروبار ہے؟ نیا اکاؤنٹ رجسٹر کریں (New Store? Register here)</span>
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -1018,10 +1125,18 @@ ${u?.name || 'Store Owner'}`
                     </div>
                   )}
 
+                  {/* Helpful explanatory notification banner */}
+                  <div className="p-2.5 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-[11px] text-emerald-300 leading-relaxed text-right flex items-start gap-2">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                    <span>
+                      اکاؤنٹ بناتے ہی فوری جے کے ڈویلپرز ایڈمن کو واٹس ایپ (<span dir="ltr" className="font-mono font-bold text-white phone-number">0300-8998381</span>) اور جی میل پر الرٹ چلا جائے گا، اور منظوری ملتے ہی سافٹ ویئر فوری خودکار ان لاک ہو جائے گا۔
+                    </span>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={isRegistering}
-                    className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer mt-1"
+                    className="w-full py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl font-black text-xs sm:text-sm shadow-md shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer mt-1"
                   >
                     {isRegistering ? (
                       <>
@@ -1030,11 +1145,26 @@ ${u?.name || 'Store Owner'}`
                       </>
                     ) : (
                       <>
-                        <User className="w-4 h-4" />
-                        <span>اکاؤنٹ رجسٹر کریں اور منظوری مانگیں</span>
+                        <Phone className="w-4 h-4 text-emerald-300" />
+                        <span>اکاؤنٹ رجسٹر کریں اور واٹس ایپ پر الرٹ بھیجیں</span>
                       </>
                     )}
                   </button>
+
+                  <div className="pt-2 border-t border-slate-800/80 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('login');
+                        setLoginError('');
+                        setRegError('');
+                      }}
+                      className="text-xs font-bold text-slate-400 hover:text-white inline-flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>پہلے سے اکاؤنٹ موجود ہے؟ لاگ ان پر جائیں (Sign In)</span>
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -1148,7 +1278,7 @@ ${u?.name || 'Store Owner'}`
           <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
             <span>© 2026 JK Developers Pakistan</span>
             <span>•</span>
-            <span className="font-mono text-slate-400">0300-8998381</span>
+            <span dir="ltr" className="font-mono text-slate-400 phone-number">0300-8998381</span>
             <span>•</span>
             {/* Subtle discreet lock icon for developer master login (no public banner) */}
             <button

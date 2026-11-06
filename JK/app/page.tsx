@@ -95,7 +95,27 @@ export default function Home() {
         <Navbar activeTab={effectiveTab} setActiveTab={setActiveTab} />
 
         {/* Main Tab View Content */}
-        <main className="flex-1">
+        <main
+          style={{
+            backgroundColor:
+              effectiveTab === 'pos'
+                ? '#e0f2fe'
+                : effectiveTab === 'inventory'
+                ? '#e8f7ee'
+                : effectiveTab === 'grn'
+                ? '#020617'
+                : undefined,
+          }}
+          className={`flex-1 transition-colors ${
+            effectiveTab === 'pos'
+              ? 'bg-[#e0f2fe] dark:bg-[#061830]'
+              : effectiveTab === 'inventory'
+              ? 'bg-[#e8f7ee] dark:bg-[#071e15]'
+              : effectiveTab === 'grn'
+              ? 'bg-slate-950 text-slate-100'
+              : ''
+          }`}
+        >
           {effectiveTab === 'pos' && <PosTerminal onNavigate={setActiveTab} />}
           {effectiveTab === 'billsHistory' && <BillsHistoryView />}
           {effectiveTab === 'grn' && <GRNView />}
