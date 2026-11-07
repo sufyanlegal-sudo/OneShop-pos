@@ -139,6 +139,24 @@ export const defaultBusinessProfiles: Record<string, BusinessProfile> = {
     adminPin: '1234',
     currency: 'PKR',
   },
+  other: {
+    id: 'other-1',
+    preset: 'other',
+    softwareName: 'OneShop POS',
+    nameEn: 'My Retail Business (Book Shop, Pharmacy & General Store)',
+    nameUr: 'میرا کاروبار و جنرل ریٹیل (بک شاپ، میڈیکل، ہارڈویئر و دیگر)',
+    taglineEn: 'Quality Products, Books, Medical Supplies, Stationery & Retail Goods',
+    taglineUr: 'اعلیٰ معیار کی اشیاء، کتب، ادویات، اسٹیشنری، موبائل و عام پرچون سامان',
+    addressEn: 'Main Commercial Market, Pakistan',
+    addressUr: 'مین کمرشل مارکیٹ، پاکستان',
+    branch: 'Main Branch',
+    phone: '0300-1234567',
+    whatsapp: '+923001234567',
+    ntn: 'NTN-0000000-0',
+    logoUrl: '',
+    adminPin: '1234',
+    currency: 'PKR',
+  },
 };
 
 import seedProductsJson from '@/data/seedProducts.json';

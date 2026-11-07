@@ -1,4 +1,4 @@
-export type BusinessPresetType = 'karyana' | 'general_store' | 'garments' | 'sweets' | 'confectionery' | 'restaurant';
+export type BusinessPresetType = 'karyana' | 'general_store' | 'garments' | 'sweets' | 'confectionery' | 'restaurant' | 'other';
 
 export type Language = 'ur' | 'en';
 

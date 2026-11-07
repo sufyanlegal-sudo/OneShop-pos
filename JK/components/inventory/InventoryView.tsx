@@ -1238,6 +1238,16 @@ export const InventoryView: React.FC = () => {
                       .map((cat) => (
                         <option key={cat} value={cat} />
                       ))}
+                    <option value="ادویات و سیرپ (Medicines & Syrups)" />
+                    <option value="ٹیبلٹس و کیپسول (Tablets & Capsules)" />
+                    <option value="سرجیکل و بینڈیج (Surgical & Bandages)" />
+                    <option value="کتب و دینی کتب (Books & Religious)" />
+                    <option value="اسٹیشنری و کاپیاں (Stationery & Notebooks)" />
+                    <option value="سکول بیگز و بیگز (School Bags)" />
+                    <option value="موبائل اسیسریز و چارجرز (Mobile Accessories)" />
+                    <option value="ہارڈویئر و اوزار (Hardware & Tools)" />
+                    <option value="الیکٹرانکس و برقی سامان (Electronics)" />
+                    <option value="کاسمیٹکس و پرفیومز (Cosmetics & Perfumes)" />
                   </datalist>
                 </div>
 
